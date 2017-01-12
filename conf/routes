@@ -1,0 +1,13 @@
+GET         /                        controllers.Home.drop
+GET         /pics                    controllers.Home.list
+#GET         /pics/*key           controllers.Home.pic(key: com.malliina.pics.Key)
+POST        /pics                    controllers.Home.put
+POST        /pics/*key/delete        controllers.Home.remove(key: com.malliina.pics.Key)
+POST        /pics/delete             controllers.Home.delete
+GET         /logout                  controllers.Home.logout
+GET         /assets/*file            controllers.Assets.at(path = "/public", file)
+GET         /oauth                   controllers.Admin.initiate
+GET         /oauthcb                 controllers.Admin.redirResponse
+GET         /eject                   controllers.Home.eject
+GET         /*key/thumb              controllers.Home.thumb(key: com.malliina.pics.Key)
+GET         /*key                    controllers.Home.pic(key: com.malliina.pics.Key)
