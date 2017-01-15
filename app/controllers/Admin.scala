@@ -5,7 +5,8 @@ import com.malliina.play.controllers.OAuthControl
 import play.api.mvc.{Call, RequestHeader}
 
 class Admin(val mat: Materializer) extends OAuthControl(mat) {
-  override def isAuthorized(email: String): Boolean = email == "malliina123@gmail.com"
+  override def isAuthorized(email: String): Boolean =
+    email == "malliina123@gmail.com"
 
   // temp hack
   override def redirURL(request: RequestHeader): String =
