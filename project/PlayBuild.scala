@@ -15,7 +15,7 @@ object PlayBuild {
 
   lazy val picsSettings = linuxSettings ++ Seq(
     organization := "com.malliina",
-    version := "0.0.2",
+    version := "0.0.3",
     scalaVersion := "2.11.8",
     resolvers ++= Seq(
       Resolver.jcenterRepo,

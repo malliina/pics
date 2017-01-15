@@ -110,7 +110,7 @@ class Home(files: PicFiles, oauth: Admin, cache: Cached, wsClient: WSClient)
       val renamedFile = tempPath resolveSibling s"$name.$ext"
       tempFile renameTo renamedFile.toFile
       files.put(key, renamedFile)
-      val url: String = routes.Home.pic(key).absoluteURL()(req)
+      val url = routes.Home.pic(key)
       log info s"Saved file ${file.filename} as $key"
       //Redirect(routes.Home.drop()).flashing(CreatedKey -> s"$url")
       Accepted(Json.obj(Message -> s"Created $url")).withHeaders(
