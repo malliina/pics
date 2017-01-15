@@ -33,7 +33,8 @@ object KeyEntry {
     KeyEntry(
       key,
       routes.Home.pic(key),
-      routes.Home.thumb(key))
+      routes.Home.thumb(key)
+    )
 }
 
 class Home(files: PicFiles, oauth: Admin, cache: Cached, wsClient: WSClient)

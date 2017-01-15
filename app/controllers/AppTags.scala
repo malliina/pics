@@ -9,8 +9,10 @@ import play.api.mvc.Call
 import scalatags.Text.all._
 
 object AppTags {
+  val CopyButton = "copy-button"
   val True = "true"
   val False = "false"
+  val dataIdAttr = attr("data-id")
 
   def drop(created: Option[KeyEntry], user: Username) =
     baseIndex("drop", user, deferredJs("drop.js"))(
@@ -55,6 +57,8 @@ object AppTags {
                 ),
                 divClass("caption")(
                   aHref(entry.url)(entry.key.key),
+                  " ",
+                  a(role := Button, attr("tabindex") := 0, `class` := s"$BtnDefault $BtnXs $CopyButton", dataIdAttr := entry.url.path(), dataToggle := "popover", attr("data-content") := "Copied!")("Copy"),
                   postableForm(routes.Home.remove(entry.key))(
                     submitButton(`class` := s"$BtnDanger $BtnXs")("Delete")
                   )
