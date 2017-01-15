@@ -26,15 +26,14 @@ object UserFeedback {
       .orElse(flash.get(Message).map(UserFeedback(_, isSuccess = true)))
 }
 
-case class KeyEntry(key: Key, url: String, thumb: String)
+case class KeyEntry(key: Key, url: Call, thumb: Call)
 
 object KeyEntry {
-  def apply(key: Key, req: RequestHeader): KeyEntry =
+  def apply(key: Key): KeyEntry =
     KeyEntry(
       key,
-      routes.Home.pic(key).absoluteURL()(req),
-      routes.Home.thumb(key).absoluteURL()(req)
-    )
+      routes.Home.pic(key),
+      routes.Home.thumb(key))
 }
 
 class Home(files: PicFiles, oauth: Admin, cache: Cached, wsClient: WSClient)
@@ -52,13 +51,13 @@ class Home(files: PicFiles, oauth: Admin, cache: Cached, wsClient: WSClient)
   val deleteForm: Form[Key] = Form(mapping(KeyKey -> nonEmptyText)(Key.apply)(Key.unapply))
 
   def drop = authAction { req =>
-    val created = req.flash.get(CreatedKey).map(k => KeyEntry(Key(k), req))
+    val created = req.flash.get(CreatedKey).map(k => KeyEntry(Key(k)))
     Ok(AppTags.drop(created, req.user))
   }
 
   def list = authAction { req =>
     val keys = files.load(0, 100)
-    val entries = keys map { key => KeyEntry(key, req) }
+    val entries = keys map { key => KeyEntry(key) }
     val feedback = UserFeedback.forFlash(req.flash)
     Ok(AppTags.pics(entries, feedback, req.user))
   }
