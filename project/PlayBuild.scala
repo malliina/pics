@@ -35,7 +35,6 @@ object PlayBuild {
     httpsPort in Linux := Option("8459"),
     PackagerKeys.maintainer := "Michael Skogberg <malliina123@gmail.com>",
     manufacturer := "Skogberg Labs",
-    mainClass := Some("com.malliina.app.Starter"),
     javaOptions in Universal ++= {
       val linuxName = (name in Linux).value
       Seq(
