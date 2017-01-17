@@ -11,11 +11,11 @@ import sbt._
 object PlayBuild {
   lazy val p = PlayProject.default("pics").settings(picsSettings: _*)
 
-  val utilPlayDep = "com.malliina" %% "util-play" % "3.3.3"
+  val utilPlayDep = "com.malliina" %% "util-play" % "3.4.0"
 
   lazy val picsSettings = linuxSettings ++ Seq(
     organization := "com.malliina",
-    version := "0.0.3",
+    version := "0.1.0",
     scalaVersion := "2.11.8",
     resolvers ++= Seq(
       Resolver.jcenterRepo,
