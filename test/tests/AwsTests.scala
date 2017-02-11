@@ -19,7 +19,7 @@ class AwsTests extends FunSuite {
   implicit val mat = ActorMaterializer()(ActorSystem("test"))
   implicit val ec = mat.executionContext
 
-  test("create bucket, save file, delete bucket") {
+  ignore("create bucket, save file, delete bucket") {
     withBucket { aws =>
       aws.putObject(bucketName, objectKey, testContent)
 

@@ -9,11 +9,6 @@ import play.api.test.Helpers._
 class TestAppSuite extends AppSuite(new AppComponents(_))
 
 class AppTests extends TestAppSuite {
-
-  test("can access a component of the running test app") {
-    assert(components.secretService.secret === 42)
-  }
-
   test("can make request") {
     val result = makeRequest(FakeRequest(GET, "/"))
     assert(result.header.status === 303)

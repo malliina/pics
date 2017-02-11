@@ -18,7 +18,6 @@ class AppComponents(context: Context)
     with AhcWSComponents {
 
   lazy val assets = new Assets(httpErrorHandler)
-  val secretService = SecretService
   val picService = BucketFiles.forBucket(BucketName("malliina-pics"))
   lazy val cache = new Cached(defaultCacheApi)
 
