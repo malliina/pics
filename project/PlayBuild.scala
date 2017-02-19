@@ -11,7 +11,7 @@ import sbt._
 object PlayBuild {
   lazy val p = PlayProject.default("pics").settings(picsSettings: _*)
 
-  val utilPlayDep = "com.malliina" %% "util-play" % "3.4.0"
+  val utilPlayDep = "com.malliina" %% "util-play" % "3.5.3"
 
   lazy val picsSettings = linuxSettings ++ Seq(
     organization := "com.malliina",

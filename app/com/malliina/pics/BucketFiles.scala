@@ -25,7 +25,7 @@ class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends PicFiles {
     else loadAcc(desiredSize, aws.listNextBatchOfObjects(current), newAcc)
   }
 
-  override def contains(key: Key) =
+  override def contains(key: Key): Boolean =
     aws.doesObjectExist(bucketName, key.key)
 
   override def get(key: Key): DataStream = {
@@ -38,9 +38,8 @@ class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends PicFiles {
     )
   }
 
-  override def put(key: Key, file: Path): Unit = {
+  override def put(key: Key, file: Path): Unit =
     aws.putObject(bucketName, key.key, file.toFile)
-  }
 
   override def remove(key: Key): Unit =
     aws.deleteObject(bucketName, key.key)
