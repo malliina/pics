@@ -26,7 +26,42 @@
     padding-top: 60px;
 }
 
+.pics {
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.gallery {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.thumbnail {
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.pic {
+    max-width: 320px;
+    max-height: 320px;
+    text-align: center;
+}
+
 .thumb {
-    //height: 100px;
-    //width: 100px;
+    max-height: 100%;
+}
+
+.caption {
+    width: 100%;
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+}
+
+.pic-link {
+    margin-left: auto;
+    margin-right: 5px;
 }

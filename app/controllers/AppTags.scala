@@ -16,58 +16,63 @@ object AppTags {
 
   def drop(created: Option[KeyEntry], user: Username) =
     baseIndex("drop", user, deferredJs("drop.js"))(
-      div(`class` := "upload-drop-zone", id := "drop-zone")(
-        strong("Drag files here")
-      ),
-      tag("progress")(id := "progress", min := "0", max := "100", value := "0")(0),
-      div(id := "feedback"),
-      created.fold(empty) { key =>
-        Seq[Modifier]("Saved ", aHref(key.url)(key.key.key))
-      }
+      divContainer(
+        div(`class` := "upload-drop-zone", id := "drop-zone")(
+          strong("Drag files here")
+        ),
+        tag("progress")(id := "progress", min := "0", max := "100", value := "0")(0),
+        div(id := "feedback"),
+        created.fold(empty) { key =>
+          Seq[Modifier]("Saved ", aHref(key.url)(key.key.key))
+        }
+      )
     )
 
   def pics(urls: Seq[KeyEntry], feedback: Option[UserFeedback], user: Username) =
     baseIndex("pics", user, deferredJs("pics.js"))(
-      feedback.fold(empty) { fb =>
-        if (fb.isSuccess) alertSuccess(fb.message)
-        else alertDanger(fb.message)
-      },
-      fullRow(
-        p(
-          postableForm(routes.Home.delete(), `class` := "form-inline", id := "delete-form")(
-            divClass(FormGroup)(
-              divClass(InputGroup)(
-                divClass(InputGroupAddon)("pics/"),
-                input(`type` := Text, `class` := FormControl, name := "key", id := "key-to-delete", placeholder := "key")
-              )
-            ),
-            submitButton(`class` := BtnDanger)("Delete")
+      divClass("pics")(
+        feedback.fold(empty) { fb =>
+          if (fb.isSuccess) alertSuccess(fb.message)
+          else alertDanger(fb.message)
+        },
+        fullRow(
+          p(
+            postableForm(routes.Home.delete(), `class` := "form-inline", id := "delete-form")(
+              divClass(FormGroup)(
+                divClass(InputGroup)(
+                  divClass(InputGroupAddon)("pics/"),
+                  input(`type` := Text, `class` := FormControl, name := "key", placeholder := "key")
+                )
+              ),
+              submitButton(`class` := BtnDanger)("Delete")
+            )
           )
-        )
-      ),
-      if (urls.isEmpty) {
-        leadPara("No pictures.")
-      } else {
-        divClass("row")(
-          urls map { entry =>
-            divClass("col-md-2 col-sm-6")(
+        ),
+        if (urls.isEmpty) {
+          leadPara("No pictures.")
+        } else {
+          divClass("gallery")(
+            urls map { entry =>
               divClass("thumbnail")(
-                aHref(entry.url)(
-                  img(src := entry.thumb, alt := entry.key.key, `class` := "img-responsive thumb")
+                divClass("pic")(
+                  aHref(entry.url)(
+                    img(src := entry.thumb, alt := entry.key.key, `class` := "thumb")
+                  )
                 ),
                 divClass("caption")(
-                  aHref(entry.url)(entry.key.key),
-                  " ",
-                  a(role := Button, attr("tabindex") := 0, `class` := s"$BtnDefault $BtnXs $CopyButton", dataIdAttr := entry.url.path(), dataToggle := "popover", attr("data-content") := "Copied!")("Copy"),
-                  postableForm(routes.Home.remove(entry.key))(
-                    submitButton(`class` := s"$BtnDanger $BtnXs")("Delete")
-                  )
+                  div(
+                    postableForm(routes.Home.remove(entry.key))(
+                      submitButton(`class` := s"$BtnDanger $BtnXs")("Delete")
+                    )
+                  ),
+                  divClass("pic-link")(aHref(entry.url)(entry.key.key)),
+                  div(a(role := Button, attr("tabindex") := 0, `class` := s"$BtnDefault $BtnXs $CopyButton", dataIdAttr := entry.url.path(), dataToggle := "popover", attr("data-content") := "Copied!")("Copy"))
                 )
               )
-            )
-          }
-        )
-      }
+            }
+          )
+        }
+      )
     )
 
   def eject(message: Option[String]) =
@@ -112,7 +117,7 @@ object AppTags {
           )
         )
       ),
-      divClass(Container)(inner)
+      inner
     )
   }
 
