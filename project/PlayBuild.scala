@@ -4,18 +4,20 @@ import com.malliina.sbt.unix.LinuxPlugin
 import com.malliina.sbtplay.PlayProject
 import com.typesafe.sbt.packager.{Keys => PackagerKeys}
 import com.typesafe.sbt.SbtNativePackager._
+import com.typesafe.sbt.packager.archetypes.ServerLoader
 import play.sbt.PlayImport
 import sbt.Keys._
 import sbt._
 
 object PlayBuild {
-  lazy val p = PlayProject.default("pics").settings(picsSettings: _*)
+  lazy val p = PlayProject.default("pics")
+    .settings(picsSettings: _*)
 
   val utilPlayDep = "com.malliina" %% "util-play" % "3.5.3"
 
   lazy val picsSettings = linuxSettings ++ Seq(
     organization := "com.malliina",
-    version := "0.1.0",
+    version := "0.1.1",
     scalaVersion := "2.11.8",
     resolvers ++= Seq(
       Resolver.jcenterRepo,
@@ -44,6 +46,7 @@ object PlayBuild {
       )
     },
     PackagerKeys.packageSummary in Linux := "This is the pics summary.",
-    PackagerKeys.rpmVendor := "Skogberg Labs"
+    PackagerKeys.rpmVendor := "Skogberg Labs",
+    PackagerKeys.serverLoading in Debian := ServerLoader.Systemd
   )
 }
