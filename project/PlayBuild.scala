@@ -9,7 +9,7 @@ import sbt.Keys._
 import sbt._
 
 object PlayBuild {
-  lazy val p = PlayProject.default("pics")
+  lazy val p = PlayProject.server("pics")
     .settings(picsSettings: _*)
 
   val utilPlayDep = "com.malliina" %% "util-play" % "3.6.8"
