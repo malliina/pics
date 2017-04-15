@@ -27,7 +27,7 @@ object PlayBuild {
     )
   )
 
-  def linuxSettings = LinuxPlugin.playSettings ++ Seq(
+  def linuxSettings = Seq(
     httpPort in Linux := Option("disabled"),
     httpsPort in Linux := Option("8459"),
     maintainer := "Michael Skogberg <malliina123@gmail.com>",
