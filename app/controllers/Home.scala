@@ -1,8 +1,9 @@
 package controllers
 
+import buildinfo.BuildInfo
 import com.malliina.pics.{ContentType, DataStream, Key, PicFiles}
 import com.malliina.play.auth.{AuthFailure, UserAuthenticator}
-import com.malliina.play.controllers.{AuthBundle, BaseSecurity, OAuthControl}
+import com.malliina.play.controllers.{AuthBundle, BaseSecurity, Caching, OAuthControl}
 import com.malliina.play.http.AuthedRequest
 import controllers.Home._
 import org.apache.commons.io.FilenameUtils
@@ -74,16 +75,19 @@ class Home(files: PicFiles,
            security: BaseSecurity[AuthedRequest]) {
   val deleteForm: Form[Key] = Form(mapping(KeyKey -> nonEmptyText)(Key.apply)(Key.unapply))
 
-  def drop = security.authAction { user =>
+  def ping = Action(Caching.NoCache {
+    Ok(Json.obj("name" -> BuildInfo.name, "version" -> BuildInfo.version))
+  })
 
-    val created = user.request.flash.get(CreatedKey).map(k => KeyEntry(Key(k)))
+  def drop = security.authAction { user =>
+    val created = user.rh.flash.get(CreatedKey).map(k => KeyEntry(Key(k)))
     Ok(AppTags.drop(created, user.user))
   }
 
   def list = security.authAction { user =>
     val keys = files.load(0, 100)
     val entries = keys map { key => KeyEntry(key) }
-    val feedback = UserFeedback.forFlash(user.request.flash)
+    val feedback = UserFeedback.forFlash(user.rh.flash)
     Ok(AppTags.pics(entries, feedback, user.user))
   }
 

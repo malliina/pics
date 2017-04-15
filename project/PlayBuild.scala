@@ -12,11 +12,11 @@ object PlayBuild {
   lazy val p = PlayProject.server("pics")
     .settings(picsSettings: _*)
 
-  val utilPlayDep = "com.malliina" %% "util-play" % "3.6.8"
+  val utilPlayDep = "com.malliina" %% "util-play" % "3.6.9"
 
   lazy val picsSettings = linuxSettings ++ Seq(
     organization := "com.malliina",
-    version := "0.1.3",
+    version := "0.1.4",
     scalaVersion := "2.11.8",
     libraryDependencies ++= Seq(
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.119",
