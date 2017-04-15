@@ -1,13 +1,17 @@
 package controllers
 
 import com.malliina.pics.{ContentType, DataStream, Key, PicFiles}
-import com.malliina.play.controllers.OAuthSecured
+import com.malliina.play.auth.{AuthFailure, UserAuthenticator}
+import com.malliina.play.controllers.{AuthBundle, BaseSecurity, OAuthControl}
+import com.malliina.play.http.AuthedRequest
+import controllers.Home._
 import org.apache.commons.io.FilenameUtils
 import play.api.Logger
 import play.api.cache.Cached
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.http.{HeaderNames, HttpEntity, MimeTypes}
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json.Json
 import play.api.libs.ws.{StreamedResponse, WSClient}
 import play.api.mvc.Results._
@@ -18,8 +22,8 @@ import scala.concurrent.Future
 case class UserFeedback(message: String, isSuccess: Boolean)
 
 object UserFeedback {
-  val Message = "message"
   val ErrorMessage = "error-message"
+  val Message = "message"
 
   def forFlash(flash: Flash) =
     flash.get(ErrorMessage).map(UserFeedback(_, isSuccess = false))
@@ -37,37 +41,57 @@ object KeyEntry {
     )
 }
 
-class Home(files: PicFiles, oauth: Admin, cache: Cached, wsClient: WSClient)
-  extends OAuthSecured(oauth, oauth.mat) {
-
+object Home {
   private val log = Logger(getClass)
+
   val binaryContentType = ContentType(MimeTypes.BINARY)
 
   val CreatedKey = "created"
-  val XKey = "X-Key"
+  val KeyKey = "key"
   val Message = "message"
   val Reason = "reason"
-  val KeyKey = "key"
+  val XKey = "X-Key"
 
-  val deleteForm: Form[Key] = Form(mapping(KeyKey -> nonEmptyText)(Key.apply)(Key.unapply))
+  def auth(oauth: OAuthControl): AuthBundle[AuthedRequest] = {
+    val sessionAuth = UserAuthenticator.session(oauth.sessionUserKey)
+      .transform((req, user) => Right(AuthedRequest(user, req)))
+    new AuthBundle[AuthedRequest] {
+      override val authenticator = sessionAuth
 
-  def drop = authAction { req =>
-    val created = req.flash.get(CreatedKey).map(k => KeyEntry(Key(k)))
-    Ok(AppTags.drop(created, req.user))
+      override def onUnauthorized(failure: AuthFailure) =
+        Results.Redirect(oauth.startOAuth)
+    }
   }
 
-  def list = authAction { req =>
+  def security(oauth: OAuthControl): BaseSecurity[AuthedRequest] =
+    new BaseSecurity(auth(oauth), oauth.mat)
+}
+
+class Home(files: PicFiles,
+           oauth: Admin,
+           cache: Cached,
+           wsClient: WSClient,
+           security: BaseSecurity[AuthedRequest]) {
+  val deleteForm: Form[Key] = Form(mapping(KeyKey -> nonEmptyText)(Key.apply)(Key.unapply))
+
+  def drop = security.authAction { user =>
+
+    val created = user.request.flash.get(CreatedKey).map(k => KeyEntry(Key(k)))
+    Ok(AppTags.drop(created, user.user))
+  }
+
+  def list = security.authAction { user =>
     val keys = files.load(0, 100)
     val entries = keys map { key => KeyEntry(key) }
-    val feedback = UserFeedback.forFlash(req.flash)
-    Ok(AppTags.pics(entries, feedback, req.user))
+    val feedback = UserFeedback.forFlash(user.request.flash)
+    Ok(AppTags.pics(entries, feedback, user.user))
   }
 
   def pic(key: Key) = Action {
     files.find(key).fold(keyNotFound(key))(streamData)
   }
 
-  def thumb(key: Key) = authActionAsync { _ =>
+  def thumb(key: Key) = security.authActionAsync { _ =>
     files.find(key).fold(Future.successful(keyNotFound(key))) { stream =>
       val contentType = stream.contentType
       val isImage = contentType.exists(_.contentType startsWith "image")
@@ -76,13 +100,9 @@ class Home(files: PicFiles, oauth: Admin, cache: Cached, wsClient: WSClient)
     }
   }
 
-  def delete = authenticatedLogged(_ => deleteNoAuth)
+  def delete = security.authenticatedLogged(_ => deleteNoAuth)
 
-  private def deleteNoAuth = Action(BodyParsers.parse.form(deleteForm)) { req =>
-    removeKey(req.body)
-  }
-
-  def remove(key: Key) = authAction { _ =>
+  def remove(key: Key) = security.authAction { _ =>
     removeKey(key)
   }
 
@@ -91,14 +111,18 @@ class Home(files: PicFiles, oauth: Admin, cache: Cached, wsClient: WSClient)
     if (files contains key) {
       files remove key
       log info s"Removed $key"
-      redir.flashing(UserFeedback.Message -> s"Deleted $key")
+      redir.flashing(UserFeedback.Message -> s"Deleted key '$key'.")
     } else {
-      redir.flashing(UserFeedback.ErrorMessage -> s"Key not found: $key")
+      redir.flashing(UserFeedback.ErrorMessage -> s"Key not found: '$key'.")
     }
   }
 
-  def put = authenticatedLogged { _ =>
+  def put = security.authenticatedLogged { _ =>
     putNoAuth
+  }
+
+  private def deleteNoAuth = Action(BodyParsers.parse.form(deleteForm)) { req =>
+    removeKey(req.body)
   }
 
   private def putNoAuth = Action(BodyParsers.parse.multipartFormData) { req =>
@@ -112,9 +136,9 @@ class Home(files: PicFiles, oauth: Admin, cache: Cached, wsClient: WSClient)
       tempFile renameTo renamedFile.toFile
       files.put(key, renamedFile)
       val url = routes.Home.pic(key)
-      log info s"Saved file ${file.filename} as $key"
+      log info s"Saved file '${file.filename}' as '$key'."
       //Redirect(routes.Home.drop()).flashing(CreatedKey -> s"$url")
-      Accepted(Json.obj(Message -> s"Created $url")).withHeaders(
+      Accepted(Json.obj(Message -> s"Created '$url'.")).withHeaders(
         HeaderNames.LOCATION -> url.toString,
         XKey -> key.key
       )
@@ -123,9 +147,13 @@ class Home(files: PicFiles, oauth: Admin, cache: Cached, wsClient: WSClient)
     }
   }
 
-  def logout = authAction(_ => oauth.ejectWith(oauth.logoutMessage).withNewSession)
+  def logout = security.authAction { _ =>
+    oauth.ejectWith(oauth.logoutMessage).withNewSession
+  }
 
-  def eject = logged(Action(req => Ok(AppTags.eject(req.flash.get(oauth.messageKey)))))
+  def eject = security.logged(Action { req =>
+    Ok(AppTags.eject(req.flash.get(oauth.messageKey)))
+  })
 
   def streamData(stream: DataStream) =
     Ok.sendEntity(

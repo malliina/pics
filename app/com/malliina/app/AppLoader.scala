@@ -23,11 +23,10 @@ class AppComponents(context: Context, creds: GoogleOAuthCredentials, pics: PicFi
     with AhcWSComponents {
 
   lazy val assets = new Assets(httpErrorHandler)
-  val picService = pics
   lazy val cache = new Cached(defaultCacheApi)
 
   lazy val admin = new Admin(creds, materializer)
-  lazy val home = new Home(picService, admin, cache, wsClient)
+  lazy val home = new Home(pics, admin, cache, wsClient, Home.security(admin))
 
   override val router: Router = new Routes(httpErrorHandler, home, assets, admin)
 }
