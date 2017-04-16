@@ -31,11 +31,13 @@ object PlayBuild {
     releaseProcess := {
       if (checkSnapshot.value) {
         Seq[ReleaseStep](
+          releaseStepTask(clean in Compile),
           checkSnapshotDependencies,
           runTest
         )
       } else {
         Seq[ReleaseStep](
+          releaseStepTask(clean in Compile),
           checkSnapshotDependencies,
           inquireVersions,
           runTest,
@@ -46,8 +48,7 @@ object PlayBuild {
           pushChanges
         )
       }
-    },
-    ciBuild := (ciBuild dependsOn (clean in Compile)).value
+    }
   )
 
   def linuxSettings = Seq(
