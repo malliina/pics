@@ -10,8 +10,6 @@ import sbtrelease.ReleasePlugin.autoImport._
 import sbtrelease.ReleaseStateTransformations._
 
 object PlayBuild {
-  val checkSnapshot = settingKey[Boolean]("Checks whether the current version is a snapshot version.")
-
   lazy val p = PlayProject.server("pics")
     .settings(picsSettings: _*)
 
@@ -27,27 +25,13 @@ object PlayBuild {
       utilPlayDep,
       utilPlayDep % Test classifier "tests"
     ),
-    checkSnapshot := version.value.endsWith("-SNAPSHOT"),
     releaseProcess := {
-      if (checkSnapshot.value) {
-        Seq[ReleaseStep](
-          releaseStepTask(clean in Compile),
-          checkSnapshotDependencies,
-          runTest
-        )
-      } else {
-        Seq[ReleaseStep](
-          releaseStepTask(clean in Compile),
-          checkSnapshotDependencies,
-          inquireVersions,
-          runTest,
-          tagRelease,
-          releaseStepTask(ciBuild),
-          setNextVersion,
-          commitNextVersion,
-          pushChanges
-        )
-      }
+      Seq[ReleaseStep](
+        releaseStepTask(clean in Compile),
+        checkSnapshotDependencies,
+        runTest,
+        releaseStepTask(ciBuild)
+      )
     }
   )
 
