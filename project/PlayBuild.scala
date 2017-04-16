@@ -7,7 +7,8 @@ import com.typesafe.sbt.packager.Keys.{maintainer, packageSummary, rpmVendor}
 import play.sbt.PlayImport
 import sbt.Keys._
 import sbt._
-
+import sbtrelease.ReleaseStateTransformations._
+import sbtrelease.ReleasePlugin.autoImport._
 object PlayBuild {
   lazy val p = PlayProject.server("pics")
     .settings(picsSettings: _*)
@@ -16,7 +17,6 @@ object PlayBuild {
 
   lazy val picsSettings = linuxSettings ++ Seq(
     organization := "com.malliina",
-    version := "0.1.4",
     scalaVersion := "2.11.8",
     libraryDependencies ++= Seq(
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.119",
@@ -24,6 +24,17 @@ object PlayBuild {
       PlayImport.ws,
       utilPlayDep,
       utilPlayDep % Test classifier "tests"
+    ),
+    releaseProcess := Seq[ReleaseStep](
+      checkSnapshotDependencies,              // : ReleaseStep
+      inquireVersions,                        // : ReleaseStep
+      runTest,                                // : ReleaseStep
+      setReleaseVersion,                      // : ReleaseStep
+      commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
+      tagRelease,                             // : ReleaseStep
+      setNextVersion,                         // : ReleaseStep
+      commitNextVersion,                      // : ReleaseStep
+      pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
     )
   )
 
