@@ -1,13 +1,11 @@
 import com.malliina.sbt.GenericKeys.manufacturer
-import com.malliina.sbt.unix.LinuxKeys.{ciBuild, httpPort, httpsPort}
+import com.malliina.sbt.unix.LinuxKeys.{httpPort, httpsPort}
 import com.malliina.sbtplay.PlayProject
 import com.typesafe.sbt.SbtNativePackager._
 import com.typesafe.sbt.packager.Keys.{maintainer, packageSummary, rpmVendor}
 import play.sbt.PlayImport
 import sbt.Keys._
 import sbt._
-import sbtrelease.ReleasePlugin.autoImport._
-import sbtrelease.ReleaseStateTransformations._
 
 object PlayBuild {
   lazy val p = PlayProject.server("pics")
@@ -24,15 +22,7 @@ object PlayBuild {
       PlayImport.ws,
       utilPlayDep,
       utilPlayDep % Test classifier "tests"
-    ),
-    releaseProcess := {
-      Seq[ReleaseStep](
-        releaseStepTask(clean in Compile),
-        checkSnapshotDependencies,
-        runTest,
-        releaseStepTask(ciBuild)
-      )
-    }
+    )
   )
 
   def linuxSettings = Seq(
