@@ -46,7 +46,8 @@ object PlayBuild {
           pushChanges
         )
       }
-    }
+    },
+    ciBuild := (ciBuild dependsOn clean).value
   )
 
   def linuxSettings = Seq(
