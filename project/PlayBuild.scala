@@ -47,7 +47,7 @@ object PlayBuild {
         )
       }
     },
-    ciBuild := (ciBuild dependsOn clean).value
+    ciBuild := (ciBuild dependsOn (clean in Compile)).value
   )
 
   def linuxSettings = Seq(
