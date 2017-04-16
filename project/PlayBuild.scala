@@ -1,15 +1,17 @@
 import com.malliina.sbt.GenericKeys.manufacturer
-import com.malliina.sbt.unix.LinuxKeys.{httpPort, httpsPort}
-import com.malliina.sbt.unix.LinuxPlugin
+import com.malliina.sbt.unix.LinuxKeys.{ciBuild, httpPort, httpsPort}
 import com.malliina.sbtplay.PlayProject
 import com.typesafe.sbt.SbtNativePackager._
 import com.typesafe.sbt.packager.Keys.{maintainer, packageSummary, rpmVendor}
 import play.sbt.PlayImport
 import sbt.Keys._
 import sbt._
-import sbtrelease.ReleaseStateTransformations._
 import sbtrelease.ReleasePlugin.autoImport._
+import sbtrelease.ReleaseStateTransformations._
+
 object PlayBuild {
+  val checkSnapshot = settingKey[Boolean]("Checks whether the current version is a snapshot version.")
+
   lazy val p = PlayProject.server("pics")
     .settings(picsSettings: _*)
 
@@ -25,17 +27,26 @@ object PlayBuild {
       utilPlayDep,
       utilPlayDep % Test classifier "tests"
     ),
-    releaseProcess := Seq[ReleaseStep](
-      checkSnapshotDependencies,              // : ReleaseStep
-      inquireVersions,                        // : ReleaseStep
-      runTest,                                // : ReleaseStep
-      setReleaseVersion,                      // : ReleaseStep
-      commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
-      tagRelease,                             // : ReleaseStep
-      setNextVersion,                         // : ReleaseStep
-      commitNextVersion,                      // : ReleaseStep
-      pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
-    )
+    checkSnapshot := version.value.endsWith("-SNAPSHOT"),
+    releaseProcess := {
+      if (checkSnapshot.value) {
+        Seq[ReleaseStep](
+          checkSnapshotDependencies,
+          runTest
+        )
+      } else {
+        Seq[ReleaseStep](
+          checkSnapshotDependencies,
+          inquireVersions,
+          runTest,
+          tagRelease,
+          releaseStepTask(ciBuild),
+          setNextVersion,
+          commitNextVersion,
+          pushChanges
+        )
+      }
+    }
   )
 
   def linuxSettings = Seq(
