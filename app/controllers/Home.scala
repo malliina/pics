@@ -76,7 +76,7 @@ class Home(files: PicFiles,
   val deleteForm: Form[Key] = Form(mapping(KeyKey -> nonEmptyText)(Key.apply)(Key.unapply))
 
   def ping = Action(Caching.NoCache {
-    Ok(Json.obj("name" -> BuildInfo.name, "version" -> BuildInfo.version))
+    Ok(Json.obj("name" -> BuildInfo.name, "version" -> BuildInfo.version, "hash" -> BuildInfo.hash))
   })
 
   def drop = security.authAction { user =>

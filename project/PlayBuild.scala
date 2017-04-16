@@ -6,6 +6,8 @@ import com.typesafe.sbt.packager.Keys.{maintainer, packageSummary, rpmVendor}
 import play.sbt.PlayImport
 import sbt.Keys._
 import sbt._
+import sbtbuildinfo.BuildInfoKey
+import sbtbuildinfo.BuildInfoKeys.buildInfoKeys
 
 object PlayBuild {
   lazy val p = PlayProject.server("pics")
@@ -22,6 +24,11 @@ object PlayBuild {
       PlayImport.ws,
       utilPlayDep,
       utilPlayDep % Test classifier "tests"
+    ),
+    buildInfoKeys := Seq[BuildInfoKey](
+      name,
+      version,
+      "hash" -> Process("git rev-parse --short HEAD").lines.head
     )
   )
 
