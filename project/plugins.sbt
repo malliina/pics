@@ -7,4 +7,4 @@ resolvers ++= Seq(
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
-addSbtPlugin("com.malliina" % "sbt-play" % "0.9.7")
+addSbtPlugin("com.malliina" % "sbt-play" % "0.9.8")

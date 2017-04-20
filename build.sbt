@@ -1,11 +1,7 @@
-import com.malliina.sbt.unix.LinuxKeys.{httpPort, httpsPort}
 import com.malliina.sbtplay.PlayProject
-import com.typesafe.sbt.packager.Keys.{maintainer, packageSummary, rpmVendor}
 import play.sbt.PlayImport
-import sbtbuildinfo.BuildInfoKey
-import sbtbuildinfo.BuildInfoKeys.buildInfoKeys
 
-lazy val p = PlayProject.server("pics")
+lazy val p = PlayProject.linux("pics")
 
 val utilPlayDep = "com.malliina" %% "util-play" % "3.6.9"
 
@@ -17,11 +13,6 @@ libraryDependencies ++= Seq(
   PlayImport.ws,
   utilPlayDep,
   utilPlayDep % Test classifier "tests"
-)
-buildInfoKeys := Seq[BuildInfoKey](
-  name,
-  version,
-  "hash" -> Process("git rev-parse --short HEAD").lines.head
 )
 httpPort in Linux := Option("disabled")
 httpsPort in Linux := Option("8459")
