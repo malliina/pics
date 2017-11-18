@@ -1,9 +1,12 @@
 package controllers
 
+import java.nio.file.{Files, Paths}
+
 import akka.stream.Materializer
 import buildinfo.BuildInfo
 import com.malliina.concurrent.ExecutionContexts.cached
-import com.malliina.pics.{ContentType, DataStream, Key, PicFiles}
+import com.malliina.pics._
+import com.malliina.pics.html.PicsHtml
 import com.malliina.play.auth.{AuthFailure, UserAuthenticator}
 import com.malliina.play.controllers.{AuthBundle, BaseSecurity, Caching, OAuthControl}
 import com.malliina.play.http.AuthedRequest
@@ -15,10 +18,7 @@ import play.api.data.Form
 import play.api.data.Forms._
 import play.api.http.{HeaderNames, HttpEntity, MimeTypes}
 import play.api.libs.json.Json
-import play.api.libs.ws.WSClient
 import play.api.mvc._
-
-import scala.concurrent.Future
 
 case class UserFeedback(message: String, isSuccess: Boolean)
 
@@ -69,11 +69,13 @@ object Home {
 }
 
 class Home(files: PicFiles,
+           thumbs: PicFiles,
+           resizer: Resizer,
            oauth: Admin,
            cache: Cached,
-           wsClient: WSClient,
            security: BaseSecurity[AuthedRequest],
            comps: ControllerComponents) extends AbstractController(comps) {
+  val placeHolder = Paths.get("files/400x300.png")
   val deleteForm: Form[Key] = Form(mapping(KeyKey -> nonEmptyText)(Key.apply)(Key.unapply))
 
   def ping = Action(Caching.NoCache {
@@ -82,26 +84,26 @@ class Home(files: PicFiles,
 
   def drop = security.authAction { user =>
     val created = user.rh.flash.get(CreatedKey).map(k => KeyEntry(Key(k)))
-    Ok(AppTags.drop(created, user.user))
+    Ok(PicsHtml.drop(created, user.user))
   }
 
   def list = security.authAction { user =>
     val keys = files.load(0, 100)
     val entries = keys map { key => KeyEntry(key) }
     val feedback = UserFeedback.forFlash(user.rh.flash)
-    Ok(AppTags.pics(entries, feedback, user.user))
+    Ok(PicsHtml.pics(entries, feedback, user.user))
   }
 
   def pic(key: Key) = Action {
     files.find(key).fold(keyNotFound(key))(streamData)
   }
 
-  def thumb(key: Key) = security.authActionAsync { _ =>
-    files.find(key).fold(Future.successful(keyNotFound(key))) { stream =>
+  def thumb(key: Key) = security.authAction { _ =>
+    thumbs.find(key).orElse(files.find(key)).fold(keyNotFound(key)) { stream =>
       val contentType = stream.contentType
       val isImage = contentType.exists(_.contentType startsWith "image")
-      if (isImage) Future.successful(streamData(stream))
-      else placeholderResult
+      if (isImage) streamData(stream)
+      else Ok.sendPath(placeHolder)
     }
   }
 
@@ -113,6 +115,9 @@ class Home(files: PicFiles,
 
   def removeKey(key: Key): Result = {
     val redir = Redirect(routes.Home.list())
+    if (thumbs contains key) {
+      thumbs remove key
+    }
     if (files contains key) {
       files remove key
       log info s"Removed $key"
@@ -126,30 +131,46 @@ class Home(files: PicFiles,
     putNoAuth
   }
 
-  private def deleteNoAuth = Action(BodyParsers.parse.form(deleteForm)) { req =>
+  private def deleteNoAuth = Action(parse.form(deleteForm)) { req =>
     removeKey(req.body)
   }
 
-  private def putNoAuth = Action(BodyParsers.parse.multipartFormData) { req =>
+  private def putNoAuth = Action(parse.multipartFormData) { req =>
     req.body.files.headOption map { file =>
-      val key = Key.randomish()
       val ext = FilenameUtils.getExtension(file.filename)
-      val tempFile = file.ref.file
-      val tempPath = tempFile.toPath
-      val name = tempPath.getFileName.toString
-      val renamedFile = tempPath resolveSibling s"$name.$ext"
-      tempFile renameTo renamedFile.toFile
-      files.put(key, renamedFile)
-      val url = routes.Home.pic(key)
-      log info s"Saved file '${file.filename}' as '$key'."
-      //Redirect(routes.Home.drop()).flashing(CreatedKey -> s"$url")
-      Accepted(Json.obj(Message -> s"Created '$url'.")).withHeaders(
-        HeaderNames.LOCATION -> url.toString,
-        XKey -> key.key
+      val tempFile = file.ref.path
+      val name = tempFile.getFileName.toString
+      val renamedFile = tempFile resolveSibling s"$name.$ext"
+      Files.move(tempFile, renamedFile)
+      val thumbFile = renamedFile resolveSibling s"$name-thumb.$ext"
+      resizer.resizeFromFile(renamedFile, thumbFile).fold(
+        fail => failResize(fail),
+        _ => {
+          val key = Key.randomish()
+          files.put(key, renamedFile)
+          thumbs.put(key, thumbFile)
+          val url = routes.Home.pic(key)
+          log info s"Saved file '${file.filename}' as '$key'."
+          Accepted(Json.obj(Message -> s"Created '$url'.")).withHeaders(
+            HeaderNames.LOCATION -> url.toString,
+            XKey -> key.key
+          )
+        }
       )
     } getOrElse {
       badRequest("File missing")
     }
+  }
+
+  def failResize(error: ImageFailure): Result = error match {
+    case UnsupportedFormat(format, supported) =>
+      val msg = s"Unsupported format: '$format', must be one of: '${supported.mkString(", ")}'"
+      log.error(msg)
+      badRequest(msg)
+    case ImageException(ioe) =>
+      val msg = "An I/O error occurred."
+      log.error(msg, ioe)
+      internalError(msg)
   }
 
   def logout = security.authAction { _ =>
@@ -157,7 +178,7 @@ class Home(files: PicFiles,
   }
 
   def eject = security.logged(Action { req =>
-    Ok(AppTags.eject(req.flash.get(oauth.messageKey)))
+    Ok(PicsHtml.eject(req.flash.get(oauth.messageKey)))
   })
 
   def streamData(stream: DataStream) =
@@ -168,30 +189,6 @@ class Home(files: PicFiles,
         stream.contentType.map(_.contentType))
     )
 
-
-  def placeholderResult = proxyResult("https://placehold.it/400x400")
-
-  def proxyResult(url: String): Future[Result] = {
-    // Make the request
-    wsClient.url(url).withMethod("GET").stream().map { r =>
-      if (r.status == 200) {
-        // Get the content type
-        val contentType = r.headers.get(HeaderNames.CONTENT_TYPE).flatMap(_.headOption)
-          .getOrElse(MimeTypes.BINARY)
-
-        // If there's a content length, send that, otherwise return the body chunked
-        r.headers.get(HeaderNames.CONTENT_LENGTH) match {
-          case Some(Seq(length)) =>
-            Ok.sendEntity(HttpEntity.Streamed(r.bodyAsSource, Some(length.toLong), Some(contentType)))
-          case _ =>
-            Ok.chunked(r.bodyAsSource).as(contentType)
-        }
-      } else {
-        badGateway(s"A gateway server returned an unexpected response code: '${r.status}'.")
-      }
-    }
-  }
-
   def keyNotFound(key: Key) = onNotFound(s"Not found: $key")
 
   def onNotFound(message: String) = NotFound(Json.obj(Message -> message))
@@ -199,6 +196,8 @@ class Home(files: PicFiles,
   def badGateway(reason: String) = BadGateway(reasonJson(reason))
 
   def badRequest(reason: String) = BadRequest(reasonJson(reason))
+
+  def internalError(reason: String) = InternalServerError(reasonJson(reason))
 
   def reasonJson(reason: String) = Json.obj(Reason -> reason)
 

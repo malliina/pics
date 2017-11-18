@@ -1,14 +1,15 @@
-package controllers
+package com.malliina.pics.html
 
 import com.malliina.play.models.Username
 import com.malliina.play.tags.Bootstrap._
 import com.malliina.play.tags.PlayTags._
 import com.malliina.play.tags.Tags._
+import controllers.{KeyEntry, UserFeedback, routes}
 import play.api.mvc.Call
 
 import scalatags.Text.all._
 
-object AppTags {
+object PicsHtml {
   val CopyButton = "copy-button"
   val True = "true"
   val False = "false"

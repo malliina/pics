@@ -3,6 +3,8 @@ package com.malliina.pics
 import java.nio.file.Path
 
 import akka.stream.scaladsl.StreamConverters
+import com.amazonaws.auth.profile.ProfileCredentialsProvider
+import com.amazonaws.auth.{AWSCredentialsProviderChain, DefaultAWSCredentialsProviderChain}
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.model.ObjectListing
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
@@ -50,7 +52,12 @@ object BucketFiles {
 
   def forS3(region: Regions, bucket: BucketName): BucketFiles = {
     val bucketName = bucket.name
-    val aws = AmazonS3ClientBuilder.standard().withRegion(region).build()
+    val credentialsChain = new AWSCredentialsProviderChain(
+      DefaultAWSCredentialsProviderChain.getInstance(),
+      new ProfileCredentialsProvider("pimp")
+    )
+    new DefaultAWSCredentialsProviderChain()
+    val aws = AmazonS3ClientBuilder.standard().withRegion(region).withCredentials(credentialsChain).build()
     if (!aws.doesBucketExistV2(bucketName))
       aws.createBucket(bucketName)
     new BucketFiles(aws, bucket)

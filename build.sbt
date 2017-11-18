@@ -8,6 +8,7 @@ val utilPlayDep = "com.malliina" %% "util-play" % "4.4.0"
 organization := "com.malliina"
 scalaVersion := "2.12.4"
 libraryDependencies ++= Seq(
+  "org.apache.commons" % "commons-text" % "1.1",
   "com.amazonaws" % "aws-java-sdk-s3" % "1.11.232",
   PlayImport.ehcache,
   PlayImport.ws,

@@ -1,7 +1,6 @@
 package com.malliina.pics
 
-import java.util.UUID
-
+import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
 import play.api.mvc.PathBindable
 
 case class Key(key: String) {
@@ -20,7 +19,12 @@ object Key {
       value.key
   }
 
-  def randomish(): Key = Key(UUID.randomUUID().toString.take(KeyLength).toLowerCase)
+  val generator = new RandomStringGenerator.Builder()
+    .withinRange('0', 'z')
+    .filteredBy(CharacterPredicates.LETTERS, CharacterPredicates.DIGITS)
+    .build()
+
+  def randomish(): Key = Key(generator.generate(KeyLength).toLowerCase)
 }
 
 case class BucketName(name: String)

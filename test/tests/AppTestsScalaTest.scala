@@ -10,6 +10,7 @@ import play.api.test.Helpers._
 abstract class TestAppSuite extends AppSuite(ctx => new AppComponents(
   ctx,
   GoogleOAuthCredentials("id", "secret", "scope"),
+  TestPics,
   TestPics)
 )
 

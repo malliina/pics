@@ -1,4 +1,4 @@
-package controllers
+package com.malliina.pics.html
 
 import java.nio.charset.StandardCharsets
 
