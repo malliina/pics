@@ -1,6 +1,8 @@
 package controllers
 
+import akka.stream.Materializer
 import buildinfo.BuildInfo
+import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.pics.{ContentType, DataStream, Key, PicFiles}
 import com.malliina.play.auth.{AuthFailure, UserAuthenticator}
 import com.malliina.play.controllers.{AuthBundle, BaseSecurity, Caching, OAuthControl}
@@ -12,10 +14,8 @@ import play.api.cache.Cached
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.http.{HeaderNames, HttpEntity, MimeTypes}
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json.Json
-import play.api.libs.ws.{StreamedResponse, WSClient}
-import play.api.mvc.Results._
+import play.api.libs.ws.WSClient
 import play.api.mvc._
 
 import scala.concurrent.Future
@@ -64,15 +64,16 @@ object Home {
     }
   }
 
-  def security(oauth: OAuthControl): BaseSecurity[AuthedRequest] =
-    new BaseSecurity(auth(oauth), oauth.mat)
+  def security(oauth: OAuthControl, mat: Materializer): BaseSecurity[AuthedRequest] =
+    new BaseSecurity(oauth.actions, auth(oauth), mat)
 }
 
 class Home(files: PicFiles,
            oauth: Admin,
            cache: Cached,
            wsClient: WSClient,
-           security: BaseSecurity[AuthedRequest]) {
+           security: BaseSecurity[AuthedRequest],
+           comps: ControllerComponents) extends AbstractController(comps) {
   val deleteForm: Form[Key] = Form(mapping(KeyKey -> nonEmptyText)(Key.apply)(Key.unapply))
 
   def ping = Action(Caching.NoCache {
@@ -172,26 +173,22 @@ class Home(files: PicFiles,
 
   def proxyResult(url: String): Future[Result] = {
     // Make the request
-    wsClient.url(url).withMethod("GET").stream().map {
-      case StreamedResponse(response, body) =>
+    wsClient.url(url).withMethod("GET").stream().map { r =>
+      if (r.status == 200) {
+        // Get the content type
+        val contentType = r.headers.get(HeaderNames.CONTENT_TYPE).flatMap(_.headOption)
+          .getOrElse(MimeTypes.BINARY)
 
-        // Check that the response was successful
-        if (response.status == 200) {
-
-          // Get the content type
-          val contentType = response.headers.get(HeaderNames.CONTENT_TYPE).flatMap(_.headOption)
-            .getOrElse(MimeTypes.BINARY)
-
-          // If there's a content length, send that, otherwise return the body chunked
-          response.headers.get(HeaderNames.CONTENT_LENGTH) match {
-            case Some(Seq(length)) =>
-              Ok.sendEntity(HttpEntity.Streamed(body, Some(length.toLong), Some(contentType)))
-            case _ =>
-              Ok.chunked(body).as(contentType)
-          }
-        } else {
-          badGateway(s"A gateway server returned an unexpected response code")
+        // If there's a content length, send that, otherwise return the body chunked
+        r.headers.get(HeaderNames.CONTENT_LENGTH) match {
+          case Some(Seq(length)) =>
+            Ok.sendEntity(HttpEntity.Streamed(r.bodyAsSource, Some(length.toLong), Some(contentType)))
+          case _ =>
+            Ok.chunked(r.bodyAsSource).as(contentType)
         }
+      } else {
+        badGateway(s"A gateway server returned an unexpected response code: '${r.status}'.")
+      }
     }
   }
 

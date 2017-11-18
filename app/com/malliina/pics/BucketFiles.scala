@@ -8,7 +8,7 @@ import com.amazonaws.services.s3.model.ObjectListing
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.malliina.storage.StorageLong
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters.asScalaBuffer
 
 class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends PicFiles {
   val bucketName: String = bucket.name
@@ -20,7 +20,7 @@ class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends PicFiles {
   }
 
   private def loadAcc(desiredSize: Int, current: ObjectListing, acc: Seq[Key]): Seq[Key] = {
-    val newAcc = acc ++ current.getObjectSummaries.map(s => Key(s.getKey))
+    val newAcc = acc ++ asScalaBuffer(current.getObjectSummaries()).map(s => Key(s.getKey))
     if (!current.isTruncated || newAcc.size >= desiredSize) newAcc take desiredSize
     else loadAcc(desiredSize, aws.listNextBatchOfObjects(current), newAcc)
   }
@@ -32,7 +32,7 @@ class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends PicFiles {
     val obj = aws.getObject(bucketName, key.key)
     val meta = obj.getObjectMetadata
     DataStream(
-      StreamConverters.fromInputStream(obj.getObjectContent),
+      StreamConverters.fromInputStream(() => obj.getObjectContent()),
       Option(meta.getContentLength).map(_.bytes),
       Option(meta.getContentType).map(ContentType.apply)
     )
@@ -51,7 +51,7 @@ object BucketFiles {
   def forS3(region: Regions, bucket: BucketName): BucketFiles = {
     val bucketName = bucket.name
     val aws = AmazonS3ClientBuilder.standard().withRegion(region).build()
-    if (!aws.doesBucketExist(bucketName))
+    if (!aws.doesBucketExistV2(bucketName))
       aws.createBucket(bucketName)
     new BucketFiles(aws, bucket)
   }

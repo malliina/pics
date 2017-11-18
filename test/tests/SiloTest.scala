@@ -7,9 +7,9 @@ import play.api.libs.json.Json
 import play.api.mvc._
 import play.api.routing.Router
 import play.api.test.FakeRequest
-import play.api.{BuiltInComponentsFromContext, Configuration}
+import play.api.{BuiltInComponentsFromContext, Configuration, NoHttpFiltersComponents}
 
-class TestComponents(ctx: Context) extends BuiltInComponentsFromContext(ctx) {
+class TestComponents(ctx: Context) extends BuiltInComponentsFromContext(ctx) with NoHttpFiltersComponents {
 
   import play.api.routing.sird._
 

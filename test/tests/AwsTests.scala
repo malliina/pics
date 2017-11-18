@@ -8,7 +8,7 @@ import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import org.scalatest.FunSuite
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters.asScalaBuffer
 import scala.concurrent.Future
 
 class AwsTests extends FunSuite {
@@ -24,10 +24,10 @@ class AwsTests extends FunSuite {
       aws.putObject(bucketName, objectKey, testContent)
 
       val objs = aws.listObjects(bucketName)
-      objs.getObjectSummaries foreach { file =>
+      asScalaBuffer(objs.getObjectSummaries()) foreach { file =>
         val obj = aws.getObject(bucketName, file.getKey)
         // Source closes the InputStream upon completion
-        val contentSource = StreamConverters.fromInputStream(obj.getObjectContent)
+        val contentSource = StreamConverters.fromInputStream(() => obj.getObjectContent())
         val contentConcat: Future[ByteString] = contentSource.runFold(ByteString.empty)(_ ++ _)
         val content = await(contentConcat)
         assert(content.utf8String === testContent)
@@ -51,7 +51,7 @@ class AwsTests extends FunSuite {
 
   def withBucket[T](code: AmazonS3 => T) = {
     val aws: AmazonS3 = AmazonS3ClientBuilder.standard().withRegion(Regions.EU_WEST_1).build()
-    if (!aws.doesBucketExist(bucketName))
+    if (!aws.doesBucketExistV2(bucketName))
       aws.createBucket(bucketName)
     try {
       code(aws)

@@ -1,10 +1,15 @@
-scalaVersion := "2.10.6"
+scalaVersion := "2.12.4"
 
 resolvers ++= Seq(
-  Resolver.bintrayRepo("malliina", "maven"),
-  Resolver.url("malliina bintray sbt", url("https://dl.bintray.com/malliina/sbt-plugins/"))(Resolver.ivyStylePatterns)
+  ivyRepo("bintray-sbt-plugin-releases",
+    "http://dl.bintray.com/content/sbt/sbt-plugin-releases"),
+  ivyRepo("malliina bintray sbt",
+    "https://dl.bintray.com/malliina/sbt-plugins/"),
+  Resolver.bintrayRepo("malliina", "maven")
 )
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-language:implicitConversions")
 
-scalacOptions ++= Seq("-unchecked", "-deprecation")
+addSbtPlugin("com.malliina" % "sbt-play" % "1.2.1")
 
-addSbtPlugin("com.malliina" % "sbt-play" % "0.9.8")
+def ivyRepo(name: String, urlString: String) =
+  Resolver.url(name, url(urlString))(Resolver.ivyStylePatterns)

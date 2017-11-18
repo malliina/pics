@@ -3,13 +3,13 @@ import play.sbt.PlayImport
 
 lazy val p = PlayProject.linux("pics")
 
-val utilPlayDep = "com.malliina" %% "util-play" % "3.6.9"
+val utilPlayDep = "com.malliina" %% "util-play" % "4.4.0"
 
 organization := "com.malliina"
-scalaVersion := "2.11.8"
+scalaVersion := "2.12.4"
 libraryDependencies ++= Seq(
-  "com.amazonaws" % "aws-java-sdk-s3" % "1.11.119",
-  PlayImport.cache,
+  "com.amazonaws" % "aws-java-sdk-s3" % "1.11.232",
+  PlayImport.ehcache,
   PlayImport.ws,
   utilPlayDep,
   utilPlayDep % Test classifier "tests"
@@ -17,7 +17,6 @@ libraryDependencies ++= Seq(
 httpPort in Linux := Option("disabled")
 httpsPort in Linux := Option("8459")
 maintainer := "Michael Skogberg <malliina123@gmail.com>"
-manufacturer := "Skogberg Labs"
 javaOptions in Universal ++= {
   val linuxName = (name in Linux).value
   Seq(
