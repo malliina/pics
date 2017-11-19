@@ -1,8 +1,5 @@
 package tests
 
-import java.nio.file.Files
-import javax.imageio.ImageIO
-
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.StreamConverters
@@ -10,7 +7,6 @@ import akka.util.ByteString
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.malliina.pics.{BucketFiles, Resizer}
-import org.apache.commons.io.FilenameUtils
 import org.scalatest.FunSuite
 
 import scala.collection.JavaConverters.asScalaBuffer
@@ -27,9 +23,9 @@ class AwsTests extends FunSuite {
   ignore("list images") {
     val src = BucketFiles.Prod
     src.load(0, 1000).foreach { key =>
-      val content = src.get(key)
+//      val content = src.get(key)
       //      val newKey = Key(key.key + ".jpg")
-      println(s"$key ct ${content.contentType}")
+//      println(s"$key ct ${content.contentType}")
     }
   }
 
@@ -37,20 +33,21 @@ class AwsTests extends FunSuite {
     val resizer = Resizer.Prod
     val src = BucketFiles.Prod
     val thumbs = BucketFiles.Thumbs
-    src.load(0, 1000).foreach { key =>
-      if (!thumbs.contains(key)) {
-        val orig = src.get(key)
-        if (orig.isImage) {
-          val resized = resizer.resizeFromStream(orig.source.runWith(StreamConverters.asInputStream()))
-          val transient = Files.createTempFile("thumb", null)
-          val format = FilenameUtils.getExtension(key.key)
-          val success = ImageIO.write(resized, format, transient.toFile)
-          if (success) {
-            thumbs.put(key, transient).foreach { _ => println(s"Wrote thumb of $key") }
-          }
-        }
-      }
-    }
+//    src.load(0, 1000).foreach { key =>
+//      if (!thumbs.contains(key)) {
+//        src.get(key).map { orig =>
+//          if (orig.isImage) {
+//            val resized = resizer.resizeFromStream(orig.source.runWith(StreamConverters.asInputStream()))
+//            val transient = Files.createTempFile("thumb", null)
+//            val format = FilenameUtils.getExtension(key.key)
+//            val success = ImageIO.write(resized, format, transient.toFile)
+//            if (success) {
+//              thumbs.put(key, transient).foreach { _ => println(s"Wrote thumb of $key") }
+//            }
+//          }
+//        }
+//      }
+//    }
   }
 
   ignore("create bucket, save file, delete bucket") {

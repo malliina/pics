@@ -6,6 +6,7 @@ import java.nio.file.Path
 import akka.stream.scaladsl.StreamConverters
 import com.malliina.pics.{DataStream, Key, PicFiles}
 
+import scala.concurrent.Future
 import scala.util.Try
 
 object TestPics extends PicFiles {
@@ -13,10 +14,10 @@ object TestPics extends PicFiles {
 
   override def contains(key: Key): Boolean = false
 
-  override def get(key: Key): DataStream = {
+  override def get(key: Key): Future[DataStream] = {
     val inStream: InputStream = new ByteArrayInputStream(Array.empty)
     val source = StreamConverters.fromInputStream(() => inStream)
-    DataStream(source, None, None)
+    Future.successful(DataStream(source, None, None))
   }
 
   override def put(key: Key, file: Path): Try[Unit] = Try(())

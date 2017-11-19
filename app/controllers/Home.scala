@@ -162,7 +162,7 @@ class Home(files: PicFiles,
       resizer.resizeFromFile(renamedFile, thumbFile).fold(
         fail => failResize(fail),
         _ => {
-          val key = Key.randomish()
+          val key = Key.randomish().append(s".${ext.toLowerCase}")
           for {
             _ <- files.put(key, renamedFile)
             _ <- thumbs.put(key, thumbFile)

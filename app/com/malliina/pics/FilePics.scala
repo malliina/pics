@@ -8,7 +8,6 @@ import akka.util.ByteString
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.file.FileUtilities
 import com.malliina.pics.FilePics.log
-import com.malliina.storage.StorageLong
 import play.api.Logger
 
 import scala.concurrent.Future
@@ -33,12 +32,7 @@ class FilePics(val dir: Path, mat: Materializer) {
   def contains(key: Key): Boolean = Files.exists(fileAt(key))
 
   def get(key: Key): Future[DataResponse] = Future.successful {
-    val file = fileAt(key)
-    DataFile(
-      file,
-      Option(Files.size(file).bytes),
-      ContentType.parseFile(file)
-    )
+    DataFile(fileAt(key))
   }
 
   def remove(key: Key): Try[Unit] = tryLogged(Files.delete(fileAt(key)))

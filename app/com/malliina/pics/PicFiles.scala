@@ -16,7 +16,7 @@ sealed trait DataResponse {
 
   def contentType: Option[ContentType]
 
-  def isImage: Boolean = contentType.exists(_.contentType startsWith "image")
+  def isImage: Boolean = contentType.exists(_.isImage)
 }
 
 case class DataFile(file: Path,
