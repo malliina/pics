@@ -1,11 +1,12 @@
 package com.malliina.pics
 
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 
 import akka.stream.IOResult
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
-import com.malliina.storage.StorageSize
+import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.storage.{StorageLong, StorageSize}
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -22,6 +23,14 @@ case class DataFile(file: Path,
                     contentLength: Option[StorageSize],
                     contentType: Option[ContentType]) extends DataResponse
 
+object DataFile {
+  def apply(file: Path): DataFile = DataFile(
+    file,
+    Option(Files.size(file).bytes),
+    ContentType.parseFile(file)
+  )
+}
+
 case class DataStream(source: Source[ByteString, Future[IOResult]],
                       contentLength: Option[StorageSize],
                       contentType: Option[ContentType]) extends DataResponse
@@ -31,11 +40,11 @@ trait PicFiles {
 
   def contains(key: Key): Boolean
 
-  def get(key: Key): DataResponse
+  def get(key: Key): Future[DataResponse]
 
-  def find(key: Key): Option[DataResponse] =
-    if (contains(key)) Option(get(key))
-    else None
+  def find(key: Key): Future[Option[DataResponse]] =
+    if (contains(key)) get(key).map(Option.apply)
+    else Future.successful(None)
 
   def put(key: Key, file: Path): Try[Unit]
 

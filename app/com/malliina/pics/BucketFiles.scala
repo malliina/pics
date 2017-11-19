@@ -11,6 +11,7 @@ import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.malliina.storage.StorageLong
 
 import scala.collection.JavaConverters.asScalaBuffer
+import scala.concurrent.Future
 import scala.util.Try
 
 class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends PicFiles {
@@ -33,14 +34,16 @@ class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends PicFiles {
   override def contains(key: Key): Boolean =
     aws.doesObjectExist(bucketName, key.key)
 
-  override def get(key: Key): DataStream = {
+  override def get(key: Key): Future[DataResponse] = {
     val obj = aws.getObject(bucketName, key.key)
     val meta = obj.getObjectMetadata
-    DataStream(
-      StreamConverters.fromInputStream(() => obj.getObjectContent()),
-      Option(meta.getContentLength).map(_.bytes),
-      Option(meta.getContentType).map(ContentType.apply)
-    )
+    Future.successful {
+      DataStream(
+        StreamConverters.fromInputStream(() => obj.getObjectContent()),
+        Option(meta.getContentLength).map(_.bytes),
+        Option(meta.getContentType).map(ContentType.apply)
+      )
+    }
   }
 
   override def put(key: Key, file: Path): Try[Unit] =

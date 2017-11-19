@@ -20,6 +20,7 @@ import play.api.http.{HeaderNames, HttpEntity, MimeTypes}
 import play.api.libs.json.Json
 import play.api.mvc._
 
+import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
 case class UserFeedback(message: String, isSuccess: Boolean)
@@ -99,19 +100,20 @@ class Home(files: PicFiles,
   def pic(key: Key) = picAction(files.find(key), keyNotFound(key))
 
   def thumb(key: Key) = security.authenticatedLogged { _ =>
-    picAction(thumbs.find(key).filter(_.isImage), Ok.sendResource(placeHolderResource))
+    picAction(thumbs.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
   }
 
-  private def picAction(find: Option[DataResponse], onNotFound: => Result) = {
-    val result = find.map {
-      case DataFile(file, _, _) => Ok.sendPath(file)
-      case s@DataStream(_, _, _) => streamData(s)
-    }.getOrElse {
-      onNotFound
+  private def picAction(find: Future[Option[DataResponse]], onNotFound: => Result) = {
+    val result = find.map { maybe =>
+      maybe.map {
+        case DataFile(file, _, _) => Ok.sendPath(file)
+        case s@DataStream(_, _, _) => streamData(s)
+      }.getOrElse {
+        onNotFound
+      }
     }
-    Action(result)
+    Action.async(result)
   }
-
 
   private def streamData(stream: DataStream) =
     Ok.sendEntity(

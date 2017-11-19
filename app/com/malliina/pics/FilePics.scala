@@ -28,12 +28,11 @@ object FilePics {
 }
 
 class FilePics(val dir: Path, mat: Materializer) {
-
   Files.createDirectories(dir)
 
   def contains(key: Key): Boolean = Files.exists(fileAt(key))
 
-  def get(key: Key): DataResponse = {
+  def get(key: Key): Future[DataResponse] = Future.successful {
     val file = fileAt(key)
     DataFile(
       file,
@@ -44,18 +43,22 @@ class FilePics(val dir: Path, mat: Materializer) {
 
   def remove(key: Key): Try[Unit] = tryLogged(Files.delete(fileAt(key)))
 
-  def putData(key: Key, data: DataResponse) = data match {
+  def putData(key: Key, data: DataResponse): Future[Path] = data match {
     case DataStream(source, _, _) => putSource(key, source)
-    case DataFile(file, _, _) => put(key, file)
+    case DataFile(file, _, _) => Future.fromTry(put(key, file)).map(_ => fileAt(key))
   }
 
   def put(key: Key, file: Path): Try[Unit] = tryLogged(Files.copy(file, fileAt(key)))
 
-  def putSource(key: Key, source: Source[ByteString, Future[IOResult]]) = {
+  def putSource(key: Key, source: Source[ByteString, Future[IOResult]]): Future[Path] = {
     val file = fileAt(key)
-    FileIO.toPath(file).runWith(source)(mat)
-      .map { res => log.info(s"Saved ${res.count} bytes to '$file' with outcome ${res.status}") }
-      .recover { case t => log.error(s"Unable to save key '$key' to file", t) }
+    FileIO.toPath(file).runWith(source)(mat).map { res =>
+      log.info(s"Saved ${res.count} bytes to '$file' with outcome ${res.status}")
+      file
+    }.recoverWith { case t =>
+      log.error(s"Unable to save key '$key' to file", t)
+      Future.failed(new Exception(s"Unable to save '$key'."))
+    }
   }
 
   private def fileAt(key: Key) = dir resolve key.key

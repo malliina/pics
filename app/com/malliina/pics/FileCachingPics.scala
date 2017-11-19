@@ -2,6 +2,9 @@ package com.malliina.pics
 
 import java.nio.file.Path
 
+import com.malliina.concurrent.ExecutionContexts.cached
+
+import scala.concurrent.Future
 import scala.util.Try
 
 object FileCachingPics {
@@ -14,13 +17,15 @@ class FileCachingPics(cache: FilePics, origin: PicFiles) extends PicFiles {
 
   override def contains(key: Key): Boolean = cache.contains(key) || origin.contains(key)
 
-  override def get(key: Key): DataResponse =
+  override def get(key: Key): Future[DataResponse] =
     if (cache.contains(key)) {
       cache.get(key)
     } else {
-      origin.get(key)
-      cache.putData(key, origin.get(key))
-      origin.get(key)
+      origin.get(key).flatMap { r =>
+        cache.putData(key, r).map { file =>
+          DataFile(file)
+        }
+      }
     }
 
   override def put(key: Key, file: Path): Try[Unit] = for {
