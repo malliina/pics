@@ -6,7 +6,7 @@ POST        /pics                    controllers.Home.put
 POST        /pics/*key/delete        controllers.Home.remove(key: com.malliina.pics.Key)
 POST        /pics/delete             controllers.Home.delete
 GET         /logout                  controllers.Home.logout
-GET         /assets/*file            controllers.Assets.at(path = "/public", file)
+GET         /assets/*file            controllers.PicsAssets.versioned(path = "/public", file)
 GET         /oauth                   controllers.Admin.initiate
 GET         /oauthcb                 controllers.Admin.redirResponse
 GET         /eject                   controllers.Home.eject

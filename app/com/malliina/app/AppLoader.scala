@@ -4,7 +4,7 @@ import akka.stream.Materializer
 import com.malliina.oauth.{GoogleOAuthCredentials, GoogleOAuthReader}
 import com.malliina.pics._
 import com.malliina.play.app.DefaultApp
-import controllers.{Admin, AssetsComponents, Home}
+import controllers.{Admin, AssetsComponents, Home, PicsAssets}
 import play.api.ApplicationLoader.Context
 import play.api.cache.Cached
 import play.api.cache.ehcache.EhCacheComponents
@@ -30,6 +30,6 @@ class AppComponents(context: Context, creds: GoogleOAuthCredentials, pics: Mater
 
   lazy val admin = new Admin(creds, controllerComponents.actionBuilder)
   lazy val home = new Home(pics(materializer), thumbs(materializer), Resizer.Prod, admin, cache, Home.security(admin, materializer), controllerComponents)
-
-  override val router: Router = new Routes(httpErrorHandler, home, assets, admin)
+  val picsAssets = new PicsAssets(assets)
+  override val router: Router = new Routes(httpErrorHandler, home, picsAssets, admin)
 }

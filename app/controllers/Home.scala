@@ -1,6 +1,6 @@
 package controllers
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.Files
 
 import akka.stream.Materializer
 import buildinfo.BuildInfo
@@ -75,7 +75,7 @@ class Home(files: PicFiles,
            cache: Cached,
            security: BaseSecurity[AuthedRequest],
            comps: ControllerComponents) extends AbstractController(comps) {
-  val placeHolder = Paths.get("files/400x300.png")
+  val placeHolderResource = "400x300.png"
   val deleteForm: Form[Key] = Form(mapping(KeyKey -> nonEmptyText)(Key.apply)(Key.unapply))
 
   def ping = Action(Caching.NoCache {
@@ -101,7 +101,7 @@ class Home(files: PicFiles,
   def thumb(key: Key) = security.authAction { _ =>
     thumbs.find(key).filter(_.isImage)
       .map(streamData)
-      .getOrElse(Ok.sendPath(placeHolder))
+      .getOrElse(Ok.sendResource(placeHolderResource))
   }
 
   def delete = security.authenticatedLogged(_ => deleteNoAuth)

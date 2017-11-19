@@ -132,7 +132,7 @@ object PicsHtml {
         cssLink("//netdna.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"),
         cssLink("//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css"),
         cssLink("//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css"),
-        cssLink(at("css/pics.css")),
+        cssLink(at("css/main.css")),
         extraHeader,
         jsScript("//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"),
         jsScript("//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"),
@@ -148,7 +148,7 @@ object PicsHtml {
 
   def deferredJs(file: String) = script(`type` := "text/javascript", src := at(s"js/$file"), defer)
 
-  def at(file: String) = routes.Assets.at(file).toString
+  def at(file: String) = routes.PicsAssets.versioned(file).toString
 
   def alertDanger(message: Modifier) = alertDiv(AlertDanger)(message)
 

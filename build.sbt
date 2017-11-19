@@ -15,8 +15,8 @@ libraryDependencies ++= Seq(
   utilPlayDep,
   utilPlayDep % Test classifier "tests"
 )
-pipelineStages := Seq(digest)
-pipelineStages in Assets := Seq(digest)
+pipelineStages := Seq(digest, gzip)
+pipelineStages in Assets := Seq(digest, gzip)
 httpPort in Linux := Option("disabled")
 httpsPort in Linux := Option("8459")
 maintainer := "Michael Skogberg <malliina123@gmail.com>"
@@ -28,3 +28,4 @@ javaOptions in Universal ++= {
 }
 packageSummary in Linux := "This is the pics summary."
 rpmVendor := "Skogberg Labs"
+unmanagedResourceDirectories in Compile += baseDirectory.value / "files"
