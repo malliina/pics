@@ -9,7 +9,10 @@ resolvers ++= Seq(
 )
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-language:implicitConversions")
 
-addSbtPlugin("com.malliina" % "sbt-play" % "1.2.1")
+Seq(
+  "com.malliina" % "sbt-play" % "1.2.1",
+  "com.typesafe.sbt" % "sbt-digest" % "1.1.4"
+) map addSbtPlugin
 
 def ivyRepo(name: String, urlString: String) =
   Resolver.url(name, url(urlString))(Resolver.ivyStylePatterns)

@@ -99,12 +99,9 @@ class Home(files: PicFiles,
   }
 
   def thumb(key: Key) = security.authAction { _ =>
-    thumbs.find(key).orElse(files.find(key)).fold(keyNotFound(key)) { stream =>
-      val contentType = stream.contentType
-      val isImage = contentType.exists(_.contentType startsWith "image")
-      if (isImage) streamData(stream)
-      else Ok.sendPath(placeHolder)
-    }
+    thumbs.find(key).filter(_.isImage)
+      .map(streamData)
+      .getOrElse(Ok.sendPath(placeHolder))
   }
 
   def delete = security.authenticatedLogged(_ => deleteNoAuth)
@@ -119,8 +116,7 @@ class Home(files: PicFiles,
       thumbs remove key
     }
     if (files contains key) {
-      files remove key
-      log info s"Removed $key"
+      (files remove key).foreach { _ => log info s"Removed '$key'." }
       redir.flashing(UserFeedback.Message -> s"Deleted key '$key'.")
     } else {
       redir.flashing(UserFeedback.ErrorMessage -> s"Key not found: '$key'.")
@@ -137,6 +133,7 @@ class Home(files: PicFiles,
 
   private def putNoAuth = Action(parse.multipartFormData) { req =>
     req.body.files.headOption map { file =>
+      // without dot
       val ext = FilenameUtils.getExtension(file.filename)
       val tempFile = file.ref.path
       val name = tempFile.getFileName.toString
@@ -147,8 +144,10 @@ class Home(files: PicFiles,
         fail => failResize(fail),
         _ => {
           val key = Key.randomish()
-          files.put(key, renamedFile)
-          thumbs.put(key, thumbFile)
+          for {
+            _ <- files.put(key, renamedFile)
+            _ <- thumbs.put(key, thumbFile)
+          } yield ()
           val url = routes.Home.pic(key)
           log info s"Saved file '${file.filename}' as '$key'."
           Accepted(Json.obj(Message -> s"Created '$url'.")).withHeaders(

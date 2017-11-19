@@ -9,6 +9,8 @@ import javax.imageio.ImageIO
 import org.apache.commons.io.FilenameUtils
 
 object Resizer {
+  val Prod = Resizer(maxWidth = 400, maxHeight = 300)
+
   def apply(maxWidth: Int, maxHeight: Int): Resizer = new Resizer(maxWidth, maxHeight)
 }
 

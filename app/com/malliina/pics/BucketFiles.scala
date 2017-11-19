@@ -11,9 +11,12 @@ import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.malliina.storage.StorageLong
 
 import scala.collection.JavaConverters.asScalaBuffer
+import scala.util.Try
 
 class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends PicFiles {
   val bucketName: String = bucket.name
+
+  def copy(src: Key, dest: Key) = aws.copyObject(bucketName, src.key, bucketName, dest.key)
 
   override def load(from: Int, until: Int): Seq[Key] = {
     val size = until - from
@@ -40,21 +43,24 @@ class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends PicFiles {
     )
   }
 
-  override def put(key: Key, file: Path): Unit =
-    aws.putObject(bucketName, key.key, file.toFile)
+  override def put(key: Key, file: Path): Try[Unit] =
+    Try(aws.putObject(bucketName, key.key, file.toFile))
 
-  override def remove(key: Key): Unit =
-    aws.deleteObject(bucketName, key.key)
+  override def remove(key: Key): Try[Unit] =
+    Try(aws.deleteObject(bucketName, key.key))
 }
 
 object BucketFiles {
+  val Prod = BucketFiles.forBucket(BucketName("malliina-pics"))
+  val Thumbs = BucketFiles.forBucket(BucketName("malliina-pics-thumbs"))
+
   def forBucket(bucket: BucketName) = forS3(Regions.EU_WEST_1, bucket)
 
   def forS3(region: Regions, bucket: BucketName): BucketFiles = {
     val bucketName = bucket.name
     val credentialsChain = new AWSCredentialsProviderChain(
-      DefaultAWSCredentialsProviderChain.getInstance(),
-      new ProfileCredentialsProvider("pimp")
+      new ProfileCredentialsProvider("pimp"),
+      DefaultAWSCredentialsProviderChain.getInstance()
     )
     new DefaultAWSCredentialsProviderChain()
     val aws = AmazonS3ClientBuilder.standard().withRegion(region).withCredentials(credentialsChain).build()

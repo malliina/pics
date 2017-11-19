@@ -15,6 +15,8 @@ libraryDependencies ++= Seq(
   utilPlayDep,
   utilPlayDep % Test classifier "tests"
 )
+pipelineStages := Seq(digest)
+pipelineStages in Assets := Seq(digest)
 httpPort in Linux := Option("disabled")
 httpsPort in Linux := Option("8459")
 maintainer := "Michael Skogberg <malliina123@gmail.com>"

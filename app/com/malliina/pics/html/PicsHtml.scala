@@ -14,6 +14,8 @@ object PicsHtml {
   val True = "true"
   val False = "false"
   val dataIdAttr = attr("data-id")
+  val dataContentAttr = attr("data-content")
+  val defer = attr("defer").empty
 
   def drop(created: Option[KeyEntry], user: Username) =
     baseIndex("drop", user, deferredJs("drop.js"))(
@@ -67,7 +69,7 @@ object PicsHtml {
                     )
                   ),
                   divClass("pic-link")(aHref(entry.url)(entry.key.key)),
-                  div(a(role := Button, attr("tabindex") := 0, `class` := s"$BtnDefault $BtnXs $CopyButton", dataIdAttr := entry.url.path(), dataToggle := "popover", attr("data-content") := "Copied!")("Copy"))
+                  div(a(role := Button, attr("tabindex") := 0, `class` := s"$BtnDefault $BtnXs $CopyButton", dataIdAttr := entry.url.path(), dataToggle := "popover", dataContentAttr := "Copied!")("Copy"))
                 )
               )
             }
@@ -144,7 +146,7 @@ object PicsHtml {
     )
   )
 
-  def deferredJs(file: String) = script(`type` := "text/javascript", src := at(s"js/$file"), attr("defer").empty)
+  def deferredJs(file: String) = script(`type` := "text/javascript", src := at(s"js/$file"), defer)
 
   def at(file: String) = routes.Assets.at(file).toString
 

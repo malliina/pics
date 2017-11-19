@@ -8,10 +8,13 @@ import akka.util.ByteString
 import com.malliina.storage.StorageSize
 
 import scala.concurrent.Future
+import scala.util.Try
 
 case class DataStream(source: Source[ByteString, Future[IOResult]],
                       contentLength: Option[StorageSize],
-                      contentType: Option[ContentType])
+                      contentType: Option[ContentType]) {
+  def isImage: Boolean = contentType.exists(_.contentType startsWith "image")
+}
 
 trait PicFiles {
   def load(from: Int, until: Int): Seq[Key]
@@ -24,7 +27,7 @@ trait PicFiles {
     if (contains(key)) Option(get(key))
     else None
 
-  def put(key: Key, file: Path): Unit
+  def put(key: Key, file: Path): Try[Unit]
 
-  def remove(key: Key): Unit
+  def remove(key: Key): Try[Unit]
 }

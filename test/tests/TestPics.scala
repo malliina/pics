@@ -6,6 +6,8 @@ import java.nio.file.Path
 import akka.stream.scaladsl.StreamConverters
 import com.malliina.pics.{DataStream, Key, PicFiles}
 
+import scala.util.Try
+
 object TestPics extends PicFiles {
   override def load(from: Int, until: Int): Seq[Key] = Nil
 
@@ -17,7 +19,7 @@ object TestPics extends PicFiles {
     DataStream(source, None, None)
   }
 
-  override def put(key: Key, file: Path): Unit = ()
+  override def put(key: Key, file: Path): Try[Unit] = Try(())
 
-  override def remove(key: Key): Unit = ()
+  override def remove(key: Key): Try[Unit] = Try(())
 }
