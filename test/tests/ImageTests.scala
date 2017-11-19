@@ -13,7 +13,8 @@ class ImageTests extends FunSuite {
     assert(ContentType.parse("image.jpg").contains(ContentType.ImageJpeg))
   }
 
-  test("Files.probeContentType does not work") {
+  ignore("Files.probeContentType does not work") {
+    // actually this might work, depending on the environment, but not on MacOS
     assert(Option(Files.probeContentType(original)).isEmpty)
   }
 
