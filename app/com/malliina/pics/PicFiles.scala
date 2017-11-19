@@ -24,8 +24,7 @@ case class DataFile(file: Path,
 
 case class DataStream(source: Source[ByteString, Future[IOResult]],
                       contentLength: Option[StorageSize],
-                      contentType: Option[ContentType]) extends DataResponse {
-}
+                      contentType: Option[ContentType]) extends DataResponse
 
 trait PicFiles {
   def load(from: Int, until: Int): Seq[Key]
