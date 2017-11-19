@@ -33,16 +33,21 @@ class FilePics(val dir: Path, mat: Materializer) {
 
   def contains(key: Key): Boolean = Files.exists(fileAt(key))
 
-  def get(key: Key): DataStream = {
+  def get(key: Key): DataResponse = {
     val file = fileAt(key)
-    DataStream(
-      FileIO.fromPath(file),
+    DataFile(
+      file,
       Option(Files.size(file).bytes),
       ContentType.parseFile(file)
     )
   }
 
   def remove(key: Key): Try[Unit] = tryLogged(Files.delete(fileAt(key)))
+
+  def putData(key: Key, data: DataResponse) = data match {
+    case DataStream(source, _, _) => putSource(key, source)
+    case DataFile(file, _, _) => put(key, file)
+  }
 
   def put(key: Key, file: Path): Try[Unit] = tryLogged(Files.copy(file, fileAt(key)))
 
@@ -69,11 +74,12 @@ class FileCachingPics(cache: FilePics, origin: PicFiles) extends PicFiles {
 
   override def contains(key: Key): Boolean = cache.contains(key) || origin.contains(key)
 
-  override def get(key: Key): DataStream =
+  override def get(key: Key): DataResponse =
     if (cache.contains(key)) {
       cache.get(key)
     } else {
-      cache.putSource(key, origin.get(key).source)
+      origin.get(key)
+      cache.putData(key, origin.get(key))
       origin.get(key)
     }
 

@@ -20,6 +20,8 @@ import play.api.http.{HeaderNames, HttpEntity, MimeTypes}
 import play.api.libs.json.Json
 import play.api.mvc._
 
+import scala.concurrent.duration.DurationInt
+
 case class UserFeedback(message: String, isSuccess: Boolean)
 
 object UserFeedback {
@@ -94,15 +96,30 @@ class Home(files: PicFiles,
     Ok(PicsHtml.pics(entries, feedback, user.user))
   }
 
-  def pic(key: Key) = Action {
-    files.find(key).fold(keyNotFound(key))(streamData)
+  def pic(key: Key) = picAction(files.find(key), keyNotFound(key))
+
+  def thumb(key: Key) = security.authenticatedLogged { _ =>
+    picAction(thumbs.find(key).filter(_.isImage), Ok.sendResource(placeHolderResource))
   }
 
-  def thumb(key: Key) = security.authAction { _ =>
-    thumbs.find(key).filter(_.isImage)
-      .map(streamData)
-      .getOrElse(Ok.sendResource(placeHolderResource))
+  private def picAction(find: Option[DataResponse], onNotFound: => Result) = {
+    val result = find.map {
+      case DataFile(file, _, _) => Ok.sendPath(file)
+      case s@DataStream(_, _, _) => streamData(s)
+    }.getOrElse {
+      onNotFound
+    }
+    Action(result)
   }
+
+
+  private def streamData(stream: DataStream) =
+    Ok.sendEntity(
+      HttpEntity.Streamed(
+        stream.source,
+        stream.contentLength.map(_.toBytes),
+        stream.contentType.map(_.contentType))
+    )
 
   def delete = security.authenticatedLogged(_ => deleteNoAuth)
 
@@ -180,14 +197,6 @@ class Home(files: PicFiles,
     Ok(PicsHtml.eject(req.flash.get(oauth.messageKey)))
   })
 
-  def streamData(stream: DataStream) =
-    Ok.sendEntity(
-      HttpEntity.Streamed(
-        stream.source,
-        stream.contentLength.map(_.toBytes),
-        stream.contentType.map(_.contentType))
-    )
-
   def keyNotFound(key: Key) = onNotFound(s"Not found: $key")
 
   def onNotFound(message: String) = NotFound(Json.obj(Message -> message))
@@ -202,11 +211,5 @@ class Home(files: PicFiles,
 
   // cannot cache streamed entities
 
-  //  def pic(key: Key) = cache((req: RequestHeader) => req.path, 3600) {
-  //    Action {
-  //      files.find(key)
-  //        .map(streamData)
-  //        .getOrElse(keyNotFound(key))
-  //    }
-  //  }
+  def cachedAction(result: Result) = cache((req: RequestHeader) => req.path, 180.days)(Action(result))
 }
