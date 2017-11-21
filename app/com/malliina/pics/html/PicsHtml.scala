@@ -17,9 +17,26 @@ object PicsHtml {
   val dataContentAttr = attr("data-content")
   val defer = attr("defer").empty
 
-  def drop(created: Option[KeyEntry], user: Username) =
+  def drop(created: Option[KeyEntry], feedback: Option[UserFeedback], user: Username) =
     baseIndex("drop", user, deferredJs("drop.js"))(
       divContainer(
+        feedback.fold(empty) { fb =>
+          if (fb.isSuccess) alertSuccess(fb.message)
+          else alertDanger(fb.message)
+        },
+        fullRow(
+          p(
+            postableForm(routes.Home.delete(), `class` := "form-inline", id := "delete-form")(
+              divClass(FormGroup)(
+                divClass(InputGroup)(
+                  divClass(InputGroupAddon)("pics/"),
+                  input(`type` := Text, `class` := FormControl, name := "key", placeholder := "key")
+                )
+              ),
+              submitButton(`class` := BtnDanger)("Delete")
+            )
+          )
+        ),
         div(`class` := "upload-drop-zone", id := "drop-zone")(
           strong("Drag files here")
         ),
@@ -38,19 +55,6 @@ object PicsHtml {
           if (fb.isSuccess) alertSuccess(fb.message)
           else alertDanger(fb.message)
         },
-        fullRow(
-          p(
-            postableForm(routes.Home.delete(), `class` := "form-inline", id := "delete-form")(
-              divClass(FormGroup)(
-                divClass(InputGroup)(
-                  divClass(InputGroupAddon)("pics/"),
-                  input(`type` := Text, `class` := FormControl, name := "key", placeholder := "key")
-                )
-              ),
-              submitButton(`class` := BtnDanger)("Delete")
-            )
-          )
-        ),
         if (urls.isEmpty) {
           leadPara("No pictures.")
         } else {

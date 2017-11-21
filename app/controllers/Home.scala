@@ -23,15 +23,19 @@ import play.api.mvc._
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
-case class UserFeedback(message: String, isSuccess: Boolean)
+case class UserFeedback(message: String, isSuccess: Boolean) {
+  def toMap: Seq[(String, String)] =
+    Map(UserFeedback.Message -> message, UserFeedback.IsSuccess -> isSuccess.toString).toSeq
+}
 
 object UserFeedback {
-  val ErrorMessage = "error-message"
   val Message = "message"
+  val IsSuccess = "isSuccess"
+  val False = "false"
 
-  def forFlash(flash: Flash) =
-    flash.get(ErrorMessage).map(UserFeedback(_, isSuccess = false))
-      .orElse(flash.get(Message).map(UserFeedback(_, isSuccess = true)))
+  def forFlash(flash: Flash) = for {
+    msg <- flash.get(Message)
+  } yield UserFeedback(msg, !flash.get(IsSuccess).contains("false"))
 }
 
 case class KeyEntry(key: Key, url: Call, thumb: Call)
@@ -87,7 +91,8 @@ class Home(files: PicFiles,
 
   def drop = security.authAction { user =>
     val created = user.rh.flash.get(CreatedKey).map(k => KeyEntry(Key(k)))
-    Ok(PicsHtml.drop(created, user.user))
+    val feedback = UserFeedback.forFlash(user.rh.flash)
+    Ok(PicsHtml.drop(created, feedback, user.user))
   }
 
   def list = security.authAction { user =>
@@ -126,19 +131,19 @@ class Home(files: PicFiles,
   def delete = security.authenticatedLogged(_ => deleteNoAuth)
 
   def remove(key: Key) = security.authAction { _ =>
-    removeKey(key)
+    removeKey(key, routes.Home.list())
   }
 
-  def removeKey(key: Key): Result = {
-    val redir = Redirect(routes.Home.list())
+  def removeKey(key: Key, redirCall: Call): Result = {
+    val redir = Redirect(redirCall)
     if (thumbs contains key) {
       thumbs remove key
     }
     if (files contains key) {
       (files remove key).foreach { _ => log info s"Removed '$key'." }
-      redir.flashing(UserFeedback.Message -> s"Deleted key '$key'.")
+      redir.flashing(UserFeedback(s"Deleted key '$key'.", isSuccess = true).toMap: _*)
     } else {
-      redir.flashing(UserFeedback.ErrorMessage -> s"Key not found: '$key'.")
+      redir.flashing(UserFeedback(s"Key not found: '$key'.", isSuccess = false).toMap: _*)
     }
   }
 
@@ -147,7 +152,7 @@ class Home(files: PicFiles,
   }
 
   private def deleteNoAuth = Action(parse.form(deleteForm)) { req =>
-    removeKey(req.body)
+    removeKey(req.body, routes.Home.drop())
   }
 
   private def putNoAuth = Action(parse.multipartFormData) { req =>

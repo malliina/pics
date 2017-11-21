@@ -53,6 +53,7 @@
 
   width: 100%;
   max-width: 330px;
+  min-width: 220px;
   max-height: 290px;
 
   @media (min-width: 725px) {
@@ -82,9 +83,16 @@
   margin-top: auto;
   display: flex;
   justify-content: space-between;
+
+  > div {
+    margin-right: 10px;
+
+    &:last-child {
+      margin-right: 0;
+    }
+  }
 }
 
 .pic-link {
   margin-left: auto;
-  margin-right: 5px;
 }
