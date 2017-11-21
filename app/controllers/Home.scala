@@ -5,19 +5,20 @@ import java.nio.file.Files
 import akka.stream.Materializer
 import buildinfo.BuildInfo
 import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.http.FullUrl
 import com.malliina.pics._
 import com.malliina.pics.html.PicsHtml
 import com.malliina.play.auth.{AuthFailure, UserAuthenticator}
 import com.malliina.play.controllers.{AuthBundle, BaseSecurity, Caching, OAuthControl}
-import com.malliina.play.http.AuthedRequest
+import com.malliina.play.http.{AuthedRequest, FullUrls}
 import controllers.Home._
 import org.apache.commons.io.FilenameUtils
 import play.api.Logger
 import play.api.cache.Cached
 import play.api.data.Form
 import play.api.data.Forms._
-import play.api.http.{HeaderNames, HttpEntity, MimeTypes}
-import play.api.libs.json.Json
+import play.api.http._
+import play.api.libs.json.{Json, Writes}
 import play.api.mvc._
 
 import scala.concurrent.Future
@@ -36,17 +37,6 @@ object UserFeedback {
   def forFlash(flash: Flash) = for {
     msg <- flash.get(Message)
   } yield UserFeedback(msg, !flash.get(IsSuccess).contains("false"))
-}
-
-case class KeyEntry(key: Key, url: Call, thumb: Call)
-
-object KeyEntry {
-  def apply(key: Key): KeyEntry =
-    KeyEntry(
-      key,
-      routes.Home.pic(key),
-      routes.Home.thumb(key)
-    )
 }
 
 object Home {
@@ -90,17 +80,42 @@ class Home(files: PicFiles,
   })
 
   def drop = security.authAction { user =>
-    val created = user.rh.flash.get(CreatedKey).map(k => KeyEntry(Key(k)))
+    val created = user.rh.flash.get(CreatedKey).map(k => KeyEntry(Key(k), user.rh))
     val feedback = UserFeedback.forFlash(user.rh.flash)
     Ok(PicsHtml.drop(created, feedback, user.user))
   }
 
-  def list = security.authAction { user =>
-    val keys = files.load(0, 100)
-    val entries = keys map { key => KeyEntry(key) }
-    val feedback = UserFeedback.forFlash(user.rh.flash)
-    Ok(PicsHtml.pics(entries, feedback, user.user))
+  def list = parsed(ListRequest.forRequest) { req =>
+    val keys = files.load(req.offset, req.limit)
+    val entries = keys map { key => KeyEntry(key, req.rh) }
+
+    renderContent(req.rh)(
+      json = Pics(entries),
+      html = {
+        val feedback = UserFeedback.forFlash(req.rh.flash)
+        PicsHtml.pics(entries, feedback, req.user)
+      }
+    )
   }
+
+  def parsed[T](parse: AuthedRequest => Either[Errors, T])(f: T => Result) =
+    security.authAction { req =>
+      parse(req).fold(
+        errors => BadRequest(Json.toJson(errors)),
+        t => f(t))
+    }
+
+  def renderContent[A: Writes, B: Writeable](rh: RequestHeader)(json: => A, html: => B) =
+    if (rh.getQueryString("f").contains("json")) {
+      Ok(Json.toJson(json))
+    } else {
+      renderVaried(rh) {
+        case Accepts.Html() => Ok(html)
+        case Accepts.Json() => Ok(Json.toJson(json))
+      }
+    }
+
+  def renderVaried(rh: RequestHeader)(f: PartialFunction[MediaRange, Result]) = render(f)(rh)
 
   def pic(key: Key) = picAction(files.find(key), keyNotFound(key))
 

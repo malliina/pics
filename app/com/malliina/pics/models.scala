@@ -2,9 +2,13 @@ package com.malliina.pics
 
 import java.nio.file.Path
 
+import com.malliina.http.FullUrl
+import com.malliina.play.http.FullUrls
+import controllers.routes
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
-import play.api.mvc.PathBindable
+import play.api.libs.json._
+import play.api.mvc.{PathBindable, RequestHeader}
 
 case class Key(key: String) {
   override def toString: String = key
@@ -14,6 +18,11 @@ case class Key(key: String) {
 
 object Key {
   val KeyLength = 7
+
+  implicit val json = valueFormat[Key, String](_.validate[String].map(Key.apply), _.key)
+
+  def valueFormat[A, B: Writes](read: JsValue => JsResult[A], write: A => B): Format[A] =
+    Format[A](Reads(read), Writes(a => Json.toJson(write(a))))
 
   implicit object bindable extends PathBindable[Key] {
     override def bind(key: String, value: String): Either[String, Key] =
@@ -30,6 +39,27 @@ object Key {
     .build()
 
   def randomish(): Key = Key(generator.generate(KeyLength).toLowerCase)
+}
+
+case class KeyEntry(key: Key, url: FullUrl, thumb: FullUrl)
+
+object KeyEntry {
+  implicit val json = Json.format[KeyEntry]
+
+  def apply(key: Key, rh: RequestHeader): KeyEntry = {
+    val host = FullUrls.hostOnly(rh)
+    KeyEntry(
+      key,
+      FullUrls.absolute(host, routes.Home.pic(key)),
+      FullUrls.absolute(host, routes.Home.thumb(key))
+    )
+  }
+}
+
+case class Pics(pics: Seq[KeyEntry])
+
+object Pics {
+  implicit val json = Json.format[Pics]
 }
 
 case class BucketName(name: String)

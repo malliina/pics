@@ -1,7 +1,6 @@
 function launch() {
     $(".copy-button").click(function (e) {
-        var path = e.delegateTarget.getAttribute("data-id");
-        var url = window.location.host + path;
+        var url = e.delegateTarget.getAttribute("data-id");
         copyToClipboard(url);
     });
     $('[data-toggle="popover"]').popover();

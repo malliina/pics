@@ -1,12 +1,16 @@
 package com.malliina.pics.html
 
+import com.malliina.http.FullUrl
+import com.malliina.pics.KeyEntry
 import com.malliina.play.models.Username
 import com.malliina.play.tags.Bootstrap._
 import com.malliina.play.tags.PlayTags._
 import com.malliina.play.tags.Tags._
-import controllers.{KeyEntry, UserFeedback, routes}
+import controllers.{UserFeedback, routes}
 import play.api.mvc.Call
 
+import scala.language.implicitConversions
+import scalatags.Text.GenericAttr
 import scalatags.Text.all._
 
 object PicsHtml {
@@ -16,6 +20,11 @@ object PicsHtml {
   val dataIdAttr = attr("data-id")
   val dataContentAttr = attr("data-content")
   val defer = attr("defer").empty
+
+  implicit def urlWriter(url: FullUrl): scalatags.Text.StringFrag =
+    new scalatags.Text.StringFrag(url.url)
+
+  implicit val urlAttr = new GenericAttr[FullUrl]
 
   def drop(created: Option[KeyEntry], feedback: Option[UserFeedback], user: Username) =
     baseIndex("drop", user, deferredJs("drop.js"))(
@@ -73,7 +82,7 @@ object PicsHtml {
                     )
                   ),
                   divClass("pic-link")(aHref(entry.url)(entry.key.key)),
-                  div(a(role := Button, attr("tabindex") := 0, `class` := s"$BtnDefault $BtnXs $CopyButton", dataIdAttr := entry.url.path(), dataToggle := "popover", dataContentAttr := "Copied!")("Copy"))
+                  div(a(role := Button, attr("tabindex") := 0, `class` := s"$BtnDefault $BtnXs $CopyButton", dataIdAttr := entry.url, dataToggle := "popover", dataContentAttr := "Copied!")("Copy"))
                 )
               )
             }
