@@ -2,11 +2,12 @@ package com.malliina.pics.html
 
 import com.malliina.http.FullUrl
 import com.malliina.pics.KeyEntry
+import com.malliina.play.controllers.UserFeedback
 import com.malliina.play.models.Username
 import com.malliina.play.tags.Bootstrap._
 import com.malliina.play.tags.PlayTags._
 import com.malliina.play.tags.Tags._
-import controllers.{UserFeedback, routes}
+import controllers.routes
 import play.api.mvc.Call
 
 import scala.language.implicitConversions
@@ -29,10 +30,7 @@ object PicsHtml {
   def drop(created: Option[KeyEntry], feedback: Option[UserFeedback], user: Username) =
     baseIndex("drop", user, deferredJs("drop.js"))(
       divContainer(
-        feedback.fold(empty) { fb =>
-          if (fb.isSuccess) alertSuccess(fb.message)
-          else alertDanger(fb.message)
-        },
+        renderFeedback(feedback),
         fullRow(
           p(
             postableForm(routes.Home.delete(), `class` := "form-inline", id := "delete-form")(
@@ -60,10 +58,7 @@ object PicsHtml {
   def pics(urls: Seq[KeyEntry], feedback: Option[UserFeedback], user: Username) =
     baseIndex("pics", user, deferredJs("pics.js"))(
       divClass("pics")(
-        feedback.fold(empty) { fb =>
-          if (fb.isSuccess) alertSuccess(fb.message)
-          else alertDanger(fb.message)
-        },
+        renderFeedback(feedback),
         if (urls.isEmpty) {
           leadPara("No pictures.")
         } else {
@@ -91,6 +86,12 @@ object PicsHtml {
       )
     )
 
+  def renderFeedback(feedback: Option[UserFeedback]) =
+    feedback.fold(empty) { fb =>
+      if (fb.isError) alertDanger(fb.message)
+      else alertSuccess(fb.message)
+    }
+
   def eject(message: Option[String]) =
     basePage("Goodbye!")(
       divContainer(
@@ -113,12 +114,12 @@ object PicsHtml {
         divContainer(
           divClass(NavbarHeader)(
             hamburgerButton,
-            a(`class` := NavbarBrand, href := routes.Home.drop())("Pics")
+            a(`class` := NavbarBrand, href := routes.Home.list())("Pics")
           ),
           divClass(s"$NavbarCollapse $Collapse")(
             ulClass(s"$Nav $NavbarNav")(
-              navItem("Drop", "drop", routes.Home.drop(), "upload"),
-              navItem("Pics", "pics", routes.Home.list(), "picture")
+              navItem("Pics", "pics", routes.Home.list(), "picture"),
+              navItem("Drop", "drop", routes.Home.drop(), "upload")
             ),
             ulClass(s"$Nav $NavbarNav $NavbarRight")(
               li(`class` := Dropdown)(

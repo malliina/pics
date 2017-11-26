@@ -1,4 +1,5 @@
-GET         /                        controllers.Home.drop
+GET         /                        controllers.Home.root
+GET         /drop                    controllers.Home.drop
 GET         /ping                    controllers.Home.ping
 GET         /pics                    controllers.Home.list
 #GET         /pics/*key           controllers.Home.pic(key: com.malliina.pics.Key)

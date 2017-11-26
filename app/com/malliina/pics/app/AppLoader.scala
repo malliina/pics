@@ -1,4 +1,4 @@
-package com.malliina.app
+package com.malliina.pics.app
 
 import akka.stream.Materializer
 import com.malliina.oauth.{GoogleOAuthCredentials, GoogleOAuthReader}
@@ -28,6 +28,7 @@ class AppComponents(context: Context, creds: GoogleOAuthCredentials, pics: Mater
   log.info(s"Using pics dir '${FilePics.picsDir}'.")
   lazy val cache = new Cached(defaultCacheApi)
 
+  override lazy val httpErrorHandler = PicsErrorHandler
   lazy val admin = new Admin(creds, controllerComponents.actionBuilder)
   lazy val home = new Home(pics(materializer), thumbs(materializer), Resizer.Prod, admin, cache, Home.security(admin, materializer), controllerComponents)
   val picsAssets = new PicsAssets(assets)

@@ -10,7 +10,7 @@ import com.amazonaws.services.s3.model.ObjectListing
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.malliina.storage.StorageLong
 
-import scala.collection.JavaConverters.asScalaBuffer
+import scala.collection.JavaConverters.asScalaBufferConverter
 import scala.concurrent.Future
 import scala.util.Try
 
@@ -26,7 +26,7 @@ class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends PicFiles {
   }
 
   private def loadAcc(desiredSize: Int, current: ObjectListing, acc: Seq[Key]): Seq[Key] = {
-    val newAcc = acc ++ asScalaBuffer(current.getObjectSummaries()).map(s => Key(s.getKey))
+    val newAcc = acc ++ current.getObjectSummaries().asScala.map(s => Key(s.getKey))
     if (!current.isTruncated || newAcc.size >= desiredSize) newAcc take desiredSize
     else loadAcc(desiredSize, aws.listNextBatchOfObjects(current), newAcc)
   }

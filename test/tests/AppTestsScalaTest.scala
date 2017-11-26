@@ -1,7 +1,7 @@
 package tests
 
-import com.malliina.app.AppComponents
 import com.malliina.oauth.GoogleOAuthCredentials
+import com.malliina.pics.app.AppComponents
 import play.api.http.Writeable
 import play.api.mvc.Request
 import play.api.test.FakeRequest

@@ -3,14 +3,13 @@ package controllers
 import java.nio.file.Files
 
 import akka.stream.Materializer
-import buildinfo.BuildInfo
 import com.malliina.concurrent.ExecutionContexts.cached
-import com.malliina.http.FullUrl
 import com.malliina.pics._
 import com.malliina.pics.html.PicsHtml
 import com.malliina.play.auth.{AuthFailure, UserAuthenticator}
-import com.malliina.play.controllers.{AuthBundle, BaseSecurity, Caching, OAuthControl}
-import com.malliina.play.http.{AuthedRequest, FullUrls}
+import com.malliina.play.controllers._
+import com.malliina.play.http.AuthedRequest
+import com.malliina.play.models.Username
 import controllers.Home._
 import org.apache.commons.io.FilenameUtils
 import play.api.Logger
@@ -24,25 +23,11 @@ import play.api.mvc._
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
-case class UserFeedback(message: String, isSuccess: Boolean) {
-  def toMap: Seq[(String, String)] =
-    Map(UserFeedback.Message -> message, UserFeedback.IsSuccess -> isSuccess.toString).toSeq
-}
-
-object UserFeedback {
-  val Message = "message"
-  val IsSuccess = "isSuccess"
-  val False = "false"
-
-  def forFlash(flash: Flash) = for {
-    msg <- flash.get(Message)
-  } yield UserFeedback(msg, !flash.get(IsSuccess).contains("false"))
-}
-
 object Home {
   private val log = Logger(getClass)
 
   val binaryContentType = ContentType(MimeTypes.BINARY)
+  val Json10 = Accepting("application/vnd.pics.v10+json")
 
   val CreatedKey = "created"
   val KeyKey = "key"
@@ -75,32 +60,40 @@ class Home(files: PicFiles,
   val placeHolderResource = "400x300.png"
   val deleteForm: Form[Key] = Form(mapping(KeyKey -> nonEmptyText)(Key.apply)(Key.unapply))
 
-  def ping = Action(Caching.NoCache {
-    Ok(Json.obj("name" -> BuildInfo.name, "version" -> BuildInfo.version, "hash" -> BuildInfo.hash))
-  })
+  def ping = Action(Caching.NoCache(Ok(Json.toJson(AppMeta.default))))
 
-  def drop = security.authAction { user =>
-    val created = user.rh.flash.get(CreatedKey).map(k => KeyEntry(Key(k), user.rh))
-    val feedback = UserFeedback.forFlash(user.rh.flash)
-    Ok(PicsHtml.drop(created, feedback, user.user))
-  }
+  def root = Action(Redirect(routes.Home.list()))
 
-  def list = parsed(ListRequest.forRequest) { req =>
+  def list = parsedNoAuth(ListRequest.forRequest) { req =>
     val keys = files.load(req.offset, req.limit)
     val entries = keys map { key => KeyEntry(key, req.rh) }
 
     renderContent(req.rh)(
       json = Pics(entries),
       html = {
-        val feedback = UserFeedback.forFlash(req.rh.flash)
+        val feedback = UserFeedback.flashed(req.rh.flash)
         PicsHtml.pics(entries, feedback, req.user)
       }
     )
   }
 
+  def drop = security.authAction { user =>
+    val created = user.rh.flash.get(CreatedKey).map(k => KeyEntry(Key(k), user.rh))
+    val feedback = UserFeedback.flashed(user.rh.flash)
+    Ok(PicsHtml.drop(created, feedback, user.user))
+  }
+
   def parsed[T](parse: AuthedRequest => Either[Errors, T])(f: T => Result) =
     security.authAction { req =>
       parse(req).fold(
+        errors => BadRequest(Json.toJson(errors)),
+        t => f(t))
+    }
+
+  def parsedNoAuth[T](parse: AuthedRequest => Either[Errors, T])(f: T => Result) =
+    Action { req =>
+      val r = AuthedRequest(Username("demo"), req, None)
+      parse(r).fold(
         errors => BadRequest(Json.toJson(errors)),
         t => f(t))
     }
@@ -111,6 +104,7 @@ class Home(files: PicFiles,
     } else {
       renderVaried(rh) {
         case Accepts.Html() => Ok(html)
+        case Home.Json10() => Ok(Json.toJson(json))
         case Accepts.Json() => Ok(Json.toJson(json))
       }
     }
@@ -156,11 +150,16 @@ class Home(files: PicFiles,
     }
     if (files contains key) {
       (files remove key).foreach { _ => log info s"Removed '$key'." }
-      redir.flashing(UserFeedback(s"Deleted key '$key'.", isSuccess = true).toMap: _*)
+      redir.flashing(toMap(UserFeedback(s"Deleted key '$key'.", isError = false)): _*)
     } else {
-      redir.flashing(UserFeedback(s"Key not found: '$key'.", isSuccess = false).toMap: _*)
+      redir.flashing(toMap(UserFeedback(s"Key not found: '$key'.", isError = true)): _*)
     }
   }
+
+  def toMap(fb: UserFeedback): Seq[(String, String)] = Seq(
+    UserFeedback.Feedback -> fb.message,
+    UserFeedback.Success -> (if(fb.isError) UserFeedback.No else UserFeedback.Yes)
+  )
 
   def put = security.authenticatedLogged { _ =>
     putNoAuth

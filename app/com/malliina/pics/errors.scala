@@ -2,6 +2,7 @@ package com.malliina.pics
 
 import java.io.IOException
 
+import play.api.http.Writeable
 import play.api.libs.json.Json
 
 sealed trait ImageFailure
@@ -24,4 +25,7 @@ case class Errors(errors: Seq[SingleError])
 
 object Errors {
   implicit val json = Json.format[Errors]
+  implicit val html = Writeable.writeableOf_JsValue.map[Errors](es => Json.toJson(es))
+
+  def single(message: String) = Errors(Seq(SingleError(message)))
 }

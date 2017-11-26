@@ -2,13 +2,23 @@ package com.malliina.pics
 
 import java.nio.file.Path
 
+import buildinfo.BuildInfo
 import com.malliina.http.FullUrl
 import com.malliina.play.http.FullUrls
 import controllers.routes
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
+import play.api.http.Writeable
 import play.api.libs.json._
-import play.api.mvc.{PathBindable, RequestHeader}
+import play.api.mvc.{Flash, PathBindable, RequestHeader}
+
+case class AppMeta(name: String, version: String, gitHash: String)
+
+object AppMeta {
+  implicit val json = Json.format[AppMeta]
+
+  val default = AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.hash)
+}
 
 case class Key(key: String) {
   override def toString: String = key
@@ -60,6 +70,7 @@ case class Pics(pics: Seq[KeyEntry])
 
 object Pics {
   implicit val json = Json.format[Pics]
+  implicit val html = Writeable.writeableOf_JsValue.map[Pics](ps => Json.toJson(ps))
 }
 
 case class BucketName(name: String)
