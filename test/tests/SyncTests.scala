@@ -5,7 +5,7 @@ import com.malliina.pics.db.{PicsDatabase, PicsDb}
 import org.scalatest.FunSuite
 
 class SyncTests extends FunSuite {
-  test("can sync") {
+  ignore("can sync") {
     val db = PicsDatabase.default()
     db.init()
     val pics = PicsDb(db)
