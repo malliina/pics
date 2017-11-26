@@ -9,7 +9,6 @@ import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.storage.{StorageLong, StorageSize}
 
 import scala.concurrent.Future
-import scala.util.Try
 
 sealed trait DataResponse {
   def contentLength: Option[StorageSize]
@@ -35,18 +34,24 @@ case class DataStream(source: Source[ByteString, Future[IOResult]],
                       contentLength: Option[StorageSize],
                       contentType: Option[ContentType]) extends DataResponse
 
-trait PicFiles {
-  def load(from: Int, until: Int): Seq[Key]
-
-  def contains(key: Key): Boolean
-
+trait PicFiles extends MetaSource {
   def get(key: Key): Future[DataResponse]
 
   def find(key: Key): Future[Option[DataResponse]] =
-    if (contains(key)) get(key).map(Option.apply)
-    else Future.successful(None)
+    contains(key).flatMap { exists =>
+      if (exists) get(key).map(Option.apply)
+      else Future.successful(None)
+    }
+}
 
-  def put(key: Key, file: Path): Try[Unit]
+trait MetaSource {
+  def load(from: Int, until: Int): Future[Seq[KeyMeta]]
 
-  def remove(key: Key): Try[Unit]
+  def contains(key: Key): Future[Boolean]
+
+  def put(key: Key, file: Path): Future[Unit]
+
+  def remove(key: Key): Future[Unit]
+
+  def fut[T](t: T): Future[T] = Future.successful(t)
 }

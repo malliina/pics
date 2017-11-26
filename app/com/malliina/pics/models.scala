@@ -1,6 +1,7 @@
 package com.malliina.pics
 
 import java.nio.file.Path
+import java.time.Instant
 
 import buildinfo.BuildInfo
 import com.malliina.http.FullUrl
@@ -10,7 +11,7 @@ import org.apache.commons.io.FilenameUtils
 import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
 import play.api.http.Writeable
 import play.api.libs.json._
-import play.api.mvc.{Flash, PathBindable, RequestHeader}
+import play.api.mvc.{PathBindable, RequestHeader}
 
 case class AppMeta(name: String, version: String, gitHash: String)
 
@@ -51,15 +52,21 @@ object Key {
   def randomish(): Key = Key(generator.generate(KeyLength).toLowerCase)
 }
 
-case class KeyEntry(key: Key, url: FullUrl, thumb: FullUrl)
+case class KeyMeta(key: Key, added: Instant) {
+  def toEntry(rh: RequestHeader) = KeyEntry(this, rh)
+}
+
+case class KeyEntry(key: Key, added: Instant, url: FullUrl, thumb: FullUrl)
 
 object KeyEntry {
   implicit val json = Json.format[KeyEntry]
 
-  def apply(key: Key, rh: RequestHeader): KeyEntry = {
+  def apply(meta: KeyMeta, rh: RequestHeader): KeyEntry = {
     val host = FullUrls.hostOnly(rh)
+    val key = meta.key
     KeyEntry(
       key,
+      meta.added,
       FullUrls.absolute(host, routes.Home.pic(key)),
       FullUrls.absolute(host, routes.Home.thumb(key))
     )

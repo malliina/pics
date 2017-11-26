@@ -1,6 +1,7 @@
 package controllers
 
 import java.nio.file.Files
+import java.time.Instant
 
 import akka.stream.Materializer
 import com.malliina.concurrent.ExecutionContexts.cached
@@ -50,7 +51,8 @@ object Home {
     new BaseSecurity(oauth.actions, auth(oauth), mat)
 }
 
-class Home(files: PicFiles,
+class Home(db: MetaSource,
+           files: PicFiles,
            thumbs: PicFiles,
            resizer: Resizer,
            oauth: Admin,
@@ -64,38 +66,41 @@ class Home(files: PicFiles,
 
   def root = Action(Redirect(routes.Home.list()))
 
-  def list = parsedNoAuth(ListRequest.forRequest) { req =>
-    val keys = files.load(req.offset, req.limit)
-    val entries = keys map { key => KeyEntry(key, req.rh) }
-
-    renderContent(req.rh)(
-      json = Pics(entries),
-      html = {
-        val feedback = UserFeedback.flashed(req.rh.flash)
-        PicsHtml.pics(entries, feedback, req.user)
-      }
-    )
+  def list = parsed(ListRequest.forRequest) { req =>
+    db.load(req.offset, req.limit).map { keys =>
+      val entries = keys map { key => KeyEntry(key, req.rh) }
+      renderContent(req.rh)(
+        json = Pics(entries),
+        html = {
+          val feedback = UserFeedback.flashed(req.rh.flash)
+          PicsHtml.pics(entries, feedback, req.user)
+        }
+      )
+    }
   }
 
   def drop = security.authAction { user =>
-    val created = user.rh.flash.get(CreatedKey).map(k => KeyEntry(Key(k), user.rh))
+    val created = user.rh.flash.get(CreatedKey).map(k => KeyEntry(KeyMeta(Key(k), Instant.now()), user.rh))
     val feedback = UserFeedback.flashed(user.rh.flash)
     Ok(PicsHtml.drop(created, feedback, user.user))
   }
 
-  def parsed[T](parse: AuthedRequest => Either[Errors, T])(f: T => Result) =
+  def sync = Action(NotImplemented(Errors.single("Not yet implemented.")))
+
+  def parsedAuth[T](parse: AuthedRequest => Either[Errors, T])(f: T => Result) =
     security.authAction { req =>
       parse(req).fold(
         errors => BadRequest(Json.toJson(errors)),
         t => f(t))
     }
 
-  def parsedNoAuth[T](parse: AuthedRequest => Either[Errors, T])(f: T => Result) =
-    Action { req =>
+  def parsed[T](parse: AuthedRequest => Either[Errors, T])(f: T => Future[Result]) =
+    Action.async { req =>
       val r = AuthedRequest(Username("demo"), req, None)
       parse(r).fold(
-        errors => BadRequest(Json.toJson(errors)),
-        t => f(t))
+        errors => Future.successful(BadRequest(Json.toJson(errors))),
+        t => f(t)
+      )
     }
 
   def renderContent[A: Writes, B: Writeable](rh: RequestHeader)(json: => A, html: => B) =
@@ -113,9 +118,11 @@ class Home(files: PicFiles,
 
   def pic(key: Key) = picAction(files.find(key), keyNotFound(key))
 
-  def thumb(key: Key) = security.authenticatedLogged { _ =>
+  def thumbAuth(key: Key) = security.authenticatedLogged { _ =>
     picAction(thumbs.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
   }
+
+  def thumb(key: Key) = picAction(thumbs.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
 
   private def picAction(find: Future[Option[DataResponse]], onNotFound: => Result) = {
     val result = find.map { maybe =>
@@ -139,33 +146,53 @@ class Home(files: PicFiles,
 
   def delete = security.authenticatedLogged(_ => deleteNoAuth)
 
-  def remove(key: Key) = security.authAction { _ =>
+  def remove(key: Key) = security.authActionAsync { _ =>
     removeKey(key, routes.Home.list())
   }
 
-  def removeKey(key: Key, redirCall: Call): Result = {
+  def removeKey(key: Key, redirCall: Call): Future[Result] = {
     val redir = Redirect(redirCall)
-    if (thumbs contains key) {
-      thumbs remove key
-    }
-    if (files contains key) {
-      (files remove key).foreach { _ => log info s"Removed '$key'." }
-      redir.flashing(toMap(UserFeedback(s"Deleted key '$key'.", isError = false)): _*)
-    } else {
-      redir.flashing(toMap(UserFeedback(s"Key not found: '$key'.", isError = true)): _*)
+    for {
+      _ <- db.remove(key)
+      _ <- removeThumb(key)
+      wasRemoved <- removeOriginal(key)
+    } yield {
+      if (wasRemoved) redir.flashing(toMap(UserFeedback(s"Deleted key '$key'.", isError = false)): _*)
+      else redir.flashing(toMap(UserFeedback(s"Key not found: '$key'.", isError = true)): _*)
     }
   }
 
+  private def removeThumb(key: Key): Future[Unit] = {
+    thumbs.contains(key).flatMap { exists =>
+      if (exists) thumbs.remove(key)
+      else Future.successful(())
+    }
+  }
+
+  private def removeOriginal(key: Key): Future[Boolean] = {
+    files.contains(key).flatMap { exists =>
+      if (exists) {
+        files.remove(key).map { _ =>
+          log info s"Removed '$key'."
+          true
+        }
+      } else {
+        fut(false)
+      }
+    }
+  }
+
+
   def toMap(fb: UserFeedback): Seq[(String, String)] = Seq(
     UserFeedback.Feedback -> fb.message,
-    UserFeedback.Success -> (if(fb.isError) UserFeedback.No else UserFeedback.Yes)
+    UserFeedback.Success -> (if (fb.isError) UserFeedback.No else UserFeedback.Yes)
   )
 
   def put = security.authenticatedLogged { _ =>
     putNoAuth
   }
 
-  private def deleteNoAuth = Action(parse.form(deleteForm)) { req =>
+  private def deleteNoAuth = Action.async(parse.form(deleteForm)) { req =>
     removeKey(req.body, routes.Home.drop())
   }
 
@@ -185,6 +212,7 @@ class Home(files: PicFiles,
           for {
             _ <- files.put(key, renamedFile)
             _ <- thumbs.put(key, thumbFile)
+            _ <- db.put(key, thumbFile)
           } yield ()
           val url = routes.Home.pic(key)
           log info s"Saved file '${file.filename}' as '$key'."
@@ -233,4 +261,6 @@ class Home(files: PicFiles,
   // cannot cache streamed entities
 
   def cachedAction(result: Result) = cache((req: RequestHeader) => req.path, 180.days)(Action(result))
+
+  def fut[T](t: T) = Future.successful(t)
 }

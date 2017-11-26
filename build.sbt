@@ -13,7 +13,9 @@ libraryDependencies ++= Seq(
   PlayImport.ehcache,
   PlayImport.ws,
   utilPlayDep,
-  utilPlayDep % Test classifier "tests"
+  utilPlayDep % Test classifier "tests",
+  "com.typesafe.slick" %% "slick" % "3.2.1",
+  "com.h2database" % "h2" % "1.4.196"
 )
 pipelineStages := Seq(digest, gzip)
 pipelineStages in Assets := Seq(digest, gzip)

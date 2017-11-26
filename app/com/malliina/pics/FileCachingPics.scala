@@ -15,7 +15,11 @@ object FileCachingPics {
 class FileCachingPics(cache: FilePics, origin: PicFiles) extends PicFiles {
   override def load(from: Int, until: Int) = origin.load(from, until)
 
-  override def contains(key: Key): Boolean = cache.contains(key) || origin.contains(key)
+  override def contains(key: Key): Future[Boolean] = {
+    val isCached = cache.contains(key)
+    if (isCached) fut(true)
+    else origin.contains(key)
+  }
 
   override def get(key: Key): Future[DataResponse] =
     if (cache.contains(key)) {
@@ -28,13 +32,16 @@ class FileCachingPics(cache: FilePics, origin: PicFiles) extends PicFiles {
       }
     }
 
-  override def put(key: Key, file: Path): Try[Unit] = for {
-    _ <- origin.put(key, file)
-    _ <- cache.put(key, file)
-  } yield ()
+  override def put(key: Key, file: Path): Future[Unit] =
+    for {
+      _ <- origin.put(key, file)
+      _ <- Future.fromTry(cache.put(key, file))
+    } yield ()
 
-  override def remove(key: Key): Try[Unit] = {
-    origin.remove(key)
-    cache.remove(key)
-  }
+  override def remove(key: Key): Future[Unit] =
+    for {
+      _ <- origin.remove(key)
+      _ <- Future.fromTry(cache.remove(key))
+    } yield ()
+
 }

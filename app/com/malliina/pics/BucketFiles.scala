@@ -19,20 +19,22 @@ class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends PicFiles {
 
   def copy(src: Key, dest: Key) = aws.copyObject(bucketName, src.key, bucketName, dest.key)
 
-  override def load(from: Int, until: Int): Seq[Key] = {
+  override def load(from: Int, until: Int): Future[Seq[KeyMeta]] = {
     val size = until - from
-    if (size <= 0) Nil
-    else loadAcc(until, aws.listObjects(bucketName), Nil).drop(from)
+    if (size <= 0) fut(Nil)
+    else fut(loadAcc(until, aws.listObjects(bucketName), Nil).drop(from))
   }
 
-  private def loadAcc(desiredSize: Int, current: ObjectListing, acc: Seq[Key]): Seq[Key] = {
-    val newAcc = acc ++ current.getObjectSummaries().asScala.map(s => Key(s.getKey))
+  private def loadAcc(desiredSize: Int, current: ObjectListing, acc: Seq[KeyMeta]): Seq[KeyMeta] = {
+    val newAcc = acc ++ current.getObjectSummaries().asScala.map(s => {
+      KeyMeta(Key(s.getKey), s.getLastModified.toInstant)
+    })
     if (!current.isTruncated || newAcc.size >= desiredSize) newAcc take desiredSize
     else loadAcc(desiredSize, aws.listNextBatchOfObjects(current), newAcc)
   }
 
-  override def contains(key: Key): Boolean =
-    aws.doesObjectExist(bucketName, key.key)
+  override def contains(key: Key): Future[Boolean] =
+    fut(aws.doesObjectExist(bucketName, key.key))
 
   override def get(key: Key): Future[DataResponse] = {
     val obj = aws.getObject(bucketName, key.key)
@@ -46,11 +48,11 @@ class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends PicFiles {
     }
   }
 
-  override def put(key: Key, file: Path): Try[Unit] =
-    Try(aws.putObject(bucketName, key.key, file.toFile))
+  override def put(key: Key, file: Path): Future[Unit] =
+    Future.fromTry(Try(aws.putObject(bucketName, key.key, file.toFile)))
 
-  override def remove(key: Key): Try[Unit] =
-    Try(aws.deleteObject(bucketName, key.key))
+  override def remove(key: Key): Future[Unit] =
+    Future.fromTry(Try(aws.deleteObject(bucketName, key.key)))
 }
 
 object BucketFiles {
