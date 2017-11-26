@@ -8,7 +8,7 @@ POST        /pics/*key/delete        controllers.Home.remove(key: com.malliina.p
 POST        /pics/delete             controllers.Home.delete
 POST        /sync                    controllers.Home.sync
 GET         /logout                  controllers.Home.logout
-GET         /assets/*file            controllers.PicsAssets.versioned(path = "/public", file)
+GET         /assets/*file            controllers.PicsAssets.versioned(path = "/public", file: Asset)
 GET         /oauth                   controllers.Admin.initiate
 GET         /oauthcb                 controllers.Admin.redirResponse
 GET         /eject                   controllers.Home.eject
