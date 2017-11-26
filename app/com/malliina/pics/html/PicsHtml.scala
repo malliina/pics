@@ -32,16 +32,19 @@ object PicsHtml {
       divContainer(
         renderFeedback(feedback),
         fullRow(
-          p(
-            postableForm(routes.Home.delete(), `class` := "form-inline", id := "delete-form")(
-              divClass(FormGroup)(
-                divClass(InputGroup)(
-                  divClass(InputGroupAddon)("pics/"),
-                  input(`type` := Text, `class` := FormControl, name := "key", placeholder := "key")
-                )
-              ),
-              submitButton(`class` := BtnDanger)("Delete")
-            )
+          postableForm(routes.Home.sync(), `class` := "drop-row form-inline")(
+            submitButton(`class` := BtnDefault)("Sync")
+          )
+        ),
+        fullRow(
+          postableForm(routes.Home.delete(), `class` := "drop-row form-inline", id := "delete-form")(
+            divClass(FormGroup)(
+              divClass(InputGroup)(
+                divClass(InputGroupAddon)("pics/"),
+                input(`type` := Text, `class` := FormControl, name := "key", placeholder := "key")
+              )
+            ),
+            submitButton(`class` := BtnDanger)("Delete")
           )
         ),
         div(`class` := "upload-drop-zone", id := "drop-zone")(

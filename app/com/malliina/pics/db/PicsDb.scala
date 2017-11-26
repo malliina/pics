@@ -28,6 +28,14 @@ class PicsDb(db: PicsDatabase) extends MetaSource {
     run(action).map { _ => () }
   }
 
+  def putMeta(meta: KeyMeta): Future[Int] = {
+    val action = pics.filter(_.key === meta.key).exists.result.flatMap { exists =>
+      if (exists) DBIO.successful(0)
+      else pics += meta
+    }
+    run(action.transactionally)
+  }
+
   def remove(key: Key): Future[Unit] = {
     val action = pics.filter(_.key === key).delete
     run(action).map { _ => () }

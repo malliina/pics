@@ -1,11 +1,12 @@
 package controllers
 
-import java.nio.file.Files
+import java.nio.file.{Files, Paths}
 import java.time.Instant
 
 import akka.stream.Materializer
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.pics._
+import com.malliina.pics.db.PicsDb
 import com.malliina.pics.html.PicsHtml
 import com.malliina.play.auth.{AuthFailure, UserAuthenticator}
 import com.malliina.play.controllers._
@@ -51,7 +52,7 @@ object Home {
     new BaseSecurity(oauth.actions, auth(oauth), mat)
 }
 
-class Home(db: MetaSource,
+class Home(db: PicsDb,
            files: PicFiles,
            thumbs: PicFiles,
            resizer: Resizer,
@@ -85,20 +86,25 @@ class Home(db: MetaSource,
     Ok(PicsHtml.drop(created, feedback, user.user))
   }
 
-  def sync = Action(NotImplemented(Errors.single("Not yet implemented.")))
-
-  def parsedAuth[T](parse: AuthedRequest => Either[Errors, T])(f: T => Result) =
-    security.authAction { req =>
-      parse(req).fold(
-        errors => BadRequest(Json.toJson(errors)),
-        t => f(t))
+  def sync = security.authActionAsync { _ =>
+    Syncer.sync(files, db).map { count =>
+      Redirect(routes.Home.drop()).flashing(toMap(UserFeedback.success(s"Synced $count assets.")): _*)
     }
+  }
 
   def parsed[T](parse: AuthedRequest => Either[Errors, T])(f: T => Future[Result]) =
+    security.authActionAsync { req =>
+      parse(req).fold(
+        errors => fut(BadRequest(Json.toJson(errors))),
+        t => f(t)
+      )
+    }
+
+  def parsedNoAuth[T](parse: AuthedRequest => Either[Errors, T])(f: T => Future[Result]) =
     Action.async { req =>
       val r = AuthedRequest(Username("demo"), req, None)
       parse(r).fold(
-        errors => Future.successful(BadRequest(Json.toJson(errors))),
+        errors => fut(BadRequest(Json.toJson(errors))),
         t => f(t)
       )
     }
@@ -118,11 +124,11 @@ class Home(db: MetaSource,
 
   def pic(key: Key) = picAction(files.find(key), keyNotFound(key))
 
-  def thumbAuth(key: Key) = security.authenticatedLogged { _ =>
+  def thumb(key: Key) = security.authenticatedLogged { _ =>
     picAction(thumbs.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
   }
 
-  def thumb(key: Key) = picAction(thumbs.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
+  def thumbNoAuth(key: Key) = picAction(thumbs.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
 
   private def picAction(find: Future[Option[DataResponse]], onNotFound: => Result) = {
     val result = find.map { maybe =>
@@ -157,8 +163,8 @@ class Home(db: MetaSource,
       _ <- removeThumb(key)
       wasRemoved <- removeOriginal(key)
     } yield {
-      if (wasRemoved) redir.flashing(toMap(UserFeedback(s"Deleted key '$key'.", isError = false)): _*)
-      else redir.flashing(toMap(UserFeedback(s"Key not found: '$key'.", isError = true)): _*)
+      if (wasRemoved) redir.flashing(toMap(UserFeedback.success(s"Deleted key '$key'.")): _*)
+      else redir.flashing(toMap(UserFeedback.error(s"Key not found: '$key'.")): _*)
     }
   }
 
