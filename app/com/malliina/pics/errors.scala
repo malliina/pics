@@ -2,6 +2,7 @@ package com.malliina.pics
 
 import java.io.IOException
 
+import com.malliina.pics.auth.JWTError
 import play.api.http.Writeable
 import play.api.libs.json.Json
 
@@ -19,6 +20,8 @@ object SingleError {
   implicit val json = Json.format[SingleError]
 
   def apply(message: String): SingleError = apply(message, "generic")
+
+  def forJWT(error: JWTError): SingleError = SingleError(error.message, "jwt")
 }
 
 case class Errors(errors: Seq[SingleError])
