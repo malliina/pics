@@ -16,11 +16,14 @@ import router.Routes
 class AppLoader extends DefaultApp(ctx => new AppComponents(
   ctx,
   GoogleOAuthReader.load,
-  mat => FileCachingPics(FilePics.default(mat), BucketFiles.Prod),
-  mat => FileCachingPics(FilePics.thumbs(mat), BucketFiles.Thumbs)
+  mat => FlatFileCachingPics(FilePics.default(mat), BucketFiles.Prod),
+  mat => FlatFileCachingPics(FilePics.thumbs(mat), BucketFiles.Thumbs)
 ))
 
-class AppComponents(context: Context, creds: GoogleOAuthCredentials, pics: Materializer => PicFiles, thumbs: Materializer => PicFiles)
+class AppComponents(context: Context,
+                    creds: GoogleOAuthCredentials,
+                    pics: Materializer => FlatFiles,
+                    thumbs: Materializer => FlatFiles)
   extends BuiltInComponentsFromContext(context)
     with NoHttpFiltersComponents
     with EhCacheComponents

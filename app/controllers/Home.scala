@@ -53,8 +53,8 @@ object Home {
 }
 
 class Home(db: PicsDb,
-           files: PicFiles,
-           thumbs: PicFiles,
+           files: FlatFiles,
+           thumbs: FlatFiles,
            resizer: Resizer,
            oauth: Admin,
            cache: Cached,
@@ -68,7 +68,7 @@ class Home(db: PicsDb,
   def root = Action(Redirect(routes.Home.list()))
 
   def list = parsed(ListRequest.forRequest) { req =>
-    db.load(req.offset, req.limit).map { keys =>
+    db.load(req.offset, req.limit, req.user).map { keys =>
       val entries = keys map { key => KeyEntry(key, req.rh) }
       renderContent(req.rh)(
         json = Pics(entries),
@@ -81,7 +81,9 @@ class Home(db: PicsDb,
   }
 
   def drop = security.authAction { user =>
-    val created = user.rh.flash.get(CreatedKey).map(k => KeyEntry(KeyMeta(Key(k), Instant.now()), user.rh))
+    val created = user.rh.flash.get(CreatedKey).map { k =>
+      KeyEntry(KeyMeta(Key(k), user.user, Instant.now()), user.rh)
+    }
     val feedback = UserFeedback.flashed(user.rh.flash)
     Ok(PicsHtml.drop(created, feedback, user.user))
   }
@@ -150,32 +152,36 @@ class Home(db: PicsDb,
         stream.contentType.map(_.contentType))
     )
 
-  def delete = security.authenticatedLogged(_ => deleteNoAuth)
-
-  def remove(key: Key) = security.authActionAsync { _ =>
-    removeKey(key, routes.Home.list())
+  def delete = security.authenticatedLogged { (r: AuthedRequest) =>
+    Action.async(parse.form(deleteForm)) { req =>
+      removeKey(req.body, r.user, routes.Home.drop())
+    }
   }
 
-  def removeKey(key: Key, redirCall: Call): Future[Result] = {
+  def remove(key: Key) = security.authActionAsync { r =>
+    removeKey(key, r.user, routes.Home.list())
+  }
+
+  def removeKey(key: Key, user: Username, redirCall: Call): Future[Result] = {
     val redir = Redirect(redirCall)
     for {
-      _ <- db.remove(key)
-      _ <- removeThumb(key)
-      wasRemoved <- removeOriginal(key)
+      _ <- db.remove(key, user)
+      _ <- removeThumb(key, user)
+      wasRemoved <- removeOriginal(key, user)
     } yield {
       if (wasRemoved) redir.flashing(toMap(UserFeedback.success(s"Deleted key '$key'.")): _*)
       else redir.flashing(toMap(UserFeedback.error(s"Key not found: '$key'.")): _*)
     }
   }
 
-  private def removeThumb(key: Key): Future[Unit] = {
+  private def removeThumb(key: Key, user: Username): Future[Unit] = {
     thumbs.contains(key).flatMap { exists =>
       if (exists) thumbs.remove(key)
       else Future.successful(())
     }
   }
 
-  private def removeOriginal(key: Key): Future[Boolean] = {
+  private def removeOriginal(key: Key, user: Username): Future[Boolean] = {
     files.contains(key).flatMap { exists =>
       if (exists) {
         files.remove(key).map { _ =>
@@ -196,10 +202,6 @@ class Home(db: PicsDb,
 
   def put = security.authenticatedLogged { _ =>
     putNoAuth
-  }
-
-  private def deleteNoAuth = Action.async(parse.form(deleteForm)) { req =>
-    removeKey(req.body, routes.Home.drop())
   }
 
   private def putNoAuth = Action(parse.multipartFormData) { req =>

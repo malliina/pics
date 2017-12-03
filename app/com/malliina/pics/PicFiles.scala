@@ -6,6 +6,7 @@ import akka.stream.IOResult
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.play.models.Username
 import com.malliina.storage.{StorageLong, StorageSize}
 
 import scala.concurrent.Future
@@ -45,7 +46,29 @@ trait PicFiles extends MetaSource {
 }
 
 trait MetaSource {
-  def load(from: Int, until: Int): Future[Seq[KeyMeta]]
+  def load(from: Int, until: Int, user: Username): Future[Seq[KeyMeta]]
+
+  def contains(key: Key): Future[Boolean]
+
+  def put(key: Key, file: Path): Future[Unit]
+
+  def remove(key: Key, user: Username): Future[Unit]
+
+  def fut[T](t: T): Future[T] = Future.successful(t)
+}
+
+trait FlatFiles extends FlatMetaSource {
+  def get(key: Key): Future[DataResponse]
+
+  def find(key: Key): Future[Option[DataResponse]] =
+    contains(key).flatMap { exists =>
+      if (exists) get(key).map(Option.apply)
+      else Future.successful(None)
+    }
+}
+
+trait FlatMetaSource {
+  def load(from: Int, until: Int): Future[Seq[FlatMeta]]
 
   def contains(key: Key): Future[Boolean]
 

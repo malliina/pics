@@ -5,9 +5,10 @@ import java.time.Instant
 
 import com.malliina.concurrent.ExecutionContexts
 import com.malliina.file.FileUtilities
-import com.malliina.pics.db.Mappings.{instantMapping, keyMapping}
+import com.malliina.pics.db.Mappings.{instantMapping, keyMapping, usernameMapping}
 import com.malliina.pics.db.PicsDatabase.log
 import com.malliina.pics.{Key, KeyMeta}
+import com.malliina.play.models.Username
 import org.h2.jdbcx.JdbcConnectionPool
 import play.api.Logger
 import slick.jdbc.H2Profile.api._
@@ -61,9 +62,11 @@ class PicsDatabase(conn: String, val ec: ExecutionContext) extends DatabaseLike 
 class PicsTable(tag: Tag) extends Table[KeyMeta](tag, "pics") {
   def key = column[Key]("key", O.Unique)
 
+  def owner = column[Username]("owner")
+
   def added = column[Instant]("added", O.SqlType(PicsDatabase.TimestampSqlType))
 
   def forInsert = key
 
-  def * = (key, added) <> ((KeyMeta.apply _).tupled, KeyMeta.unapply)
+  def * = (key, owner, added) <> ((KeyMeta.apply _).tupled, KeyMeta.unapply)
 }

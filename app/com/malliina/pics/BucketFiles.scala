@@ -14,20 +14,20 @@ import scala.collection.JavaConverters.asScalaBufferConverter
 import scala.concurrent.Future
 import scala.util.Try
 
-class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends PicFiles {
+class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends FlatFiles {
   val bucketName: String = bucket.name
 
   def copy(src: Key, dest: Key) = aws.copyObject(bucketName, src.key, bucketName, dest.key)
 
-  override def load(from: Int, until: Int): Future[Seq[KeyMeta]] = {
+  override def load(from: Int, until: Int): Future[Seq[FlatMeta]] = {
     val size = until - from
     if (size <= 0) fut(Nil)
     else fut(loadAcc(until, aws.listObjects(bucketName), Nil).drop(from))
   }
 
-  private def loadAcc(desiredSize: Int, current: ObjectListing, acc: Seq[KeyMeta]): Seq[KeyMeta] = {
+  private def loadAcc(desiredSize: Int, current: ObjectListing, acc: Seq[FlatMeta]): Seq[FlatMeta] = {
     val newAcc = acc ++ current.getObjectSummaries().asScala.map(s => {
-      KeyMeta(Key(s.getKey), s.getLastModified.toInstant)
+      FlatMeta(Key(s.getKey), s.getLastModified.toInstant)
     })
     if (!current.isTruncated || newAcc.size >= desiredSize) newAcc take desiredSize
     else loadAcc(desiredSize, aws.listNextBatchOfObjects(current), newAcc)

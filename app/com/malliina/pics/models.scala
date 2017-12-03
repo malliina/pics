@@ -6,6 +6,7 @@ import java.time.Instant
 import buildinfo.BuildInfo
 import com.malliina.http.FullUrl
 import com.malliina.play.http.FullUrls
+import com.malliina.play.models.Username
 import controllers.routes
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
@@ -38,7 +39,7 @@ object Key {
   implicit object bindable extends PathBindable[Key] {
     override def bind(key: String, value: String): Either[String, Key] =
       if (value.length >= KeyLength) Right(Key(value))
-      else Left(s"Invalid key: $value")
+      else Left(s"Invalid key: '$value'.")
 
     override def unbind(key: String, value: Key): String =
       value.key
@@ -52,7 +53,11 @@ object Key {
   def randomish(): Key = Key(generator.generate(KeyLength).toLowerCase)
 }
 
-case class KeyMeta(key: Key, added: Instant) {
+case class FlatMeta(key: Key, lastModified: Instant) {
+  def withUser(user: Username) = KeyMeta(key, user, lastModified)
+}
+
+case class KeyMeta(key: Key, owner: Username, added: Instant) {
   def toEntry(rh: RequestHeader) = KeyEntry(this, rh)
 }
 
