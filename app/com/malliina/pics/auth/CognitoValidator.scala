@@ -6,7 +6,7 @@ object CognitoValidator {
   val default = new CognitoValidator(KeyConf.cognito)
 }
 
-class CognitoValidator(conf: KeyConf) extends TokenValidator(conf) {
+class CognitoValidator(conf: KeyConf) extends TokenValidator[CognitoUser](conf) {
   val Access = "access"
   val TokenUse = "token_use"
   val UserKey = "username"
@@ -18,9 +18,12 @@ class CognitoValidator(conf: KeyConf) extends TokenValidator(conf) {
       _ <- if (tokenUse != Access) Left(InvalidClaims(parsed.token)) else Right(parsed)
     } yield parsed
 
-  protected def readUser(parsed: ParsedJWT): Either[JWTError, CognitoUser] =
+  protected def toUser(verified: Verified): Either[JWTError, CognitoUser] = {
+    val jwt = verified.parsed
     for {
-      username <- parsed.readString(UserKey)
-      groups <- parsed.readStringList(GroupsKey)
-    } yield CognitoUser(Username(username), groups)
+      username <- jwt.readString(UserKey).filterOrElse(_.nonEmpty, InvalidClaims(jwt.token))
+      groups <- jwt.readStringList(GroupsKey)
+    } yield CognitoUser(Username(username), groups, verified)
+  }
+
 }

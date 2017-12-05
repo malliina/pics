@@ -23,11 +23,9 @@ pipelineStages := Seq(digest, gzip)
 httpPort in Linux := Option("disabled")
 httpsPort in Linux := Option("8459")
 maintainer := "Michael Skogberg <malliina123@gmail.com>"
-javaOptions in Universal ++= {
+javaOptions in Universal += {
   val linuxName = (name in Linux).value
-  Seq(
-    s"-Dgoogle.oauth=/etc/$linuxName/google-oauth.key"
-  )
+  s"-Dgoogle.oauth=/etc/$linuxName/google-oauth.key"
 }
 packageSummary in Linux := "This is the pics summary."
 rpmVendor := "Skogberg Labs"

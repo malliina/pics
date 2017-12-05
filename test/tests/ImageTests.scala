@@ -20,7 +20,7 @@ class ImageTests extends FunSuite {
 
   test("image formats") {
     val atLeastSupported = Seq("jpg", "jpeg", "png", "gif")
-    val actual = ImageIO.getWriterFormatNames().toSeq
+    val actual = ImageIO.getWriterFormatNames.toSeq
     assert(atLeastSupported.forall(mustExist => actual.contains(mustExist)))
   }
 

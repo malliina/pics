@@ -14,9 +14,10 @@ object Syncer extends Syncer {
 
 class Syncer {
   def sync(from: FlatFiles, to: PicsDb, maxItems: Int = 1000000): Future[Int] = {
+    val user = Username("malliina123@gmail.com")
     from.load(0, maxItems).flatMap { keys =>
       log.info(s"Syncing ${keys.length} keys...")
-      Future.traverse(keys)(key => to.putMeta(key.withUser(Username("sync"))))
+      Future.traverse(keys)(key => to.putMeta(key.withUser(user)))
         .map(_.sum)
     }
   }

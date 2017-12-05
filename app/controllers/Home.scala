@@ -6,6 +6,7 @@ import java.time.Instant
 import akka.stream.Materializer
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.pics._
+import com.malliina.pics.auth.CognitoValidator
 import com.malliina.pics.db.PicsDb
 import com.malliina.pics.html.PicsHtml
 import com.malliina.play.auth.{AuthFailure, UserAuthenticator}
@@ -62,6 +63,7 @@ class Home(db: PicsDb,
            comps: ControllerComponents) extends AbstractController(comps) {
   val placeHolderResource = "400x300.png"
   val deleteForm: Form[Key] = Form(mapping(KeyKey -> nonEmptyText)(Key.apply)(Key.unapply))
+  val jwt = new JWTController(CognitoValidator.default, comps)
 
   def ping = Action(Caching.NoCache(Ok(Json.toJson(AppMeta.default))))
 
@@ -95,12 +97,33 @@ class Home(db: PicsDb,
   }
 
   def parsed[T](parse: AuthedRequest => Either[Errors, T])(f: T => Future[Result]) =
-    security.authActionAsync { req =>
+    withAuthAction { req =>
       parse(req).fold(
         errors => fut(BadRequest(Json.toJson(errors))),
         t => f(t)
       )
     }
+
+  private def withAuthAction(a: AuthedRequest => Future[Result]) =
+    withAuth(req => Action.async(a(req)))
+
+  private def withAuth(a: AuthedRequest => EssentialAction) = EssentialAction { rh =>
+    val f: PartialFunction[MediaRange, EssentialAction] = {
+      case Accepts.Html() => security.authenticatedLogged(a)
+      case Home.Json10() => jwt.authed(cognitoUser => a(AuthedRequest(cognitoUser.username, rh, None)))
+      case Accepts.Json() => jwt.authed(cognitoUser => a(AuthedRequest(cognitoUser.username, rh, None)))
+    }
+
+    def acceptedAction(ms: Seq[MediaRange]): EssentialAction = ms match {
+      case Nil => Action(NotAcceptable(Errors.single(s"No acceptable '${HeaderNames.ACCEPT}' header found.")))
+      case Seq(m, tail@_*) => f.applyOrElse(m, (_: MediaRange) => acceptedAction(tail))
+    }
+
+    val accepted =
+      if (rh.acceptedTypes.isEmpty) Seq(new MediaRange("*", "*", Nil, None, Nil))
+      else rh.acceptedTypes
+    acceptedAction(accepted)(rh)
+  }
 
   def parsedNoAuth[T](parse: AuthedRequest => Either[Errors, T])(f: T => Future[Result]) =
     Action.async { req =>
@@ -126,11 +149,11 @@ class Home(db: PicsDb,
 
   def pic(key: Key) = picAction(files.find(key), keyNotFound(key))
 
-  def thumb(key: Key) = security.authenticatedLogged { _ =>
+  def thumbAuth(key: Key) = security.authenticatedLogged { _ =>
     picAction(thumbs.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
   }
 
-  def thumbNoAuth(key: Key) = picAction(thumbs.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
+  def thumb(key: Key) = picAction(thumbs.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
 
   private def picAction(find: Future[Option[DataResponse]], onNotFound: => Result) = {
     val result = find.map { maybe =>
