@@ -27,7 +27,7 @@ case class ParsedJWT(jwt: SignedJWT,
     read(claims.getStringListClaim(key).asScala, key)
 
   def read[T](danger: => T, key: String): Either[JWTError, T] =
-    TokenValidator.read(token, danger, key)
+    TokenValidator.read(token, danger, s"Claim missing: '$key'.")
 }
 
 case class Verified(parsed: ParsedJWT) {

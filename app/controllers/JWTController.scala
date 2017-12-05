@@ -2,7 +2,13 @@ package controllers
 
 import com.malliina.pics.auth.{AccessToken, JWTError, TokenValidator}
 import com.malliina.pics.{Errors, SingleError}
+import controllers.JWTController.log
+import play.api.Logger
 import play.api.mvc.{AbstractController, ControllerComponents, EssentialAction, RequestHeader}
+
+object JWTController {
+  private val log = Logger(getClass)
+}
 
 class JWTController[T](validator: TokenValidator[T], comps: ControllerComponents)
   extends AbstractController(comps) {
@@ -15,8 +21,13 @@ class JWTController[T](validator: TokenValidator[T], comps: ControllerComponents
       val action =
         readToken(rh).map { token =>
           verify(token).fold(
-            err => Action(fail(SingleError.forJWT(err))),
-            ok => f(ok)
+            err => {
+              log.warn(s"JWT validation failed: '${err.message}'.")
+              Action(fail(SingleError.forJWT(err)))
+            },
+            ok => {
+              f(ok)
+            }
           )
         }.getOrElse {
           Action(fail(SingleError(s"JWT token missing. Use the '$AUTHORIZATION' header.")))

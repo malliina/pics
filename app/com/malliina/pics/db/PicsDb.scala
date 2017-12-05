@@ -19,7 +19,7 @@ class PicsDb(db: PicsDatabase) extends MetaSource {
   val pics = db.picsTable
 
   def load(from: Int, until: Int, user: Username): Future[Seq[KeyMeta]] =
-    run(pics.sortBy(_.added.desc).drop(from).take(until).result)
+    run(pics.filter(_.owner === user).sortBy(_.added.desc).drop(from).take(until).result)
 
   def contains(key: Key): Future[Boolean] =
     run(pics.filter(_.key === key).exists.result)
@@ -38,7 +38,7 @@ class PicsDb(db: PicsDatabase) extends MetaSource {
   }
 
   def remove(key: Key, user: Username): Future[Unit] = {
-    val action = pics.filter(_.key === key).delete
+    val action = pics.filter(pic => pic.owner === user && pic.key === key).delete
     run(action).map { _ => () }
   }
 

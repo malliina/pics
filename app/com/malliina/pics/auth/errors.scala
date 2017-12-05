@@ -29,9 +29,7 @@ case class InvalidKeyId(token: AccessToken, kid: String, expected: String) exten
   def message = s"Invalid key ID. Expected '$expected', got '$kid'."
 }
 
-case class InvalidClaims(token: AccessToken) extends JWTError {
-  override def message = "Invalid claims."
-}
+case class InvalidClaims(token: AccessToken, message: String) extends JWTError
 
 case class ParseError(token: AccessToken, e: ParseException) extends JWTError {
   override def message = "Parse error"
