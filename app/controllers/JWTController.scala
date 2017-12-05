@@ -30,7 +30,9 @@ class JWTController[T](validator: TokenValidator[T], comps: ControllerComponents
             }
           )
         }.getOrElse {
-          Action(fail(SingleError(s"JWT token missing. Use the '$AUTHORIZATION' header.")))
+          val message = s"JWT token missing. Use the '$AUTHORIZATION' header."
+          log.warn(message)
+          Action(fail(SingleError(message)))
         }
       action(rh)
     }
