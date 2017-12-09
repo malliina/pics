@@ -23,8 +23,11 @@ case class ParsedJWT(jwt: SignedJWT,
   def readString(key: String): Either[JWTError, String] =
     read(claims.getStringClaim(key), key)
 
-  def readStringList(key: String): Either[JWTError, Seq[String]] =
-    read(claims.getStringListClaim(key).asScala, key)
+  def readStringListOrEmpty(key: String): Either[JWTError, Seq[String]] =
+    readStringList(key).map(_.getOrElse(Nil))
+
+  def readStringList(key: String): Either[JWTError, Option[Seq[String]]] =
+    read(Option(claims.getStringListClaim(key)).map(_.asScala), key)
 
   def read[T](danger: => T, key: String): Either[JWTError, T] =
     TokenValidator.read(token, danger, s"Claim missing: '$key'.")
