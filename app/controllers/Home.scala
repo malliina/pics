@@ -1,6 +1,6 @@
 package controllers
 
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 import java.time.Instant
 
 import akka.stream.Materializer
@@ -224,36 +224,47 @@ class Home(db: PicsSource,
   )
 
   def put = security.authenticatedLogged { (authedRequest: AuthedRequest) =>
-    Action(parse.multipartFormData) { req =>
+    Action(parse.temporaryFile).async { req =>
+      saveFile(req.body.path, authedRequest.user, req)
+    }
+  }
+
+  def put2 = security.authenticatedLogged { (authedRequest: AuthedRequest) =>
+    Action(parse.multipartFormData).async { req =>
       req.body.files.headOption map { file =>
-        // without dot
-        val ext = FilenameUtils.getExtension(file.filename)
-        val tempFile = file.ref.path
-        val name = tempFile.getFileName.toString
-        val renamedFile = tempFile resolveSibling s"$name.$ext"
-        Files.move(tempFile, renamedFile)
-        val thumbFile = renamedFile resolveSibling s"$name-thumb.$ext"
-        resizer.resizeFromFile(renamedFile, thumbFile).fold(
-          fail => failResize(fail),
-          _ => {
-            val key = Key.randomish().append(s".${ext.toLowerCase}")
-            for {
-              _ <- files.saveBody(key, renamedFile)
-              _ <- thumbs.saveBody(key, thumbFile)
-              _ <- db.saveMeta(key, authedRequest.user)
-            } yield ()
-            val url = routes.Home.pic(key)
-            log info s"Saved file '${file.filename}' as '$key'."
-            Accepted(Json.obj(Message -> s"Created '$url'.")).withHeaders(
-              HeaderNames.LOCATION -> url.toString,
-              XKey -> key.key
-            )
-          }
-        )
+        saveFile(file.ref.path, authedRequest.user, req)
       } getOrElse {
-        badRequest("File missing")
+        fut(badRequest("File missing"))
       }
     }
+  }
+
+  private def saveFile(tempFile: Path, by: Username, rh: RequestHeader): Future[Result] = {
+    // without dot
+    val name = rh.headers.get("X-Name") getOrElse tempFile.getFileName.toString
+    val ext = Option(FilenameUtils.getExtension(name)).filter(_.nonEmpty).getOrElse("jpeg")
+    val renamedFile = tempFile resolveSibling s"$name.$ext"
+    Files.copy(tempFile, renamedFile)
+    log.info(s"Copied temp file '$tempFile' to '$renamedFile', size ${Files.size(tempFile)} bytes.")
+    val thumbFile = renamedFile resolveSibling s"$name-thumb.$ext"
+    resizer.resizeFromFile(renamedFile, thumbFile).fold(
+      fail => fut(failResize(fail)),
+      _ => {
+        val key = Key.randomish().append(s".${ext.toLowerCase}")
+        for {
+          _ <- files.saveBody(key, renamedFile)
+          _ <- thumbs.saveBody(key, thumbFile)
+          _ <- db.saveMeta(key, by)
+        } yield {
+          val url = routes.Home.pic(key)
+          log info s"Saved file '$name' as '$key'."
+          Accepted(Json.obj(Message -> s"Created '$url'.")).withHeaders(
+            HeaderNames.LOCATION -> url.toString,
+            XKey -> key.key
+          )
+        }
+      }
+    )
   }
 
   def failResize(error: ImageFailure): Result = error match {
@@ -265,6 +276,9 @@ class Home(db: PicsSource,
       val msg = "An I/O error occurred."
       log.error(msg, ioe)
       internalError(msg)
+    case ImageReaderFailure(file) =>
+      log.error(s"Unable to read image from file '$file'")
+      badRequest("Unable to read image.")
   }
 
   def logout = security.authAction { _ =>

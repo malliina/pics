@@ -1,6 +1,7 @@
 package com.malliina.pics
 
 import java.io.IOException
+import java.nio.file.Path
 
 import com.malliina.pics.auth.JWTError
 import play.api.http.Writeable
@@ -12,6 +13,9 @@ case class ImageException(ioe: IOException)
   extends ImageFailure
 
 case class UnsupportedFormat(format: String, supported: Seq[String])
+  extends ImageFailure
+
+case class ImageReaderFailure(file: Path)
   extends ImageFailure
 
 case class SingleError(message: String, code: String)
