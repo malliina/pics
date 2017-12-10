@@ -7,7 +7,7 @@ import akka.stream.Materializer
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.pics._
 import com.malliina.pics.auth.CognitoValidator
-import com.malliina.pics.db.PicsDb
+import com.malliina.pics.db.PicsSource
 import com.malliina.pics.html.PicsHtml
 import com.malliina.play.auth.{AuthFailure, UserAuthenticator}
 import com.malliina.play.controllers._
@@ -53,9 +53,9 @@ object Home {
     new BaseSecurity(oauth.actions, auth(oauth), mat)
 }
 
-class Home(db: PicsDb,
-           files: FlatFiles,
-           thumbs: FlatFiles,
+class Home(db: PicsSource,
+           files: DataSource,
+           thumbs: DataSource,
            resizer: Resizer,
            oauth: Admin,
            cache: Cached,
@@ -223,38 +223,36 @@ class Home(db: PicsDb,
     UserFeedback.Success -> (if (fb.isError) UserFeedback.No else UserFeedback.Yes)
   )
 
-  def put = security.authenticatedLogged { _ =>
-    putNoAuth
-  }
-
-  private def putNoAuth = Action(parse.multipartFormData) { req =>
-    req.body.files.headOption map { file =>
-      // without dot
-      val ext = FilenameUtils.getExtension(file.filename)
-      val tempFile = file.ref.path
-      val name = tempFile.getFileName.toString
-      val renamedFile = tempFile resolveSibling s"$name.$ext"
-      Files.move(tempFile, renamedFile)
-      val thumbFile = renamedFile resolveSibling s"$name-thumb.$ext"
-      resizer.resizeFromFile(renamedFile, thumbFile).fold(
-        fail => failResize(fail),
-        _ => {
-          val key = Key.randomish().append(s".${ext.toLowerCase}")
-          for {
-            _ <- files.put(key, renamedFile)
-            _ <- thumbs.put(key, thumbFile)
-            _ <- db.put(key, thumbFile)
-          } yield ()
-          val url = routes.Home.pic(key)
-          log info s"Saved file '${file.filename}' as '$key'."
-          Accepted(Json.obj(Message -> s"Created '$url'.")).withHeaders(
-            HeaderNames.LOCATION -> url.toString,
-            XKey -> key.key
-          )
-        }
-      )
-    } getOrElse {
-      badRequest("File missing")
+  def put = security.authenticatedLogged { (authedRequest: AuthedRequest) =>
+    Action(parse.multipartFormData) { req =>
+      req.body.files.headOption map { file =>
+        // without dot
+        val ext = FilenameUtils.getExtension(file.filename)
+        val tempFile = file.ref.path
+        val name = tempFile.getFileName.toString
+        val renamedFile = tempFile resolveSibling s"$name.$ext"
+        Files.move(tempFile, renamedFile)
+        val thumbFile = renamedFile resolveSibling s"$name-thumb.$ext"
+        resizer.resizeFromFile(renamedFile, thumbFile).fold(
+          fail => failResize(fail),
+          _ => {
+            val key = Key.randomish().append(s".${ext.toLowerCase}")
+            for {
+              _ <- files.saveBody(key, renamedFile)
+              _ <- thumbs.saveBody(key, thumbFile)
+              _ <- db.saveMeta(key, authedRequest.user)
+            } yield ()
+            val url = routes.Home.pic(key)
+            log info s"Saved file '${file.filename}' as '$key'."
+            Accepted(Json.obj(Message -> s"Created '$url'.")).withHeaders(
+              HeaderNames.LOCATION -> url.toString,
+              XKey -> key.key
+            )
+          }
+        )
+      } getOrElse {
+        badRequest("File missing")
+      }
     }
   }
 
@@ -273,9 +271,11 @@ class Home(db: PicsDb,
     oauth.ejectWith(oauth.logoutMessage).withNewSession
   }
 
-  def eject = security.logged(Action { req =>
-    Ok(PicsHtml.eject(req.flash.get(oauth.messageKey)))
-  })
+  def eject = security.logged {
+    Action { req =>
+      Ok(PicsHtml.eject(req.flash.get(oauth.messageKey)))
+    }
+  }
 
   def keyNotFound(key: Key) = onNotFound(s"Not found: $key")
 

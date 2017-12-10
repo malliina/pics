@@ -10,11 +10,17 @@ import slick.jdbc.H2Profile.api._
 
 import scala.concurrent.Future
 
-object PicsDb {
-  def apply(db: PicsDatabase): PicsDb = new PicsDb(db)
+object PicsSource {
+  def apply(db: PicsDatabase): PicsSource = new PicsSource(db)
+
+  def inMemory(): PicsSource = {
+    val db = PicsDatabase.inMemory()
+    db.init()
+    apply(db)
+  }
 }
 
-class PicsDb(db: PicsDatabase) extends MetaSource {
+class PicsSource(db: PicsDatabase) extends MetaSource {
   implicit val ec = db.ec
   val pics = db.picsTable
 
@@ -24,8 +30,8 @@ class PicsDb(db: PicsDatabase) extends MetaSource {
   def contains(key: Key): Future[Boolean] =
     run(pics.filter(_.key === key).exists.result)
 
-  def put(key: Key, file: Path): Future[Unit] = {
-    val action = pics.map(_.forInsert) += key
+  def saveMeta(key: Key, owner: Username): Future[Unit] = {
+    val action = pics.map(_.forInsert) += (key, owner)
     run(action).map { _ => () }
   }
 

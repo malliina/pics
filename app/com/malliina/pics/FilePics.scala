@@ -26,23 +26,30 @@ object FilePics {
   def thumbs(mat: Materializer): FilePics = apply(picsDir.resolve("thumbs"), mat)
 }
 
-class FilePics(val dir: Path, mat: Materializer) {
+class FilePics(val dir: Path, mat: Materializer) extends DataSource {
   Files.createDirectories(dir)
 
-  def contains(key: Key): Boolean = Files.exists(fileAt(key))
+  import scala.collection.JavaConverters._
 
-  def get(key: Key): Future[DataResponse] = Future.successful {
-    DataFile(fileAt(key))
+  override def load(from: Int, until: Int): Future[Seq[FlatMeta]] = fut {
+    Files.list(dir).iterator().asScala.toList.slice(from, from + until).map { p =>
+      FlatMeta(Key(p.getFileName.toString), Files.getLastModifiedTime(p).toInstant)
+    }
   }
 
-  def remove(key: Key): Try[Unit] = tryLogged(Files.delete(fileAt(key)))
+  override def contains(key: Key): Future[Boolean] = fut(Files.exists(fileAt(key)))
+
+  override def get(key: Key): Future[DataResponse] = fut(DataFile(fileAt(key)))
+
+  override def remove(key: Key): Future[Unit] = Future.fromTry(tryLogged(Files.delete(fileAt(key))))
 
   def putData(key: Key, data: DataResponse): Future[Path] = data match {
     case DataStream(source, _, _) => putSource(key, source)
-    case DataFile(file, _, _) => Future.fromTry(put(key, file)).map(_ => fileAt(key))
+    case DataFile(file, _, _) => saveBody(key, file).map(_ => fileAt(key))
   }
 
-  def put(key: Key, file: Path): Try[Unit] = tryLogged(Files.copy(file, fileAt(key)))
+  def saveBody(key: Key, file: Path): Future[Unit] =
+    Future.fromTry(tryLogged(Files.copy(file, fileAt(key))))
 
   def putSource(key: Key, source: Source[ByteString, Future[IOResult]]): Future[Path] = {
     val file = fileAt(key)

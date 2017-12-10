@@ -14,21 +14,21 @@ import scala.collection.JavaConverters.asScalaBufferConverter
 import scala.concurrent.Future
 import scala.util.Try
 
-class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends FlatFiles {
+class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends DataSource {
   val bucketName: String = bucket.name
 
   def copy(src: Key, dest: Key) = aws.copyObject(bucketName, src.key, bucketName, dest.key)
 
-  override def load(from: Int, until: Int): Future[Seq[FlatMeta]] = {
+  def load(from: Int, until: Int): Future[Seq[FlatMeta]] = {
     val size = until - from
     if (size <= 0) fut(Nil)
     else fut(loadAcc(until, aws.listObjects(bucketName), Nil).drop(from))
   }
 
   private def loadAcc(desiredSize: Int, current: ObjectListing, acc: Seq[FlatMeta]): Seq[FlatMeta] = {
-    val newAcc = acc ++ current.getObjectSummaries().asScala.map(s => {
+    val newAcc = acc ++ current.getObjectSummaries.asScala.map { s =>
       FlatMeta(Key(s.getKey), s.getLastModified.toInstant)
-    })
+    }
     if (!current.isTruncated || newAcc.size >= desiredSize) newAcc take desiredSize
     else loadAcc(desiredSize, aws.listNextBatchOfObjects(current), newAcc)
   }
@@ -39,16 +39,16 @@ class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends FlatFiles {
   override def get(key: Key): Future[DataResponse] = {
     val obj = aws.getObject(bucketName, key.key)
     val meta = obj.getObjectMetadata
-    Future.successful {
+    fut {
       DataStream(
-        StreamConverters.fromInputStream(() => obj.getObjectContent()),
+        StreamConverters.fromInputStream(() => obj.getObjectContent),
         Option(meta.getContentLength).map(_.bytes),
         Option(meta.getContentType).map(ContentType.apply)
       )
     }
   }
 
-  override def put(key: Key, file: Path): Future[Unit] =
+  override def saveBody(key: Key, file: Path): Future[Unit] =
     Future.fromTry(Try(aws.putObject(bucketName, key.key, file.toFile)))
 
   override def remove(key: Key): Future[Unit] =

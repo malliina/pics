@@ -8,7 +8,7 @@ import com.malliina.pics._
 
 import scala.concurrent.Future
 
-object TestPics extends FlatFiles {
+object TestPics extends DataSource {
   override def load(from: Int, until: Int): Future[Seq[FlatMeta]] = fut(Nil)
 
   override def contains(key: Key): Future[Boolean] = fut(false)
@@ -19,7 +19,7 @@ object TestPics extends FlatFiles {
     fut(DataStream(source, None, None))
   }
 
-  override def put(key: Key, file: Path): Future[Unit] = fut(())
+  override def saveBody(key: Key, file: Path): Future[Unit] = fut(())
 
   override def remove(key: Key): Future[Unit] = fut(())
 }

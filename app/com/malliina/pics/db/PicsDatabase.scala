@@ -41,7 +41,7 @@ object PicsDatabase {
 
   // To keep the content of an in-memory database as long as the virtual machine is alive, use
   // jdbc:h2:mem:test1;DB_CLOSE_DELAY=-1
-  def test() = apply("mem:test")
+  def inMemory() = apply("mem:test")
 }
 
 class PicsDatabase(conn: String, val ec: ExecutionContext) extends DatabaseLike {
@@ -66,7 +66,7 @@ class PicsTable(tag: Tag) extends Table[KeyMeta](tag, "pics") {
 
   def added = column[Instant]("added", O.SqlType(PicsDatabase.TimestampSqlType))
 
-  def forInsert = key
+  def forInsert = (key, owner)
 
   def * = (key, owner, added) <> ((KeyMeta.apply _).tupled, KeyMeta.unapply)
 }

@@ -35,46 +35,32 @@ case class DataStream(source: Source[ByteString, Future[IOResult]],
                       contentLength: Option[StorageSize],
                       contentType: Option[ContentType]) extends DataResponse
 
-trait PicFiles extends MetaSource {
-  def get(key: Key): Future[DataResponse]
-
-  def find(key: Key): Future[Option[DataResponse]] =
-    contains(key).flatMap { exists =>
-      if (exists) get(key).map(Option.apply)
-      else Future.successful(None)
-    }
-}
-
-trait MetaSource {
-  def load(from: Int, until: Int, user: Username): Future[Seq[KeyMeta]]
-
+trait SourceLike {
   def contains(key: Key): Future[Boolean]
-
-  def put(key: Key, file: Path): Future[Unit]
-
-  def remove(key: Key, user: Username): Future[Unit]
 
   def fut[T](t: T): Future[T] = Future.successful(t)
 }
 
-trait FlatFiles extends FlatMetaSource {
-  def get(key: Key): Future[DataResponse]
-
-  def find(key: Key): Future[Option[DataResponse]] =
-    contains(key).flatMap { exists =>
-      if (exists) get(key).map(Option.apply)
-      else Future.successful(None)
-    }
-}
-
-trait FlatMetaSource {
+trait DataSource extends SourceLike {
   def load(from: Int, until: Int): Future[Seq[FlatMeta]]
 
-  def contains(key: Key): Future[Boolean]
-
-  def put(key: Key, file: Path): Future[Unit]
+  def get(key: Key): Future[DataResponse]
 
   def remove(key: Key): Future[Unit]
 
-  def fut[T](t: T): Future[T] = Future.successful(t)
+  def find(key: Key): Future[Option[DataResponse]] =
+    contains(key).flatMap { exists =>
+      if (exists) get(key).map(Option.apply)
+      else Future.successful(None)
+    }
+
+  def saveBody(key: Key, file: Path): Future[Unit]
+}
+
+trait MetaSource extends SourceLike {
+  def load(from: Int, until: Int, user: Username): Future[Seq[KeyMeta]]
+
+  def saveMeta(key: Key, owner: Username): Future[Unit]
+
+  def remove(key: Key, user: Username): Future[Unit]
 }

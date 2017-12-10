@@ -3,7 +3,7 @@ package com.malliina.pics.app
 import akka.stream.Materializer
 import com.malliina.oauth.{GoogleOAuthCredentials, GoogleOAuthReader}
 import com.malliina.pics._
-import com.malliina.pics.db.{PicsDatabase, PicsDb}
+import com.malliina.pics.db.{PicsDatabase, PicsSource}
 import com.malliina.play.app.DefaultApp
 import controllers.{Admin, AssetsComponents, Home, PicsAssets}
 import play.api.ApplicationLoader.Context
@@ -16,24 +16,24 @@ import router.Routes
 class AppLoader extends DefaultApp(ctx => new AppComponents(
   ctx,
   GoogleOAuthReader.load,
-  mat => FlatFileCachingPics(FilePics.default(mat), BucketFiles.Prod),
-  mat => FlatFileCachingPics(FilePics.thumbs(mat), BucketFiles.Thumbs)
+  mat => FileCachingPics(FilePics.default(mat), BucketFiles.Prod),
+  mat => FileCachingPics(FilePics.thumbs(mat), BucketFiles.Thumbs)
 ))
 
 class AppComponents(context: Context,
                     creds: GoogleOAuthCredentials,
-                    pics: Materializer => FlatFiles,
-                    thumbs: Materializer => FlatFiles)
+                    pics: Materializer => DataSource,
+                    thumbs: Materializer => DataSource)
   extends BuiltInComponentsFromContext(context)
     with NoHttpFiltersComponents
     with EhCacheComponents
     with AssetsComponents {
   private val log = Logger(getClass)
   val db =
-    if (environment.mode == Mode.Test) PicsDatabase.test()
+    if (environment.mode == Mode.Test) PicsDatabase.inMemory()
     else PicsDatabase.default()
   db.init()
-  val picsDb = PicsDb(db)
+  val picsDb = PicsSource(db)
   log.info(s"Using pics dir '${FilePics.picsDir}'.")
   lazy val cache = new Cached(defaultCacheApi)
   override lazy val httpErrorHandler = PicsErrorHandler
