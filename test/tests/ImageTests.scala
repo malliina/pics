@@ -3,11 +3,13 @@ package tests
 import java.nio.file.{Files, Paths}
 import javax.imageio.ImageIO
 
-import com.malliina.pics.{ContentType, Resizer}
+import com.malliina.pics.{ContentType, Resizer, ScrimageResizer}
+import com.malliina.storage.StorageInt
 import org.scalatest.FunSuite
 
 class ImageTests extends FunSuite {
-  val original = Paths.get("files/original.jpg")
+  val picDir = Paths.get("files")
+  val original = picDir.resolve("original.jpg")
 
   test("file content type") {
     assert(ContentType.parse("image.jpg").contains(ContentType.ImageJpeg))
@@ -27,12 +29,41 @@ class ImageTests extends FunSuite {
   test("resize an image") {
     val resizer = Resizer(400, 300)
     assert(Files.exists(original))
-    val dest = Paths.get("files/resized.jpg")
+    val dest = picDir.resolve("resized.jpg")
     val outcome = resizer.resizeFromFile(original, dest)
     assert(outcome.isRight)
   }
 
-  test("resize all") {
+  ignore("resize to medium") {
+    val orig = Paths get "original.jpeg"
+    val resizer = Resizer.Medium1440x1080
+    val result = resizer.resizeFromFile(orig, picDir.resolve("demo.jpeg"))
+    assert(result.isRight)
+  }
 
+  val origLarge = picDir.resolve("demo-original.jpeg")
+
+  ignore("resize to small") {
+    val resizer = ScrimageResizer.Small
+    val result = resizer.resizeFile(origLarge, picDir.resolve("demo-scrimage-small.jpeg"))
+    assert(result.isRight)
+    val size = result.right.get
+    assert(size < 100.kilos)
+  }
+
+  ignore("resize to medium scrimage") {
+    val resizer = ScrimageResizer.Medium
+    val result = resizer.resizeFile(origLarge, picDir.resolve("demo-scrimage-normal.jpeg"))
+    assert(result.isRight)
+    val size = result.right.get
+    assert(size < 200.kilos)
+  }
+
+  ignore("resize to large scrimage") {
+    val resizer = ScrimageResizer.Large
+    val result = resizer.resizeFile(origLarge, picDir.resolve("demo-scrimage-large.jpeg"))
+    assert(result.isRight)
+    val size = result.right.get
+    assert(size < 600.kilos)
   }
 }

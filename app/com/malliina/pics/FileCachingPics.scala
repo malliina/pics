@@ -40,9 +40,9 @@ class FileCachingPics(cache: FilePics, origin: DataSource) extends DataSource {
       _ <- cache.saveBody(key, file)
     } yield ()
 
-  override def remove(key: Key): Future[Unit] =
+  override def remove(key: Key): Future[PicResult] =
     for {
-      _ <- origin.remove(key)
+      result <- origin.remove(key)
       _ <- cache.remove(key)
-    } yield ()
+    } yield result
 }

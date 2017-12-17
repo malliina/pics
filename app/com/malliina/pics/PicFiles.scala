@@ -46,7 +46,12 @@ trait DataSource extends SourceLike {
 
   def get(key: Key): Future[DataResponse]
 
-  def remove(key: Key): Future[Unit]
+  /** Removes `key`.
+    *
+    * @param key key to delete
+    * @return success even if `key` does not exist
+    */
+  def remove(key: Key): Future[PicResult]
 
   def find(key: Key): Future[Option[DataResponse]] =
     contains(key).flatMap { exists =>
@@ -60,7 +65,7 @@ trait DataSource extends SourceLike {
 trait MetaSource extends SourceLike {
   def load(from: Int, until: Int, user: Username): Future[Seq[KeyMeta]]
 
-  def saveMeta(key: Key, owner: Username): Future[Unit]
+  def saveMeta(key: Key, owner: Username): Future[KeyMeta]
 
-  def remove(key: Key, user: Username): Future[Unit]
+  def remove(key: Key, user: Username): Future[Boolean]
 }

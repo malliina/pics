@@ -8,6 +8,7 @@ import com.amazonaws.auth.{AWSCredentialsProviderChain, DefaultAWSCredentialsPro
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.model.ObjectListing
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
+import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.storage.StorageLong
 
 import scala.collection.JavaConverters.asScalaBufferConverter
@@ -36,7 +37,10 @@ class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends DataSource 
   override def contains(key: Key): Future[Boolean] =
     fut(aws.doesObjectExist(bucketName, key.key))
 
-  override def get(key: Key): Future[DataResponse] = {
+  override def get(key: Key): Future[DataResponse] =
+    getStream(key)
+
+  def getStream(key: Key): Future[DataStream] = {
     val obj = aws.getObject(bucketName, key.key)
     val meta = obj.getObjectMetadata
     fut {
@@ -51,13 +55,15 @@ class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends DataSource 
   override def saveBody(key: Key, file: Path): Future[Unit] =
     Future.fromTry(Try(aws.putObject(bucketName, key.key, file.toFile)))
 
-  override def remove(key: Key): Future[Unit] =
-    Future.fromTry(Try(aws.deleteObject(bucketName, key.key)))
+  override def remove(key: Key): Future[PicResult] =
+    Future.fromTry(Try(aws.deleteObject(bucketName, key.key))).map(_ => PicSuccess)
 }
 
 object BucketFiles {
-  val Prod = BucketFiles.forBucket(BucketName("malliina-pics"))
-  val Thumbs = BucketFiles.forBucket(BucketName("malliina-pics-thumbs"))
+  val Original = BucketFiles.forBucket(BucketName("malliina-pics"))
+  val Small = BucketFiles.forBucket(BucketName("malliina-pics-small"))
+  val Medium = BucketFiles.forBucket(BucketName("malliina-pics-medium"))
+  val Large = BucketFiles.forBucket(BucketName("malliina-pics-large"))
 
   def forBucket(bucket: BucketName) = forS3(Regions.EU_WEST_1, bucket)
 

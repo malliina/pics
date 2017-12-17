@@ -1,12 +1,14 @@
 package tests
 
+import java.nio.file.{Files, Path}
+
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.StreamConverters
+import akka.stream.scaladsl.{FileIO, StreamConverters}
 import akka.util.ByteString
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
-import com.malliina.pics.{BucketFiles, Resizer}
+import com.malliina.pics.{BucketFiles, ScrimageResizer}
 import org.scalatest.FunSuite
 
 import scala.collection.JavaConverters.asScalaBuffer
@@ -21,33 +23,50 @@ class AwsTests extends FunSuite {
   implicit val ec = mat.executionContext
 
   ignore("list images") {
-    val src = BucketFiles.Prod
+    val src = BucketFiles.Original
     src.load(0, 1000).foreach { key =>
-//      val content = src.get(key)
+      //      val content = src.get(key)
       //      val newKey = Key(key.key + ".jpg")
-//      println(s"$key ct ${content.contentType}")
+      //      println(s"$key ct ${content.contentType}")
     }
   }
 
-  ignore("make thumbs") {
-    val resizer = Resizer.Prod
-    val src = BucketFiles.Prod
-    val thumbs = BucketFiles.Thumbs
-//    src.load(0, 1000).foreach { key =>
-//      if (!thumbs.contains(key)) {
-//        src.get(key).map { orig =>
-//          if (orig.isImage) {
-//            val resized = resizer.resizeFromStream(orig.source.runWith(StreamConverters.asInputStream()))
-//            val transient = Files.createTempFile("thumb", null)
-//            val format = FilenameUtils.getExtension(key.key)
-//            val success = ImageIO.write(resized, format, transient.toFile)
-//            if (success) {
-//              thumbs.put(key, transient).foreach { _ => println(s"Wrote thumb of $key") }
-//            }
-//          }
-//        }
-//      }
-//    }
+  ignore("resize original images") {
+    def resize(resizer: ScrimageResizer, prefix: String): Path => Path = src => {
+      val dest = Files.createTempFile(prefix, null)
+      resizer.resizeFile(src, dest).right
+      dest
+    }
+
+    val resizerSmall = resize(ScrimageResizer.Small, "small")
+    val resizerMedium = resize(ScrimageResizer.Medium, "medium")
+    val resizerLarge = resize(ScrimageResizer.Large, "large")
+    val src = BucketFiles.Original
+    val smalls = BucketFiles.Small
+    val mediums = BucketFiles.Medium
+    val larges = BucketFiles.Large
+    val task = src.load(0, 1000).flatMap { metas =>
+      val resizeTasks = metas.map { meta =>
+        src.getStream(meta.key).flatMap { orig =>
+          if (orig.isImage) {
+            val origFile = Files.createTempFile("orig", null)
+            orig.source.runWith(FileIO.toPath(origFile)).flatMap { _ =>
+              for {
+                _ <- smalls.saveBody(meta.key, resizerSmall(origFile))
+                _ <- mediums.saveBody(meta.key, resizerMedium(origFile))
+                _ <- larges.saveBody(meta.key, resizerLarge(origFile))
+              } yield {
+                println(s"Resized ${meta.key}")
+              }
+            }
+          } else {
+            fut(())
+          }
+        }
+      }
+      Future.sequence(resizeTasks)
+    }
+    await(task)
   }
 
   ignore("create bucket, save file, delete bucket") {
@@ -67,18 +86,6 @@ class AwsTests extends FunSuite {
       aws.deleteObject(bucketName, objectKey)
     }
   }
-
-  //  test("controller") {
-  //    val files = BucketFiles.forBucket(BucketName("malliina-test-ctrl-bucket"))
-  //    val aws = files.aws
-  //    val name = files.bucketName
-  //    if (!aws.doesBucketExist(name))
-  //      aws.createBucket(name)
-  //    val ctrl = new Home(files)
-  //    val acc: Accumulator[ByteString, Result] = ctrl.put.apply(FakeRequest().withBody("boo"))
-  //    val result = await(acc.run())
-  //    assert(result.header.headers.get(HeaderNames.LOCATION).isDefined)
-  //  }
 
   def withBucket[T](code: AmazonS3 => T) = {
     val aws: AmazonS3 = AmazonS3ClientBuilder.standard().withRegion(Regions.EU_WEST_1).build()

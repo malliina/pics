@@ -9,6 +9,6 @@ class SyncTests extends FunSuite {
     val db = PicsDatabase.default()
     db.init()
     val pics = PicsSource(db)
-    await(Syncer.sync(BucketFiles.Prod, pics))
+    await(Syncer.sync(BucketFiles.Original, pics))
   }
 }

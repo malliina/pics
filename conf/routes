@@ -12,5 +12,7 @@ GET         /assets/*file            controllers.PicsAssets.versioned(path = "/p
 GET         /oauth                   controllers.Admin.initiate
 GET         /oauthcb                 controllers.Admin.redirResponse
 GET         /eject                   controllers.Home.eject
-GET         /*key/thumb              controllers.Home.thumb(key: com.malliina.pics.Key)
+GET         /*key/small              controllers.Home.small(key: com.malliina.pics.Key)
+GET         /*key/medium             controllers.Home.medium(key: com.malliina.pics.Key)
+GET         /*key/large              controllers.Home.large(key: com.malliina.pics.Key)
 GET         /*key                    controllers.Home.pic(key: com.malliina.pics.Key)

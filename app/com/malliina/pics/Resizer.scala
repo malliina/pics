@@ -9,7 +9,8 @@ import javax.imageio.ImageIO
 import org.apache.commons.io.FilenameUtils
 
 object Resizer {
-  val Prod = Resizer(maxWidth = 400, maxHeight = 300)
+  val Small400x300 = Resizer(maxWidth = 400, maxHeight = 300)
+  val Medium1440x1080 = Resizer(1440, 1080)
 
   def apply(maxWidth: Int, maxHeight: Int): Resizer = new Resizer(maxWidth, maxHeight)
 }
@@ -30,7 +31,6 @@ class Resizer(maxWidth: Int, maxHeight: Int) {
       }.getOrElse {
         Left(ImageReaderFailure(src))
       }
-
     } catch {
       case ioe: IOException => Left(ImageException(ioe))
     }

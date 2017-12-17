@@ -14,6 +14,24 @@ import play.api.http.Writeable
 import play.api.libs.json._
 import play.api.mvc.{PathBindable, RequestHeader}
 
+sealed trait PicResult
+
+case class PicNotFound(key: Key) extends PicResult
+
+case object PicSuccess extends PicResult
+
+sealed trait PicSize
+
+case object Small extends PicSize
+
+case object Medium extends PicSize
+
+case object Large extends PicSize
+
+case object Original extends PicSize
+
+case class PicBundle(small: Path, medium: Path, large: Path, original: Path)
+
 case class AppMeta(name: String, version: String, gitHash: String)
 
 object AppMeta {
@@ -58,27 +76,43 @@ case class FlatMeta(key: Key, lastModified: Instant) {
 }
 
 case class KeyMeta(key: Key, owner: Username, added: Instant) {
-  def toEntry(rh: RequestHeader) = KeyEntry(this, rh)
+  def toEntry(rh: RequestHeader) = PicMeta(this, rh)
 }
 
-case class KeyEntry(key: Key, added: Instant, url: FullUrl, thumb: FullUrl)
+case class PicMeta(key: Key,
+                   added: Instant,
+                   url: FullUrl,
+                   small: FullUrl,
+                   medium: FullUrl,
+                   large: FullUrl)
 
-object KeyEntry {
-  implicit val json = Json.format[KeyEntry]
+object PicMeta {
+  implicit val json = Json.format[PicMeta]
 
-  def apply(meta: KeyMeta, rh: RequestHeader): KeyEntry = {
+  val reverse = routes.Home
+
+  def apply(meta: KeyMeta, rh: RequestHeader): PicMeta = {
     val host = FullUrls.hostOnly(rh)
     val key = meta.key
-    KeyEntry(
+    PicMeta(
       key,
       meta.added,
-      FullUrls.absolute(host, routes.Home.pic(key)),
-      FullUrls.absolute(host, routes.Home.thumb(key))
+      FullUrls.absolute(host, reverse.pic(key)),
+      FullUrls.absolute(host, reverse.small(key)),
+      FullUrls.absolute(host, reverse.medium(key)),
+      FullUrls.absolute(host, reverse.large(key))
     )
   }
 }
 
-case class Pics(pics: Seq[KeyEntry])
+case class PicResponse(pic: PicMeta)
+
+object PicResponse {
+  implicit val json = Json.format[PicResponse]
+  implicit val html = Writeable.writeableOf_JsValue.map[PicResponse](ps => Json.toJson(ps))
+}
+
+case class Pics(pics: Seq[PicMeta])
 
 object Pics {
   implicit val json = Json.format[Pics]

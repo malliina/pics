@@ -1,7 +1,7 @@
 package com.malliina.pics.html
 
 import com.malliina.http.FullUrl
-import com.malliina.pics.KeyEntry
+import com.malliina.pics.PicMeta
 import com.malliina.play.controllers.UserFeedback
 import com.malliina.play.models.Username
 import com.malliina.play.tags.Bootstrap._
@@ -27,7 +27,7 @@ object PicsHtml {
 
   implicit val urlAttr = new GenericAttr[FullUrl]
 
-  def drop(created: Option[KeyEntry], feedback: Option[UserFeedback], user: Username) =
+  def drop(created: Option[PicMeta], feedback: Option[UserFeedback], user: Username) =
     baseIndex("drop", user, deferredJs("drop.js"))(
       divContainer(
         renderFeedback(feedback),
@@ -58,7 +58,7 @@ object PicsHtml {
       )
     )
 
-  def pics(urls: Seq[KeyEntry], feedback: Option[UserFeedback], user: Username) =
+  def pics(urls: Seq[PicMeta], feedback: Option[UserFeedback], user: Username) =
     baseIndex("pics", user, deferredJs("pics.js"))(
       divClass("pics")(
         renderFeedback(feedback),
@@ -70,7 +70,7 @@ object PicsHtml {
               divClass("thumbnail")(
                 divClass("pic")(
                   aHref(entry.url)(
-                    img(src := entry.thumb, alt := entry.key.key, `class` := "thumb")
+                    img(src := entry.small, alt := entry.key.key, `class` := "thumb")
                   )
                 ),
                 divClass("caption")(

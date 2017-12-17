@@ -1,6 +1,6 @@
 package com.malliina.pics
 
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, NoSuchFileException, Path, Paths}
 
 import akka.stream.scaladsl.{FileIO, Source}
 import akka.stream.{IOResult, Materializer}
@@ -23,7 +23,9 @@ object FilePics {
 
   def default(mat: Materializer): FilePics = apply(picsDir, mat)
 
-  def thumbs(mat: Materializer): FilePics = apply(picsDir.resolve("thumbs"), mat)
+  def thumbs(mat: Materializer): FilePics = named("thumbs", mat)
+
+  def named(name: String, mat: Materializer) = apply(picsDir.resolve(name), mat)
 }
 
 class FilePics(val dir: Path, mat: Materializer) extends DataSource {
@@ -41,7 +43,17 @@ class FilePics(val dir: Path, mat: Materializer) extends DataSource {
 
   override def get(key: Key): Future[DataResponse] = fut(DataFile(fileAt(key)))
 
-  override def remove(key: Key): Future[Unit] = Future.fromTry(tryLogged(Files.delete(fileAt(key))))
+  override def remove(key: Key): Future[PicResult] =
+    try {
+      Files.delete(fileAt(key))
+      fut(PicSuccess)
+    } catch {
+      case _: NoSuchFileException =>
+        fut(PicNotFound(key))
+      case other: Exception =>
+        log.error("Pics operation failed", other)
+        Future.failed(other)
+    }
 
   def putData(key: Key, data: DataResponse): Future[Path] = data match {
     case DataStream(source, _, _) => putSource(key, source)

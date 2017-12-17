@@ -37,6 +37,7 @@ object Home {
   val Message = "message"
   val Reason = "reason"
   val XKey = "X-Key"
+  val XName = "X-Name"
 
   def auth(oauth: OAuthControl): AuthBundle[AuthedRequest] = {
     val sessionAuth = UserAuthenticator.session(oauth.sessionUserKey)
@@ -54,9 +55,8 @@ object Home {
 }
 
 class Home(db: PicsSource,
-           files: DataSource,
-           thumbs: DataSource,
-           resizer: Resizer,
+           resizer: PicsResizer,
+           picService: PicService,
            oauth: Admin,
            cache: Cached,
            security: BaseSecurity[AuthedRequest],
@@ -71,7 +71,7 @@ class Home(db: PicsSource,
 
   def list = parsed(ListRequest.forRequest) { req =>
     db.load(req.offset, req.limit, req.user).map { keys =>
-      val entries = keys map { key => KeyEntry(key, req.rh) }
+      val entries = keys map { key => PicMeta(key, req.rh) }
       renderContent(req.rh)(
         json = Pics(entries),
         html = {
@@ -84,25 +84,89 @@ class Home(db: PicsSource,
 
   def drop = security.authAction { user =>
     val created = user.rh.flash.get(CreatedKey).map { k =>
-      KeyEntry(KeyMeta(Key(k), user.user, Instant.now()), user.rh)
+      PicMeta(KeyMeta(Key(k), user.user, Instant.now()), user.rh)
     }
     val feedback = UserFeedback.flashed(user.rh.flash)
     Ok(PicsHtml.drop(created, feedback, user.user))
   }
 
   def sync = security.authActionAsync { _ =>
-    Syncer.sync(files, db).map { count =>
+    Syncer.sync(picService.originals, db).map { count =>
       Redirect(routes.Home.drop()).flashing(toMap(UserFeedback.success(s"Synced $count assets.")): _*)
     }
+  }
+
+  def pic(key: Key) = picAction(picService.originals.find(key), keyNotFound(key))
+
+  def small(key: Key) = sendPic(key, picService.smalls)
+
+  def medium(key: Key) = sendPic(key, picService.mediums)
+
+  def large(key: Key) = sendPic(key, picService.larges)
+
+  def sendPic(key: Key, source: DataSource) = picAction(source.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
+
+  def put = withAuth { (authedRequest: AuthedRequest) =>
+    Action(parse.temporaryFile).async { req =>
+      saveFile(req.body.path, authedRequest.user, req)
+    }
+  }
+
+  def put2 = security.authenticatedLogged { (authedRequest: AuthedRequest) =>
+    Action(parse.multipartFormData).async { req =>
+      req.body.files.headOption map { file =>
+        saveFile(file.ref.path, authedRequest.user, req)
+      } getOrElse {
+        fut(badRequest("File missing"))
+      }
+    }
+  }
+
+  def delete = security.authenticatedLogged { (r: AuthedRequest) =>
+    Action.async(parse.form(deleteForm)) { req =>
+      removeKey(req.body, r.user, routes.Home.drop())
+    }
+  }
+
+  def remove(key: Key) = security.authActionAsync { r =>
+    removeKey(key, r.user, routes.Home.list())
+  }
+
+  def removeKey(key: Key, user: Username, redirCall: Call): Future[Result] = {
+    val redir = Redirect(redirCall)
+    val feedback: Future[UserFeedback] =
+      db.remove(key, user).flatMap { wasDeleted =>
+        if (wasDeleted) {
+          picService.remove(key).map { _ =>
+            UserFeedback.success(s"Deleted key '$key'.")
+          }
+        } else {
+          fut(UserFeedback.error(s"Key not found: '$key'."))
+        }
+      }
+    feedback.map { fb => redir.flashing(toMap(fb): _*) }
   }
 
   def parsed[T](parse: AuthedRequest => Either[Errors, T])(f: T => Future[Result]) =
     withAuthAction { req =>
       parse(req).fold(
-        errors => fut(BadRequest(Json.toJson(errors))),
+        errors => fut(BadRequest(errors)),
         t => f(t)
       )
     }
+
+  def renderContent[A: Writes, B: Writeable](rh: RequestHeader)(json: => A, html: => B) =
+    if (rh.getQueryString("f").contains("json")) {
+      Ok(Json.toJson(json))
+    } else {
+      renderVaried(rh) {
+        case Accepts.Html() => Ok(html)
+        case Home.Json10() => Ok(Json.toJson(json))
+        case Accepts.Json() => Ok(Json.toJson(json))
+      }
+    }
+
+  def renderVaried(rh: RequestHeader)(f: PartialFunction[MediaRange, Result]) = render(f)(rh)
 
   private def withAuthAction(a: AuthedRequest => Future[Result]) =
     withAuth(req => Action.async(a(req)))
@@ -134,27 +198,6 @@ class Home(db: PicsSource,
       )
     }
 
-  def renderContent[A: Writes, B: Writeable](rh: RequestHeader)(json: => A, html: => B) =
-    if (rh.getQueryString("f").contains("json")) {
-      Ok(Json.toJson(json))
-    } else {
-      renderVaried(rh) {
-        case Accepts.Html() => Ok(html)
-        case Home.Json10() => Ok(Json.toJson(json))
-        case Accepts.Json() => Ok(Json.toJson(json))
-      }
-    }
-
-  def renderVaried(rh: RequestHeader)(f: PartialFunction[MediaRange, Result]) = render(f)(rh)
-
-  def pic(key: Key) = picAction(files.find(key), keyNotFound(key))
-
-  def thumbAuth(key: Key) = security.authenticatedLogged { _ =>
-    picAction(thumbs.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
-  }
-
-  def thumb(key: Key) = picAction(thumbs.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
-
   private def picAction(find: Future[Option[DataResponse]], onNotFound: => Result) = {
     val result = find.map { maybe =>
       maybe.map {
@@ -175,91 +218,26 @@ class Home(db: PicsSource,
         stream.contentType.map(_.contentType))
     )
 
-  def delete = security.authenticatedLogged { (r: AuthedRequest) =>
-    Action.async(parse.form(deleteForm)) { req =>
-      removeKey(req.body, r.user, routes.Home.drop())
-    }
-  }
-
-  def remove(key: Key) = security.authActionAsync { r =>
-    removeKey(key, r.user, routes.Home.list())
-  }
-
-  def removeKey(key: Key, user: Username, redirCall: Call): Future[Result] = {
-    val redir = Redirect(redirCall)
-    for {
-      _ <- db.remove(key, user)
-      _ <- removeThumb(key, user)
-      wasRemoved <- removeOriginal(key, user)
-    } yield {
-      if (wasRemoved) redir.flashing(toMap(UserFeedback.success(s"Deleted key '$key'.")): _*)
-      else redir.flashing(toMap(UserFeedback.error(s"Key not found: '$key'.")): _*)
-    }
-  }
-
-  private def removeThumb(key: Key, user: Username): Future[Unit] = {
-    thumbs.contains(key).flatMap { exists =>
-      if (exists) thumbs.remove(key)
-      else Future.successful(())
-    }
-  }
-
-  private def removeOriginal(key: Key, user: Username): Future[Boolean] = {
-    files.contains(key).flatMap { exists =>
-      if (exists) {
-        files.remove(key).map { _ =>
-          log info s"Removed '$key'."
-          true
-        }
-      } else {
-        fut(false)
-      }
-    }
-  }
-
-
-  def toMap(fb: UserFeedback): Seq[(String, String)] = Seq(
-    UserFeedback.Feedback -> fb.message,
-    UserFeedback.Success -> (if (fb.isError) UserFeedback.No else UserFeedback.Yes)
-  )
-
-  def put = security.authenticatedLogged { (authedRequest: AuthedRequest) =>
-    Action(parse.temporaryFile).async { req =>
-      saveFile(req.body.path, authedRequest.user, req)
-    }
-  }
-
-  def put2 = security.authenticatedLogged { (authedRequest: AuthedRequest) =>
-    Action(parse.multipartFormData).async { req =>
-      req.body.files.headOption map { file =>
-        saveFile(file.ref.path, authedRequest.user, req)
-      } getOrElse {
-        fut(badRequest("File missing"))
-      }
-    }
-  }
-
   private def saveFile(tempFile: Path, by: Username, rh: RequestHeader): Future[Result] = {
     // without dot
-    val name = rh.headers.get("X-Name") getOrElse tempFile.getFileName.toString
+    val name = rh.headers.get(XName) getOrElse tempFile.getFileName.toString
     val ext = Option(FilenameUtils.getExtension(name)).filter(_.nonEmpty).getOrElse("jpeg")
     val renamedFile = tempFile resolveSibling s"$name.$ext"
     Files.copy(tempFile, renamedFile)
-    log.info(s"Copied temp file '$tempFile' to '$renamedFile', size ${Files.size(tempFile)} bytes.")
-    val thumbFile = renamedFile resolveSibling s"$name-thumb.$ext"
-    resizer.resizeFromFile(renamedFile, thumbFile).fold(
+    log.trace(s"Copied temp file '$tempFile' to '$renamedFile', size ${Files.size(tempFile)} bytes.")
+    //    val thumbFile = renamedFile resolveSibling s"$name-thumb.$ext"
+    resizer.resize(renamedFile).fold(
       fail => fut(failResize(fail)),
-      _ => {
+      bundle => {
         val key = Key.randomish().append(s".${ext.toLowerCase}")
         for {
-          _ <- files.saveBody(key, renamedFile)
-          _ <- thumbs.saveBody(key, thumbFile)
-          _ <- db.saveMeta(key, by)
+          _ <- picService.save(key, bundle)
+          meta <- db.saveMeta(key, by)
         } yield {
-          val url = routes.Home.pic(key)
-          log info s"Saved file '$name' as '$key'."
-          Accepted(Json.obj(Message -> s"Created '$url'.")).withHeaders(
-            HeaderNames.LOCATION -> url.toString,
+          val picMeta = PicMeta(meta, rh)
+          log info s"Saved '${picMeta.key}' with URL '${picMeta.url}'."
+          Accepted(PicResponse(picMeta)).withHeaders(
+            HeaderNames.LOCATION -> picMeta.url.toString,
             XKey -> key.key
           )
         }
@@ -299,6 +277,8 @@ class Home(db: PicsSource,
 
   def badRequest(reason: String) = BadRequest(reasonJson(reason))
 
+  def unauthorized(reason: String) = Unauthorized(reasonJson(reason))
+
   def internalError(reason: String) = InternalServerError(reasonJson(reason))
 
   def reasonJson(reason: String) = Json.obj(Reason -> reason)
@@ -308,4 +288,9 @@ class Home(db: PicsSource,
   def cachedAction(result: Result) = cache((req: RequestHeader) => req.path, 180.days)(Action(result))
 
   def fut[T](t: T) = Future.successful(t)
+
+  private def toMap(fb: UserFeedback): Seq[(String, String)] = Seq(
+    UserFeedback.Feedback -> fb.message,
+    UserFeedback.Success -> (if (fb.isError) UserFeedback.No else UserFeedback.Yes)
+  )
 }

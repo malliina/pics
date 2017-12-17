@@ -16,14 +16,12 @@ import router.Routes
 class AppLoader extends DefaultApp(ctx => new AppComponents(
   ctx,
   GoogleOAuthReader.load,
-  mat => FileCachingPics(FilePics.default(mat), BucketFiles.Prod),
-  mat => FileCachingPics(FilePics.thumbs(mat), BucketFiles.Thumbs)
+  mat => PicService.prod(mat)
 ))
 
 class AppComponents(context: Context,
                     creds: GoogleOAuthCredentials,
-                    pics: Materializer => DataSource,
-                    thumbs: Materializer => DataSource)
+                    pics: Materializer => PicService)
   extends BuiltInComponentsFromContext(context)
     with NoHttpFiltersComponents
     with EhCacheComponents
@@ -35,13 +33,15 @@ class AppComponents(context: Context,
   db.init()
   val picsDb = PicsSource(db)
   log.info(s"Using pics dir '${FilePics.picsDir}'.")
-  lazy val cache = new Cached(defaultCacheApi)
+  val cache = new Cached(defaultCacheApi)
   override lazy val httpErrorHandler = PicsErrorHandler
-  lazy val admin = new Admin(creds, controllerComponents.actionBuilder)
-  lazy val home = new Home(
-    picsDb, pics(materializer), thumbs(materializer),
-    Resizer.Prod, admin, cache,
-    Home.security(admin, materializer), controllerComponents)
+  val admin = new Admin(creds, controllerComponents.actionBuilder)
+  val picService = pics(materializer)
+  val resizer = PicsResizer.default
+  val home = new Home(
+    picsDb, PicsResizer.default, pics(materializer),
+    admin, cache, Home.security(admin, materializer),
+    controllerComponents)
   val picsAssets = new PicsAssets(assets)
   override val router: Router = new Routes(httpErrorHandler, home, picsAssets, admin)
 }

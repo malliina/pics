@@ -21,5 +21,5 @@ object TestPics extends DataSource {
 
   override def saveBody(key: Key, file: Path): Future[Unit] = fut(())
 
-  override def remove(key: Key): Future[Unit] = fut(())
+  override def remove(key: Key): Future[PicResult] = fut(PicSuccess)
 }
