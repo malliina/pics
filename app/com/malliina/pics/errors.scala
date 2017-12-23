@@ -18,14 +18,15 @@ case class UnsupportedFormat(format: String, supported: Seq[String])
 case class ImageReaderFailure(file: Path)
   extends ImageFailure
 
-case class SingleError(message: String, code: String)
+case class SingleError(message: String, key: String)
 
 object SingleError {
   implicit val json = Json.format[SingleError]
 
   def apply(message: String): SingleError = apply(message, "generic")
 
-  def forJWT(error: JWTError): SingleError = SingleError(error.message, "jwt")
+  def forJWT(error: JWTError): SingleError =
+    SingleError(error.message, error.key)
 }
 
 case class Errors(errors: Seq[SingleError])

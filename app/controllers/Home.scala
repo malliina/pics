@@ -73,7 +73,9 @@ class Home(db: PicsSource,
     db.load(req.offset, req.limit, req.user).map { keys =>
       val entries = keys map { key => PicMeta(key, req.rh) }
       renderContent(req.rh)(
-        json = Pics(entries),
+        json = {
+          Pics(entries)
+        },
         html = {
           val feedback = UserFeedback.flashed(req.rh.flash)
           PicsHtml.pics(entries, feedback, req.user)

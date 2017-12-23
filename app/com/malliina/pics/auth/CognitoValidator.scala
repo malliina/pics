@@ -1,8 +1,11 @@
 package com.malliina.pics.auth
 
 import com.malliina.play.models.Username
+import play.api.Logger
 
 object CognitoValidator {
+  private val log = Logger(getClass)
+
   val default = new CognitoValidator(KeyConf.cognito)
 }
 
