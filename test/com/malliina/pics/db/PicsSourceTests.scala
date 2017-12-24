@@ -6,7 +6,7 @@ import tests.BaseSuite
 
 class PicsSourceTests extends BaseSuite {
   test("can insert picture") {
-    val db = PicsSource.inMemory()
+    val db = PicsMetaDatabase.inMemory()
     val op = db.saveMeta(Key("test.jpg"), Username("test"))
     await(op)
   }

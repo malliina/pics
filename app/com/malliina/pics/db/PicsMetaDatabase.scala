@@ -8,17 +8,17 @@ import slick.jdbc.H2Profile.api._
 
 import scala.concurrent.Future
 
-object PicsSource {
-  def apply(db: PicsDatabase): PicsSource = new PicsSource(db)
+object PicsMetaDatabase {
+  def apply(db: PicsDatabase): PicsMetaDatabase = new PicsMetaDatabase(db)
 
-  def inMemory(): PicsSource = {
+  def inMemory(): PicsMetaDatabase = {
     val db = PicsDatabase.inMemory()
     db.init()
     apply(db)
   }
 }
 
-class PicsSource(db: PicsDatabase) extends MetaSource {
+class PicsMetaDatabase(db: PicsDatabase) extends MetaSource {
   implicit val ec = db.ec
   val pics = db.picsTable
 

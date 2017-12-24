@@ -1,57 +1,50 @@
 package com.malliina.pics
 
-import akka.stream.Materializer
+import java.nio.file.{Files, Path}
+
 import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.pics.PicService.log
+import com.malliina.pics.db.{PicsDatabase, PicsMetaDatabase}
+import com.malliina.play.models.Username
+import org.apache.commons.io.FilenameUtils
+import play.api.Logger
 
 import scala.concurrent.Future
 
 object PicService {
-  def clones(dataSource: DataSource) = new PicService(dataSource, dataSource, dataSource, dataSource)
+  private val log = Logger(getClass)
 
-  def prod(mat: Materializer) = {
-    def cached(name: String, origin: BucketFiles) =
-      FileCachingPics(FilePics.named(name, mat), origin)
-
+  def apply(db: PicsDatabase, sources: PicSources): PicService =
     new PicService(
-      cached("smalls", BucketFiles.Small),
-      cached("mediums", BucketFiles.Medium),
-      cached("larges", BucketFiles.Large),
-      cached("originals", BucketFiles.Original)
+      PicsMetaDatabase(db),
+      sources,
+      PicsResizer.default
     )
-  }
 }
 
-class PicService(val smalls: DataSource,
-                 val mediums: DataSource,
-                 val larges: DataSource,
-                 val originals: DataSource) {
-  def get(key: Key, size: PicSize): Future[DataResponse] =
-    withSize(size)(_.get(key))
+class PicService(val metaDatabase: PicsMetaDatabase,
+                 val sources: PicSources,
+                 resizer: PicsResizer) {
 
-  def find(key: Key, size: PicSize): Future[Option[DataResponse]] =
-    withSize(size)(_.find(key))
-
-  def withSize[T](size: PicSize)(f: DataSource => T) = size match {
-    case Small => f(smalls)
-    case Medium => f(mediums)
-    case Large => f(larges)
-    case Original => f(originals)
-  }
-
-  def save(key: Key, resized: PicBundle): Future[Unit] =
-    for {
-      _ <- smalls.saveBody(key, resized.small)
-      _ <- mediums.saveBody(key, resized.medium)
-      _ <- larges.saveBody(key, resized.large)
-      _ <- originals.saveBody(key, resized.original)
-    } yield ()
-
-  def remove(key: Key): Future[Unit] = {
-    for {
-      _ <- originals.remove(key)
-      _ <- smalls.remove(key)
-      _ <- mediums.remove(key)
-      _ <- larges.remove(key)
-    } yield ()
+  def save(tempFile: Path, by: Username, preferredName: Option[String]): Future[Either[ImageFailure, KeyMeta]] = {
+    // without dot
+    val name = preferredName getOrElse tempFile.getFileName.toString
+    val ext = Option(FilenameUtils.getExtension(name)).filter(_.nonEmpty).getOrElse("jpeg")
+    val renamedFile = tempFile resolveSibling s"$name.$ext"
+    Files.copy(tempFile, renamedFile)
+    log.trace(s"Copied temp file '$tempFile' to '$renamedFile', size ${Files.size(tempFile)} bytes.")
+    //    val thumbFile = renamedFile resolveSibling s"$name-thumb.$ext"
+    resizer.resize(renamedFile).fold(
+      e => Future.successful(Left(e)),
+      bundle => {
+        val key = Key.randomish().append(s".${ext.toLowerCase}")
+        for {
+          _ <- sources.save(key, bundle)
+          meta <- metaDatabase.saveMeta(key, by)
+        } yield {
+          Right(meta)
+        }
+      }
+    )
   }
 }

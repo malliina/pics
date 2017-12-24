@@ -22,6 +22,8 @@ object PicsHtml {
   val dataContentAttr = attr("data-content")
   val defer = attr("defer").empty
 
+  val reverse = routes.PicsController
+
   implicit def urlWriter(url: FullUrl): scalatags.Text.StringFrag =
     new scalatags.Text.StringFrag(url.url)
 
@@ -32,12 +34,12 @@ object PicsHtml {
       divContainer(
         renderFeedback(feedback),
         fullRow(
-          postableForm(routes.Home.sync(), `class` := "drop-row form-inline")(
+          postableForm(reverse.sync(), `class` := "drop-row form-inline")(
             submitButton(`class` := BtnDefault)("Sync")
           )
         ),
         fullRow(
-          postableForm(routes.Home.delete(), `class` := "drop-row form-inline", id := "delete-form")(
+          postableForm(reverse.delete(), `class` := "drop-row form-inline", id := "delete-form")(
             divClass(FormGroup)(
               divClass(InputGroup)(
                 divClass(InputGroupAddon)("pics/"),
@@ -75,7 +77,7 @@ object PicsHtml {
                 ),
                 divClass("caption")(
                   div(
-                    postableForm(routes.Home.remove(entry.key))(
+                    postableForm(reverse.remove(entry.key))(
                       submitButton(`class` := s"$BtnDanger $BtnXs")("Delete")
                     )
                   ),
@@ -117,12 +119,12 @@ object PicsHtml {
         divContainer(
           divClass(NavbarHeader)(
             hamburgerButton,
-            a(`class` := NavbarBrand, href := routes.Home.list())("Pics")
+            a(`class` := NavbarBrand, href := reverse.list())("Pics")
           ),
           divClass(s"$NavbarCollapse $Collapse")(
             ulClass(s"$Nav $NavbarNav")(
-              navItem("Pics", "pics", routes.Home.list(), "picture"),
-              navItem("Drop", "drop", routes.Home.drop(), "upload")
+              navItem("Pics", "pics", reverse.list(), "picture"),
+              navItem("Drop", "drop", reverse.drop(), "upload")
             ),
             ulClass(s"$Nav $NavbarNav $NavbarRight")(
               li(`class` := Dropdown)(
@@ -130,7 +132,7 @@ object PicsHtml {
                   glyphIcon("user"), s" $user ", spanClass(Caret)
                 ),
                 ulClass(DropdownMenu)(
-                  li(aHref(routes.Home.logout())(glyphIcon("off"), " Sign Out"))
+                  li(aHref(routes.Admin.logout())(glyphIcon("off"), " Sign Out"))
                 )
               )
             )

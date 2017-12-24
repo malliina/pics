@@ -6,7 +6,7 @@ import play.api.Logger
 object CognitoValidator {
   private val log = Logger(getClass)
 
-  val default = new CognitoValidator(KeyConf.cognito)
+  val default: CognitoValidator = new CognitoValidator(KeyConf.cognito)
 }
 
 class CognitoValidator(conf: KeyConf) extends TokenValidator[CognitoUser](conf) {

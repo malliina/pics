@@ -89,7 +89,7 @@ case class PicMeta(key: Key,
 object PicMeta {
   implicit val json = Json.format[PicMeta]
 
-  val reverse = routes.Home
+  val reverse = routes.PicsController
 
   def apply(meta: KeyMeta, rh: RequestHeader): PicMeta = {
     val host = FullUrls.hostOnly(rh)

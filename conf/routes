@@ -1,18 +1,19 @@
-GET         /                        controllers.Home.root
-GET         /drop                    controllers.Home.drop
-GET         /ping                    controllers.Home.ping
-GET         /pics                    controllers.Home.list
+GET         /                        controllers.PicsController.root
+GET         /drop                    controllers.PicsController.drop
+GET         /ping                    controllers.PicsController.ping
+GET         /pics                    controllers.PicsController.list
 #GET         /pics/*key           controllers.Home.pic(key: com.malliina.pics.Key)
-POST        /pics                    controllers.Home.put
-POST        /pics/*key/delete        controllers.Home.remove(key: com.malliina.pics.Key)
-POST        /pics/delete             controllers.Home.delete
-POST        /sync                    controllers.Home.sync
-GET         /logout                  controllers.Home.logout
+POST        /pics                    controllers.PicsController.put
+POST        /pics/*key/delete        controllers.PicsController.remove(key: com.malliina.pics.Key)
+POST        /pics/delete             controllers.PicsController.delete
+POST        /sync                    controllers.PicsController.sync
+GET         /logout                  controllers.Admin.logout
+GET         /sockets                 controllers.Sockets.listen
 GET         /assets/*file            controllers.PicsAssets.versioned(path = "/public", file: Asset)
 GET         /oauth                   controllers.Admin.initiate
 GET         /oauthcb                 controllers.Admin.redirResponse
-GET         /eject                   controllers.Home.eject
-GET         /*key/small              controllers.Home.small(key: com.malliina.pics.Key)
-GET         /*key/medium             controllers.Home.medium(key: com.malliina.pics.Key)
-GET         /*key/large              controllers.Home.large(key: com.malliina.pics.Key)
-GET         /*key                    controllers.Home.pic(key: com.malliina.pics.Key)
+GET         /eject                   controllers.Admin.ejectUser
+GET         /*key/small              controllers.PicsController.small(key: com.malliina.pics.Key)
+GET         /*key/medium             controllers.PicsController.medium(key: com.malliina.pics.Key)
+GET         /*key/large              controllers.PicsController.large(key: com.malliina.pics.Key)
+GET         /*key                    controllers.PicsController.pic(key: com.malliina.pics.Key)

@@ -3,9 +3,11 @@ package com.malliina.pics.app
 import akka.stream.Materializer
 import com.malliina.oauth.{GoogleOAuthCredentials, GoogleOAuthReader}
 import com.malliina.pics._
-import com.malliina.pics.db.{PicsDatabase, PicsSource}
+import com.malliina.pics.auth.PicsAuth
+import com.malliina.pics.db.PicsDatabase
 import com.malliina.play.app.DefaultApp
-import controllers.{Admin, AssetsComponents, Home, PicsAssets}
+import com.malliina.play.controllers.BaseSecurity
+import controllers._
 import play.api.ApplicationLoader.Context
 import play.api.cache.Cached
 import play.api.cache.ehcache.EhCacheComponents
@@ -16,32 +18,31 @@ import router.Routes
 class AppLoader extends DefaultApp(ctx => new AppComponents(
   ctx,
   GoogleOAuthReader.load,
-  mat => PicService.prod(mat)
+  mat => PicSources.prod(mat)
 ))
 
 class AppComponents(context: Context,
                     creds: GoogleOAuthCredentials,
-                    pics: Materializer => PicService)
+                    buildPics: Materializer => PicSources)
   extends BuiltInComponentsFromContext(context)
     with NoHttpFiltersComponents
     with EhCacheComponents
     with AssetsComponents {
   private val log = Logger(getClass)
-  val db =
+  val db: PicsDatabase =
     if (environment.mode == Mode.Test) PicsDatabase.inMemory()
     else PicsDatabase.default()
   db.init()
-  val picsDb = PicsSource(db)
+  val service = PicService(db, buildPics(materializer))
   log.info(s"Using pics dir '${FilePics.picsDir}'.")
   val cache = new Cached(defaultCacheApi)
   override lazy val httpErrorHandler = PicsErrorHandler
-  val admin = new Admin(creds, controllerComponents.actionBuilder)
-  val picService = pics(materializer)
-  val resizer = PicsResizer.default
-  val home = new Home(
-    picsDb, PicsResizer.default, pics(materializer),
-    admin, cache, Home.security(admin, materializer),
-    controllerComponents)
+  val admin = new Admin(creds, defaultActionBuilder)
+  val htmlAuth = PicsController.auth(admin)
+  val security = new BaseSecurity(defaultActionBuilder, htmlAuth, materializer)
+  val auth = new PicsAuth(JWTAuth.default, htmlAuth, materializer, defaultActionBuilder)
+  val sockets = Sockets(auth, actorSystem, materializer)
+  val pics = new PicsController(service, sockets, auth, cache, controllerComponents)
   val picsAssets = new PicsAssets(assets)
-  override val router: Router = new Routes(httpErrorHandler, home, picsAssets, admin)
+  override val router: Router = new Routes(httpErrorHandler, pics, admin, sockets, picsAssets)
 }

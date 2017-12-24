@@ -1,20 +1,17 @@
 package controllers
 
-import java.nio.file.{Files, Path}
+import java.nio.file.Path
 import java.time.Instant
 
-import akka.stream.Materializer
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.pics._
-import com.malliina.pics.auth.CognitoValidator
-import com.malliina.pics.db.PicsSource
+import com.malliina.pics.auth.PicsAuth
 import com.malliina.pics.html.PicsHtml
 import com.malliina.play.auth.{AuthFailure, UserAuthenticator}
 import com.malliina.play.controllers._
 import com.malliina.play.http.AuthedRequest
 import com.malliina.play.models.Username
-import controllers.Home._
-import org.apache.commons.io.FilenameUtils
+import controllers.PicsController._
 import play.api.Logger
 import play.api.cache.Cached
 import play.api.data.Form
@@ -26,7 +23,7 @@ import play.api.mvc._
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
-object Home {
+object PicsController {
   private val log = Logger(getClass)
 
   val binaryContentType = ContentType(MimeTypes.BINARY)
@@ -49,28 +46,25 @@ object Home {
         Results.Redirect(oauth.startOAuth)
     }
   }
-
-  def security(oauth: OAuthControl, mat: Materializer): BaseSecurity[AuthedRequest] =
-    new BaseSecurity(oauth.actions, auth(oauth), mat)
 }
 
-class Home(db: PicsSource,
-           resizer: PicsResizer,
-           picService: PicService,
-           oauth: Admin,
-           cache: Cached,
-           security: BaseSecurity[AuthedRequest],
-           comps: ControllerComponents) extends AbstractController(comps) {
+class PicsController(pics: PicService,
+                     picSink: PicSink,
+                     auth: PicsAuth,
+                     cache: Cached,
+                     comps: ControllerComponents) extends AbstractController(comps) {
   val placeHolderResource = "400x300.png"
   val deleteForm: Form[Key] = Form(mapping(KeyKey -> nonEmptyText)(Key.apply)(Key.unapply))
-  val jwt = new JWTController(CognitoValidator.default, comps)
+  val reverse = routes.PicsController
+  val metaDatabase = pics.metaDatabase
+  val sources = pics.sources
 
   def ping = Action(Caching.NoCache(Ok(Json.toJson(AppMeta.default))))
 
-  def root = Action(Redirect(routes.Home.list()))
+  def root = Action(Redirect(reverse.list()))
 
   def list = parsed(ListRequest.forRequest) { req =>
-    db.load(req.offset, req.limit, req.user).map { keys =>
+    metaDatabase.load(req.offset, req.limit, req.user).map { keys =>
       val entries = keys map { key => PicMeta(key, req.rh) }
       renderContent(req.rh)(
         json = {
@@ -84,62 +78,52 @@ class Home(db: PicsSource,
     }
   }
 
-  def drop = security.authAction { user =>
+  def drop = auth.authAction { user =>
     val created = user.rh.flash.get(CreatedKey).map { k =>
       PicMeta(KeyMeta(Key(k), user.user, Instant.now()), user.rh)
     }
     val feedback = UserFeedback.flashed(user.rh.flash)
-    Ok(PicsHtml.drop(created, feedback, user.user))
+    fut(Ok(PicsHtml.drop(created, feedback, user.user)))
   }
 
-  def sync = security.authActionAsync { _ =>
-    Syncer.sync(picService.originals, db).map { count =>
-      Redirect(routes.Home.drop()).flashing(toMap(UserFeedback.success(s"Synced $count assets.")): _*)
+  def sync = auth.authAction { _ =>
+    Syncer.sync(sources.originals, metaDatabase).map { count =>
+      Redirect(reverse.drop()).flashing(toMap(UserFeedback.success(s"Synced $count assets.")): _*)
     }
   }
 
-  def pic(key: Key) = picAction(picService.originals.find(key), keyNotFound(key))
+  def pic(key: Key) = picAction(sources.originals.find(key), keyNotFound(key))
 
-  def small(key: Key) = sendPic(key, picService.smalls)
+  def small(key: Key) = sendPic(key, sources.smalls)
 
-  def medium(key: Key) = sendPic(key, picService.mediums)
+  def medium(key: Key) = sendPic(key, sources.mediums)
 
-  def large(key: Key) = sendPic(key, picService.larges)
+  def large(key: Key) = sendPic(key, sources.larges)
 
   def sendPic(key: Key, source: DataSource) = picAction(source.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
 
-  def put = withAuth { (authedRequest: AuthedRequest) =>
+  def put = auth.authed { (authedRequest: AuthedRequest) =>
     Action(parse.temporaryFile).async { req =>
       saveFile(req.body.path, authedRequest.user, req)
     }
   }
 
-  def put2 = security.authenticatedLogged { (authedRequest: AuthedRequest) =>
-    Action(parse.multipartFormData).async { req =>
-      req.body.files.headOption map { file =>
-        saveFile(file.ref.path, authedRequest.user, req)
-      } getOrElse {
-        fut(badRequest("File missing"))
-      }
-    }
-  }
-
-  def delete = security.authenticatedLogged { (r: AuthedRequest) =>
+  def delete = auth.authed { (authedRequest: AuthedRequest) =>
     Action.async(parse.form(deleteForm)) { req =>
-      removeKey(req.body, r.user, routes.Home.drop())
+      removeKey(req.body, authedRequest.user, reverse.drop())
     }
   }
 
-  def remove(key: Key) = security.authActionAsync { r =>
-    removeKey(key, r.user, routes.Home.list())
+  def remove(key: Key) = auth.authAction { r =>
+    removeKey(key, r.user, reverse.list())
   }
 
   def removeKey(key: Key, user: Username, redirCall: Call): Future[Result] = {
     val redir = Redirect(redirCall)
     val feedback: Future[UserFeedback] =
-      db.remove(key, user).flatMap { wasDeleted =>
+      metaDatabase.remove(key, user).flatMap { wasDeleted =>
         if (wasDeleted) {
-          picService.remove(key).map { _ =>
+          sources.remove(key).map { _ =>
             UserFeedback.success(s"Deleted key '$key'.")
           }
         } else {
@@ -150,7 +134,7 @@ class Home(db: PicsSource,
   }
 
   def parsed[T](parse: AuthedRequest => Either[Errors, T])(f: T => Future[Result]) =
-    withAuthAction { req =>
+    auth.authAction { req =>
       parse(req).fold(
         errors => fut(BadRequest(errors)),
         t => f(t)
@@ -163,42 +147,12 @@ class Home(db: PicsSource,
     } else {
       renderVaried(rh) {
         case Accepts.Html() => Ok(html)
-        case Home.Json10() => Ok(Json.toJson(json))
+        case PicsController.Json10() => Ok(Json.toJson(json))
         case Accepts.Json() => Ok(Json.toJson(json))
       }
     }
 
   def renderVaried(rh: RequestHeader)(f: PartialFunction[MediaRange, Result]) = render(f)(rh)
-
-  private def withAuthAction(a: AuthedRequest => Future[Result]) =
-    withAuth(req => Action.async(a(req)))
-
-  private def withAuth(a: AuthedRequest => EssentialAction) = EssentialAction { rh =>
-    val f: PartialFunction[MediaRange, EssentialAction] = {
-      case Accepts.Html() => security.authenticatedLogged(a)
-      case Home.Json10() => jwt.authed(cognitoUser => a(AuthedRequest(cognitoUser.username, rh, None)))
-      case Accepts.Json() => jwt.authed(cognitoUser => a(AuthedRequest(cognitoUser.username, rh, None)))
-    }
-
-    def acceptedAction(ms: Seq[MediaRange]): EssentialAction = ms match {
-      case Nil => Action(NotAcceptable(Errors.single(s"No acceptable '${HeaderNames.ACCEPT}' header found.")))
-      case Seq(m, tail@_*) => f.applyOrElse(m, (_: MediaRange) => acceptedAction(tail))
-    }
-
-    val accepted =
-      if (rh.acceptedTypes.isEmpty) Seq(new MediaRange("*", "*", Nil, None, Nil))
-      else rh.acceptedTypes
-    acceptedAction(accepted)(rh)
-  }
-
-  def parsedNoAuth[T](parse: AuthedRequest => Either[Errors, T])(f: T => Future[Result]) =
-    Action.async { req =>
-      val r = AuthedRequest(Username("demo"), req, None)
-      parse(r).fold(
-        errors => fut(BadRequest(Json.toJson(errors))),
-        t => f(t)
-      )
-    }
 
   private def picAction(find: Future[Option[DataResponse]], onNotFound: => Result) = {
     val result = find.map { maybe =>
@@ -221,30 +175,18 @@ class Home(db: PicsSource,
     )
 
   private def saveFile(tempFile: Path, by: Username, rh: RequestHeader): Future[Result] = {
-    // without dot
-    val name = rh.headers.get(XName) getOrElse tempFile.getFileName.toString
-    val ext = Option(FilenameUtils.getExtension(name)).filter(_.nonEmpty).getOrElse("jpeg")
-    val renamedFile = tempFile resolveSibling s"$name.$ext"
-    Files.copy(tempFile, renamedFile)
-    log.trace(s"Copied temp file '$tempFile' to '$renamedFile', size ${Files.size(tempFile)} bytes.")
-    //    val thumbFile = renamedFile resolveSibling s"$name-thumb.$ext"
-    resizer.resize(renamedFile).fold(
-      fail => fut(failResize(fail)),
-      bundle => {
-        val key = Key.randomish().append(s".${ext.toLowerCase}")
-        for {
-          _ <- picService.save(key, bundle)
-          meta <- db.saveMeta(key, by)
-        } yield {
-          val picMeta = PicMeta(meta, rh)
-          log info s"Saved '${picMeta.key}' with URL '${picMeta.url}'."
-          Accepted(PicResponse(picMeta)).withHeaders(
-            HeaderNames.LOCATION -> picMeta.url.toString,
-            XKey -> key.key
-          )
-        }
+    pics.save(tempFile, by, rh.headers.get(XName)).map(_.fold(
+      fail => failResize(fail),
+      meta => {
+        val picMeta = PicMeta(meta, rh)
+        picSink.onPic(picMeta, by)
+        log info s"Saved '${picMeta.key}' with URL '${picMeta.url}'."
+        Accepted(PicResponse(picMeta)).withHeaders(
+          HeaderNames.LOCATION -> picMeta.url.toString,
+          XKey -> meta.key.key
+        )
       }
-    )
+    ))
   }
 
   def failResize(error: ImageFailure): Result = error match {
@@ -259,16 +201,6 @@ class Home(db: PicsSource,
     case ImageReaderFailure(file) =>
       log.error(s"Unable to read image from file '$file'")
       badRequest("Unable to read image.")
-  }
-
-  def logout = security.authAction { _ =>
-    oauth.ejectWith(oauth.logoutMessage).withNewSession
-  }
-
-  def eject = security.logged {
-    Action { req =>
-      Ok(PicsHtml.eject(req.flash.get(oauth.messageKey)))
-    }
   }
 
   def keyNotFound(key: Key) = onNotFound(s"Not found: $key")
