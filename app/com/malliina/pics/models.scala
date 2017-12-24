@@ -2,9 +2,9 @@ package com.malliina.pics
 
 import java.nio.file.Path
 import java.time.Instant
+import java.util.Date
 
 import buildinfo.BuildInfo
-import com.malliina.http.FullUrl
 import com.malliina.play.http.FullUrls
 import com.malliina.play.models.Username
 import controllers.routes
@@ -40,23 +40,11 @@ object AppMeta {
   val default = AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.hash)
 }
 
-case class Key(key: String) {
-  override def toString: String = key
-
-  def append(s: String) = Key(s"$key$s")
-}
-
-object Key {
-  val KeyLength = 7
-
-  implicit val json = valueFormat[Key, String](_.validate[String].map(Key.apply), _.key)
-
-  def valueFormat[A, B: Writes](read: JsValue => JsResult[A], write: A => B): Format[A] =
-    Format[A](Reads(read), Writes(a => Json.toJson(write(a))))
+object Keys {
 
   implicit object bindable extends PathBindable[Key] {
     override def bind(key: String, value: String): Either[String, Key] =
-      if (value.length >= KeyLength) Right(Key(value))
+      if (value.length >= Key.Length) Right(Key(value))
       else Left(s"Invalid key: '$value'.")
 
     override def unbind(key: String, value: Key): String =
@@ -68,7 +56,7 @@ object Key {
     .filteredBy(CharacterPredicates.LETTERS, CharacterPredicates.DIGITS)
     .build()
 
-  def randomish(): Key = Key(generator.generate(KeyLength).toLowerCase)
+  def randomish(): Key = Key(generator.generate(Key.Length).toLowerCase)
 }
 
 case class FlatMeta(key: Key, lastModified: Instant) {
@@ -76,19 +64,10 @@ case class FlatMeta(key: Key, lastModified: Instant) {
 }
 
 case class KeyMeta(key: Key, owner: Username, added: Instant) {
-  def toEntry(rh: RequestHeader) = PicMeta(this, rh)
+  def toEntry(rh: RequestHeader) = PicMetas(this, rh)
 }
 
-case class PicMeta(key: Key,
-                   added: Instant,
-                   url: FullUrl,
-                   small: FullUrl,
-                   medium: FullUrl,
-                   large: FullUrl)
-
-object PicMeta {
-  implicit val json = Json.format[PicMeta]
-
+object PicMetas {
   val reverse = routes.PicsController
 
   def apply(meta: KeyMeta, rh: RequestHeader): PicMeta = {
@@ -96,7 +75,7 @@ object PicMeta {
     val key = meta.key
     PicMeta(
       key,
-      meta.added,
+      Date.from(meta.added),
       FullUrls.absolute(host, reverse.pic(key)),
       FullUrls.absolute(host, reverse.small(key)),
       FullUrls.absolute(host, reverse.medium(key)),
@@ -112,10 +91,7 @@ object PicResponse {
   implicit val html = Writeable.writeableOf_JsValue.map[PicResponse](ps => Json.toJson(ps))
 }
 
-case class Pics(pics: Seq[PicMeta])
-
-object Pics {
-  implicit val json = Json.format[Pics]
+object PicsWriteables {
   implicit val html = Writeable.writeableOf_JsValue.map[Pics](ps => Json.toJson(ps))
 }
 

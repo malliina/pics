@@ -9,7 +9,9 @@ import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 
 import scala.concurrent.duration.{Duration, DurationLong}
 
-case class AccessToken(token: String)
+case class AccessToken(token: String) {
+  override def toString = token
+}
 
 case class ParsedJWT(jwt: SignedJWT,
                      claims: JWTClaimsSet,

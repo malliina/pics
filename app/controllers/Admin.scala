@@ -6,7 +6,7 @@ import com.malliina.play.controllers.OAuthControl
 import com.malliina.play.models.Email
 import play.api.mvc._
 
-class Admin(creds: GoogleOAuthCredentials, actions: ActionBuilder[Request, AnyContent])
+class Admin(html: PicsHtml, creds: GoogleOAuthCredentials, actions: ActionBuilder[Request, AnyContent])
   extends OAuthControl(actions, creds) {
   val authorizedEmail = Email("malliina123@gmail.com")
   val reverse = routes.Admin
@@ -26,6 +26,6 @@ class Admin(creds: GoogleOAuthCredentials, actions: ActionBuilder[Request, AnyCo
   }
 
   def ejectUser = actions { (req: Request[AnyContent]) =>
-    Results.Ok(PicsHtml.eject(req.flash.get(messageKey)))
+    Results.Ok(html.eject(req.flash.get(messageKey)))
   }
 }

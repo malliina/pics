@@ -16,7 +16,7 @@ class JWTAuth(val validator: CognitoValidator) {
   def jwtAuth(rh: RequestHeader): Either[Result, CognitoUser] =
     readToken(rh).map { token =>
       validator.validate(token).left.map { error =>
-        log.warn(s"JWT validation failed: '${error.message}'.")
+        log.warn(s"JWT validation failed: '${error.message}'. Token: '$token'.")
         fail(SingleError.forJWT(error))
       }
     }.getOrElse {

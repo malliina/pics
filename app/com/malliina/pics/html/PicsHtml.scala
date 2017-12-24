@@ -1,13 +1,15 @@
 package com.malliina.pics.html
 
 import com.malliina.http.FullUrl
-import com.malliina.pics.PicMeta
+import com.malliina.pics.{HtmlBuilder, PicMeta}
+import com.malliina.pics.html.PicsHtml._
 import com.malliina.play.controllers.UserFeedback
 import com.malliina.play.models.Username
 import com.malliina.play.tags.Bootstrap._
 import com.malliina.play.tags.PlayTags._
 import com.malliina.play.tags.Tags._
 import controllers.routes
+import play.api.http.MimeTypes
 import play.api.mvc.Call
 
 import scala.language.implicitConversions
@@ -15,6 +17,11 @@ import scalatags.Text.GenericAttr
 import scalatags.Text.all._
 
 object PicsHtml {
+  def build(isProd: Boolean): PicsHtml = {
+    val jsName = if (isProd) "frontend-opt.js" else "frontend-fastopt.js"
+    new PicsHtml(jsName)
+  }
+
   val CopyButton = "copy-button"
   val True = "true"
   val False = "false"
@@ -29,17 +36,28 @@ object PicsHtml {
 
   implicit val urlAttr = new GenericAttr[FullUrl]
 
+  def deferredJs(file: String) = deferredJsPath(s"js/$file")
+
+  def deferredJsPath(path: String) = script(`type` := MimeTypes.JAVASCRIPT, src := at(path), defer)
+
+  def at(file: String) = routes.PicsAssets.versioned(file)
+
+  def postableForm(onAction: String, more: Modifier*) =
+    form(role := FormRole, action := onAction, method := Post, more)
+}
+
+class PicsHtml(jsName: String) extends HtmlBuilder(scalatags.Text) {
   def drop(created: Option[PicMeta], feedback: Option[UserFeedback], user: Username) =
     baseIndex("drop", user, deferredJs("drop.js"))(
       divContainer(
         renderFeedback(feedback),
         fullRow(
-          postableForm(reverse.sync(), `class` := "drop-row form-inline")(
+          postableForm(reverse.sync().toString, `class` := "drop-row form-inline")(
             submitButton(`class` := BtnDefault)("Sync")
           )
         ),
         fullRow(
-          postableForm(reverse.delete(), `class` := "drop-row form-inline", id := "delete-form")(
+          postableForm(reverse.delete().toString, `class` := "drop-row form-inline", id := "delete-form")(
             divClass(FormGroup)(
               divClass(InputGroup)(
                 divClass(InputGroupAddon)("pics/"),
@@ -61,30 +79,15 @@ object PicsHtml {
     )
 
   def pics(urls: Seq[PicMeta], feedback: Option[UserFeedback], user: Username) =
-    baseIndex("pics", user, deferredJs("pics.js"))(
+    baseIndex("pics", user)(
       divClass("pics")(
         renderFeedback(feedback),
         if (urls.isEmpty) {
           leadPara("No pictures.")
         } else {
-          divClass("gallery")(
-            urls map { entry =>
-              divClass("thumbnail")(
-                divClass("pic")(
-                  aHref(entry.url)(
-                    img(src := entry.small, alt := entry.key.key, `class` := "thumb")
-                  )
-                ),
-                divClass("caption")(
-                  div(
-                    postableForm(reverse.remove(entry.key))(
-                      submitButton(`class` := s"$BtnDanger $BtnXs")("Delete")
-                    )
-                  ),
-                  divClass("pic-link")(aHref(entry.url)(entry.key.key)),
-                  div(a(role := Button, attr("tabindex") := 0, `class` := s"$BtnDefault $BtnXs $CopyButton", dataIdAttr := entry.url, dataToggle := "popover", dataContentAttr := "Copied!")("Copy"))
-                )
-              )
+          divClass("gallery", id := galleryId)(
+            urls map { pic =>
+              thumbnail(pic)
             }
           )
         }
@@ -155,7 +158,8 @@ object PicsHtml {
         extraHeader,
         jsScript("//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"),
         jsScript("//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"),
-        jsScript("//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js")
+        jsScript("//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"),
+        deferredJsPath(jsName),
       ),
       body(
         section(
@@ -164,18 +168,4 @@ object PicsHtml {
       )
     )
   )
-
-  def deferredJs(file: String) = script(`type` := "text/javascript", src := at(s"js/$file"), defer)
-
-  def at(file: String) = routes.PicsAssets.versioned(file).toString
-
-  def alertDanger(message: Modifier) = alertDiv(AlertDanger)(message)
-
-  def alertSuccess(message: Modifier) = alertDiv(AlertSuccess)(message)
-
-  def alertDiv(alertClass: String, more: Modifier*)(message: Modifier*) =
-    divClass(s"$Lead $alertClass", role := Alert, more)(message)
-
-  def postableForm(onAction: Call, more: Modifier*) =
-    form(role := FormRole, action := onAction, method := Post, more)
 }

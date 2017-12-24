@@ -48,7 +48,8 @@ object PicsController {
   }
 }
 
-class PicsController(pics: PicService,
+class PicsController(html: PicsHtml,
+                     pics: PicService,
                      picSink: PicSink,
                      auth: PicsAuth,
                      cache: Cached,
@@ -65,14 +66,14 @@ class PicsController(pics: PicService,
 
   def list = parsed(ListRequest.forRequest) { req =>
     metaDatabase.load(req.offset, req.limit, req.user).map { keys =>
-      val entries = keys map { key => PicMeta(key, req.rh) }
+      val entries = keys map { key => PicMetas(key, req.rh) }
       renderContent(req.rh)(
         json = {
           Pics(entries)
         },
         html = {
           val feedback = UserFeedback.flashed(req.rh.flash)
-          PicsHtml.pics(entries, feedback, req.user)
+          html.pics(entries, feedback, req.user)
         }
       )
     }
@@ -80,10 +81,10 @@ class PicsController(pics: PicService,
 
   def drop = auth.authAction { user =>
     val created = user.rh.flash.get(CreatedKey).map { k =>
-      PicMeta(KeyMeta(Key(k), user.user, Instant.now()), user.rh)
+      PicMetas(KeyMeta(Key(k), user.user, Instant.now()), user.rh)
     }
     val feedback = UserFeedback.flashed(user.rh.flash)
-    fut(Ok(PicsHtml.drop(created, feedback, user.user)))
+    fut(Ok(html.drop(created, feedback, user.user)))
   }
 
   def sync = auth.authAction { _ =>
@@ -100,10 +101,12 @@ class PicsController(pics: PicService,
 
   def large(key: Key) = sendPic(key, sources.larges)
 
-  def sendPic(key: Key, source: DataSource) = picAction(source.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
+  def sendPic(key: Key, source: DataSource) =
+    picAction(source.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
 
   def put = auth.authed { (authedRequest: AuthedRequest) =>
     Action(parse.temporaryFile).async { req =>
+      log.info(s"Received file. Resizing and uploading...")
       saveFile(req.body.path, authedRequest.user, req)
     }
   }
@@ -178,7 +181,7 @@ class PicsController(pics: PicService,
     pics.save(tempFile, by, rh.headers.get(XName)).map(_.fold(
       fail => failResize(fail),
       meta => {
-        val picMeta = PicMeta(meta, rh)
+        val picMeta = PicMetas(meta, rh)
         picSink.onPic(picMeta, by)
         log info s"Saved '${picMeta.key}' with URL '${picMeta.url}'."
         Accepted(PicResponse(picMeta)).withHeaders(

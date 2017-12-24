@@ -15,11 +15,7 @@ object PicService {
   private val log = Logger(getClass)
 
   def apply(db: PicsDatabase, sources: PicSources): PicService =
-    new PicService(
-      PicsMetaDatabase(db),
-      sources,
-      PicsResizer.default
-    )
+    new PicService(PicsMetaDatabase(db), sources, PicsResizer.default)
 }
 
 class PicService(val metaDatabase: PicsMetaDatabase,
@@ -37,7 +33,7 @@ class PicService(val metaDatabase: PicsMetaDatabase,
     resizer.resize(renamedFile).fold(
       e => Future.successful(Left(e)),
       bundle => {
-        val key = Key.randomish().append(s".${ext.toLowerCase}")
+        val key = Keys.randomish().append(s".${ext.toLowerCase}")
         for {
           _ <- sources.save(key, bundle)
           meta <- metaDatabase.saveMeta(key, by)
