@@ -58,7 +58,7 @@ class PicsController(html: PicsHtml,
   val deleteForm: Form[Key] = Form(mapping(KeyKey -> nonEmptyText)(Key.apply)(Key.unapply))
   val reverse = routes.PicsController
   val metaDatabase = pics.metaDatabase
-  val sources = pics.sources
+  val sources = pics.handler
 
   def ping = Action(Caching.NoCache(Ok(Json.toJson(AppMeta.default))))
 
@@ -88,18 +88,18 @@ class PicsController(html: PicsHtml,
   }
 
   def sync = auth.authAction { _ =>
-    Syncer.sync(sources.originals, metaDatabase).map { count =>
+    Syncer.sync(sources.originals.storage, metaDatabase).map { count =>
       Redirect(reverse.drop()).flashing(toMap(UserFeedback.success(s"Synced $count assets.")): _*)
     }
   }
 
-  def pic(key: Key) = picAction(sources.originals.find(key), keyNotFound(key))
+  def pic(key: Key) = picAction(sources.originals.storage.find(key), keyNotFound(key))
 
-  def small(key: Key) = sendPic(key, sources.smalls)
+  def small(key: Key) = sendPic(key, sources.smalls.storage)
 
-  def medium(key: Key) = sendPic(key, sources.mediums)
+  def medium(key: Key) = sendPic(key, sources.mediums.storage)
 
-  def large(key: Key) = sendPic(key, sources.larges)
+  def large(key: Key) = sendPic(key, sources.larges.storage)
 
   def sendPic(key: Key, source: DataSource) =
     picAction(source.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
@@ -178,18 +178,15 @@ class PicsController(html: PicsHtml,
     )
 
   private def saveFile(tempFile: Path, by: Username, rh: RequestHeader): Future[Result] = {
-    pics.save(tempFile, by, rh.headers.get(XName)).map(_.fold(
-      fail => failResize(fail),
-      meta => {
-        val picMeta = PicMetas(meta, rh)
-        picSink.onPic(picMeta, by)
-        log info s"Saved '${picMeta.key}' with URL '${picMeta.url}'."
-        Accepted(PicResponse(picMeta)).withHeaders(
-          HeaderNames.LOCATION -> picMeta.url.toString,
-          XKey -> meta.key.key
-        )
-      }
-    ))
+    pics.save(tempFile, by, rh.headers.get(XName)).map { meta =>
+      val picMeta = PicMetas(meta, rh)
+      picSink.onPic(picMeta, by)
+      log info s"Saved '${picMeta.key}' with URL '${picMeta.url}'."
+      Accepted(PicResponse(picMeta)).withHeaders(
+        HeaderNames.LOCATION -> picMeta.url.toString,
+        XKey -> meta.key.key
+      )
+    }.recover { case t: ImageFailure => failResize(t) }
   }
 
   def failResize(error: ImageFailure): Result = error match {

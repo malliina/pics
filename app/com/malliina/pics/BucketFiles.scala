@@ -1,6 +1,6 @@
 package com.malliina.pics
 
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 
 import akka.stream.scaladsl.StreamConverters
 import com.amazonaws.auth.profile.ProfileCredentialsProvider
@@ -9,11 +9,12 @@ import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.model.ObjectListing
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.pics.BucketFiles.log
 import com.malliina.storage.StorageLong
+import play.api.Logger
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 import scala.concurrent.Future
-import scala.util.Try
 
 class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends DataSource {
   val bucketName: String = bucket.name
@@ -35,7 +36,7 @@ class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends DataSource 
   }
 
   override def contains(key: Key): Future[Boolean] =
-    fut(aws.doesObjectExist(bucketName, key.key))
+    Future(aws.doesObjectExist(bucketName, key.key))
 
   override def get(key: Key): Future[DataResponse] =
     getStream(key)
@@ -43,7 +44,7 @@ class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends DataSource 
   def getStream(key: Key): Future[DataStream] = {
     val obj = aws.getObject(bucketName, key.key)
     val meta = obj.getObjectMetadata
-    fut {
+    Future {
       DataStream(
         StreamConverters.fromInputStream(() => obj.getObjectContent),
         Option(meta.getContentLength).map(_.bytes),
@@ -52,14 +53,24 @@ class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends DataSource 
     }
   }
 
-  override def saveBody(key: Key, file: Path): Future[Unit] =
-    Future.fromTry(Try(aws.putObject(bucketName, key.key, file.toFile)))
+  override def saveBody(key: Key, file: Path): Future[Unit] = {
+    Future {
+      log.info(s"Saving '$key' to '$bucketName'...")
+      val (_, duration) = Util.timed {
+        aws.putObject(bucketName, key.key, file.toFile)
+      }
+      val size = Files.size(file).bytes
+      log.info(s"Saved '$key' to '$bucketName', size $size in $duration.")
+    }
+  }
 
   override def remove(key: Key): Future[PicResult] =
-    Future.fromTry(Try(aws.deleteObject(bucketName, key.key))).map(_ => PicSuccess)
+    Future(aws.deleteObject(bucketName, key.key)).map(_ => PicSuccess)
 }
 
 object BucketFiles {
+  private val log = Logger(getClass)
+
   val Original = BucketFiles.forBucket(BucketName("malliina-pics"))
   val Small = BucketFiles.forBucket(BucketName("malliina-pics-small"))
   val Medium = BucketFiles.forBucket(BucketName("malliina-pics-medium"))

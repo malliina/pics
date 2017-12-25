@@ -45,7 +45,7 @@ class ImageTests extends FunSuite {
 
   ignore("resize to small") {
     val resizer = ScrimageResizer.Small
-    val result = resizer.resizeFile(origLarge, picDir.resolve("demo-scrimage-small.jpeg"))
+    val result = resizeWith(resizer, "demo-scrimage-small.jpeg")
     assert(result.isRight)
     val size = result.right.get
     assert(size < 100.kilos)
@@ -53,7 +53,7 @@ class ImageTests extends FunSuite {
 
   ignore("resize to medium scrimage") {
     val resizer = ScrimageResizer.Medium
-    val result = resizer.resizeFile(origLarge, picDir.resolve("demo-scrimage-normal.jpeg"))
+    val result = resizeWith(resizer, "demo-scrimage-normal.jpeg")
     assert(result.isRight)
     val size = result.right.get
     assert(size < 200.kilos)
@@ -61,9 +61,12 @@ class ImageTests extends FunSuite {
 
   ignore("resize to large scrimage") {
     val resizer = ScrimageResizer.Large
-    val result = resizer.resizeFile(origLarge, picDir.resolve("demo-scrimage-large.jpeg"))
+    val result = resizeWith(resizer, "demo-scrimage-large.jpeg")
     assert(result.isRight)
     val size = result.right.get
     assert(size < 600.kilos)
   }
+
+  def resizeWith(resizer: ScrimageResizer, name: String) =
+    await(resizer.resizeFile(origLarge, picDir.resolve(name)))
 }

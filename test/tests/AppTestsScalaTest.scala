@@ -1,17 +1,19 @@
 package tests
 
 import com.malliina.oauth.GoogleOAuthCredentials
-import com.malliina.pics.PicSources
+import com.malliina.pics._
 import com.malliina.pics.app.AppComponents
 import play.api.http.Writeable
 import play.api.mvc.Request
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 
+object TestHandler extends ImageHandler("test", AsIsResizer, TestPics)
+
 abstract class TestAppSuite extends AppSuite(ctx => new AppComponents(
   ctx,
   GoogleOAuthCredentials("id", "secret", "scope"),
-  _ => PicSources.clones(TestPics)
+  _ => MultiSizeHandler.clones(TestHandler)
 ))
 
 class AppTests extends TestAppSuite {

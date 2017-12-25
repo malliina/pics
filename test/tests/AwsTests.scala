@@ -34,7 +34,7 @@ class AwsTests extends FunSuite {
   ignore("resize original images") {
     def resize(resizer: ScrimageResizer, prefix: String): Path => Path = src => {
       val dest = Files.createTempFile(prefix, null)
-      resizer.resizeFile(src, dest).right
+      await(resizer.resizeFile(src, dest)).right
       dest
     }
 
@@ -74,10 +74,10 @@ class AwsTests extends FunSuite {
       aws.putObject(bucketName, objectKey, testContent)
 
       val objs = aws.listObjects(bucketName)
-      asScalaBuffer(objs.getObjectSummaries()) foreach { file =>
+      asScalaBuffer(objs.getObjectSummaries) foreach { file =>
         val obj = aws.getObject(bucketName, file.getKey)
         // Source closes the InputStream upon completion
-        val contentSource = StreamConverters.fromInputStream(() => obj.getObjectContent())
+        val contentSource = StreamConverters.fromInputStream(() => obj.getObjectContent)
         val contentConcat: Future[ByteString] = contentSource.runFold(ByteString.empty)(_ ++ _)
         val content = await(contentConcat)
         assert(content.utf8String === testContent)

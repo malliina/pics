@@ -14,15 +14,21 @@ import scala.concurrent.Future
 object PicService {
   private val log = Logger(getClass)
 
-  def apply(db: PicsDatabase, sources: PicSources): PicService =
-    new PicService(PicsMetaDatabase(db), sources, PicsResizer.default)
+  def apply(db: PicsDatabase, handler: MultiSizeHandler): PicService =
+    new PicService(PicsMetaDatabase(db), handler)
 }
 
 class PicService(val metaDatabase: PicsMetaDatabase,
-                 val sources: PicSources,
-                 resizer: PicsResizer) {
+                 val handler: MultiSizeHandler) {
 
-  def save(tempFile: Path, by: Username, preferredName: Option[String]): Future[Either[ImageFailure, KeyMeta]] = {
+  /** Resizes the image in `tempFile`, uploads it to S3 and saves image metadata in the database.
+    *
+    * @param tempFile      original file
+    * @param by            file owner
+    * @param preferredName optional preferred file name - probably useless
+    * @return metadata of the saved key
+    */
+  def save(tempFile: Path, by: Username, preferredName: Option[String]): Future[KeyMeta] = {
     // without dot
     val name = preferredName getOrElse tempFile.getFileName.toString
     val ext = Option(FilenameUtils.getExtension(name)).filter(_.nonEmpty).getOrElse("jpeg")
@@ -30,17 +36,12 @@ class PicService(val metaDatabase: PicsMetaDatabase,
     Files.copy(tempFile, renamedFile)
     log.trace(s"Copied temp file '$tempFile' to '$renamedFile', size ${Files.size(tempFile)} bytes.")
     //    val thumbFile = renamedFile resolveSibling s"$name-thumb.$ext"
-    resizer.resize(renamedFile).fold(
-      e => Future.successful(Left(e)),
-      bundle => {
-        val key = Keys.randomish().append(s".${ext.toLowerCase}")
-        for {
-          _ <- sources.save(key, bundle)
-          meta <- metaDatabase.saveMeta(key, by)
-        } yield {
-          Right(meta)
-        }
-      }
-    )
+    val key = Keys.randomish().append(s".${ext.toLowerCase}")
+    for {
+      _ <- handler.handle(renamedFile, key)
+      meta <- metaDatabase.saveMeta(key, by)
+    } yield {
+      meta
+    }
   }
 }

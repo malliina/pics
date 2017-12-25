@@ -19,12 +19,12 @@ import router.Routes
 class AppLoader extends DefaultApp(ctx => new AppComponents(
   ctx,
   GoogleOAuthReader.load,
-  mat => PicSources.prod(mat)
+  mat => MultiSizeHandler.default(mat)
 ))
 
 class AppComponents(context: Context,
                     creds: GoogleOAuthCredentials,
-                    buildPics: Materializer => PicSources)
+                    buildPics: Materializer => MultiSizeHandler)
   extends BuiltInComponentsFromContext(context)
     with NoHttpFiltersComponents
     with EhCacheComponents
