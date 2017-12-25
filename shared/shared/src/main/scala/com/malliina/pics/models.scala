@@ -27,7 +27,10 @@ case class PicMeta(key: Key,
                    url: FullUrl,
                    small: FullUrl,
                    medium: FullUrl,
-                   large: FullUrl)
+                   large: FullUrl) {
+  def withClient(clientKey: Key): ClientPicMeta =
+    ClientPicMeta(key, added, url, small, medium, large, clientKey)
+}
 
 object PicMeta {
   implicit val dateFormat = Format[Date](
@@ -41,4 +44,23 @@ case class Pics(pics: Seq[PicMeta])
 
 object Pics {
   implicit val json = Json.format[Pics]
+}
+
+case class ClientPicMeta(key: Key,
+                         added: java.util.Date,
+                         url: FullUrl,
+                         small: FullUrl,
+                         medium: FullUrl,
+                         large: FullUrl,
+                         clientKey: Key)
+
+object ClientPicMeta {
+  implicit val dateformat = PicMeta.dateFormat
+  implicit val json = Json.format[ClientPicMeta]
+}
+
+case class ClientPics(pics: Seq[ClientPicMeta])
+
+object ClientPics {
+  implicit val json = Json.format[ClientPics]
 }

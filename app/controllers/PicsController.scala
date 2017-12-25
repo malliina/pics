@@ -35,6 +35,7 @@ object PicsController {
   val Reason = "reason"
   val XKey = "X-Key"
   val XName = "X-Name"
+  val XClientPic = "X-Client-Pic"
 
   def auth(oauth: OAuthControl): AuthBundle[AuthedRequest] = {
     val sessionAuth = UserAuthenticator.session(oauth.sessionUserKey)
@@ -179,12 +180,14 @@ class PicsController(html: PicsHtml,
 
   private def saveFile(tempFile: Path, by: Username, rh: RequestHeader): Future[Result] = {
     pics.save(tempFile, by, rh.headers.get(XName)).map { meta =>
+      val clientPic = rh.headers.get(XClientPic).map(Key.apply).getOrElse(meta.key)
       val picMeta = PicMetas(meta, rh)
-      picSink.onPic(picMeta, by)
+      picSink.onPic(picMeta.withClient(clientPic), by)
       log info s"Saved '${picMeta.key}' with URL '${picMeta.url}'."
       Accepted(PicResponse(picMeta)).withHeaders(
         HeaderNames.LOCATION -> picMeta.url.toString,
-        XKey -> meta.key.key
+        XKey -> meta.key.key,
+        XClientPic -> clientPic.key
       )
     }.recover { case t: ImageFailure => failResize(t) }
   }
