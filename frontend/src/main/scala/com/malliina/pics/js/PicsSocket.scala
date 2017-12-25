@@ -15,6 +15,9 @@ import scala.scalajs.js.timers._
 trait Popovers extends js.Object {
   @js.native
   def popover(): Unit = js.native
+
+  @js.native
+  def popover(in: String): Unit = js.native
 }
 
 class PicsSocket extends BaseSocket("/sockets") {
@@ -26,6 +29,14 @@ class PicsSocket extends BaseSocket("/sockets") {
 
   val popovers = jQuery("[data-toggle='popover']").asInstanceOf[Popovers]
   popovers.popover()
+
+  // hides popovers on outside click
+  document.body.addEventListener("click", (e: Event) => {
+    val isPopover = e.target.isInstanceOf[HTMLElement] && Option(e.target.asInstanceOf[HTMLElement].getAttribute("data-original-title")).isDefined
+    if (!isPopover) {
+      jQuery("[data-original-title]").asInstanceOf[Popovers].popover("hide")
+    }
+  })
 
   def installCopyListeners(parent: Element): Unit =
     parent.getElementsByClassName(jsHtml.CopyButton).foreach { node =>
