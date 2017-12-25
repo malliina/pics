@@ -58,7 +58,33 @@
 
   @media (min-width: 725px) {
     width: auto;
-    max-width: inherit;
+  }
+
+  transition: all 0.4s ease-in-out;
+  overflow-y: hidden;
+  overflow-x: hidden;
+
+  &.invisible {
+
+    @media (max-width: 724px) {
+      min-height: 0;
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      margin-top: 0;
+      margin-bottom: 0;
+      border: 0;
+    }
+
+    @media (min-width: 725px) {
+      min-width: 0;
+      max-width: 0;
+      padding-left: 0;
+      padding-right: 0;
+      margin-left: 0;
+      margin-right: 0;
+      border: 0;
+    }
   }
 }
 

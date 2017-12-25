@@ -30,9 +30,12 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](val impl: Bundle[Builder, Out
   val dataToggle = attr(DataToggle)
 
   val galleryId = "pic-gallery"
+  val demoButtonId = "demo-button"
 
-  def thumbnail(pic: PicMeta) = {
-    divClass("thumbnail")(
+  def thumbId(key: Key) = s"pic-$key"
+
+  def thumbnail(pic: PicMeta, visible: Boolean = true) = {
+    divClass(names("thumbnail", if (visible) "" else "invisible"), id := thumbId(pic.key))(
       divClass("pic")(
         aHref(pic.url.toString())(
           img(src := pic.small.toString(), alt := pic.key.key, `class` := "thumb")
@@ -65,4 +68,5 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](val impl: Bundle[Builder, Out
 
   def submitButton(more: Modifier*) = button(`type` := Submit, more)
 
+  def names(ns: String*) = ns.filter(_.nonEmpty).mkString(" ")
 }
