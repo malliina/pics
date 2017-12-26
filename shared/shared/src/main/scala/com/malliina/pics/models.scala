@@ -20,6 +20,12 @@ object Key {
     Format[A](Reads(read), Writes(a => Json.toJson(write(a))))
 }
 
+case class PicKeys(keys: Seq[Key])
+
+object PicKeys {
+  implicit val json = Json.format[PicKeys]
+}
+
 /** Using java.util.Date because Scala.js doesn't fully support java.time.* classes.
   */
 case class PicMeta(key: Key,

@@ -127,6 +127,7 @@ class PicsController(html: PicsHtml,
     val feedback: Future[UserFeedback] =
       metaDatabase.remove(key, user).flatMap { wasDeleted =>
         if (wasDeleted) {
+          picSink.onPicRemoved(key, user)
           sources.remove(key).map { _ =>
             UserFeedback.success(s"Deleted key '$key'.")
           }
@@ -226,8 +227,10 @@ class PicsController(html: PicsHtml,
 
   def fut[T](t: T) = Future.successful(t)
 
+  import UserFeedback._
+
   private def toMap(fb: UserFeedback): Seq[(String, String)] = Seq(
-    UserFeedback.Feedback -> fb.message,
-    UserFeedback.Success -> (if (fb.isError) UserFeedback.No else UserFeedback.Yes)
+    Feedback -> fb.message,
+    Success -> (if (fb.isError) No else Yes)
   )
 }
