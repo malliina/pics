@@ -32,11 +32,11 @@ class PicService(val metaDatabase: PicsMetaDatabase,
     // without dot
     val name = preferredName getOrElse tempFile.getFileName.toString
     val ext = Option(FilenameUtils.getExtension(name)).filter(_.nonEmpty).getOrElse("jpeg")
-    val renamedFile = tempFile resolveSibling s"$name.$ext"
+    val key = Keys.randomish().append(s".${ext.toLowerCase}")
+    val renamedFile = tempFile resolveSibling s"$key"
     Files.copy(tempFile, renamedFile)
     log.trace(s"Copied temp file '$tempFile' to '$renamedFile', size ${Files.size(tempFile)} bytes.")
     //    val thumbFile = renamedFile resolveSibling s"$name-thumb.$ext"
-    val key = Keys.randomish().append(s".${ext.toLowerCase}")
     for {
       _ <- handler.handle(renamedFile, key)
       meta <- metaDatabase.saveMeta(key, by)
