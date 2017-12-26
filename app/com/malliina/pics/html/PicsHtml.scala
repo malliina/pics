@@ -1,8 +1,8 @@
 package com.malliina.pics.html
 
 import com.malliina.http.FullUrl
-import com.malliina.pics.{HtmlBuilder, PicMeta}
 import com.malliina.pics.html.PicsHtml._
+import com.malliina.pics.{HtmlBuilder, PicMeta}
 import com.malliina.play.controllers.UserFeedback
 import com.malliina.play.models.Username
 import com.malliina.play.tags.Bootstrap._
@@ -47,8 +47,8 @@ object PicsHtml {
 }
 
 class PicsHtml(jsName: String) extends HtmlBuilder(scalatags.Text) {
-  def drop(created: Option[PicMeta], feedback: Option[UserFeedback], user: Username) =
-    baseIndex("drop", user, deferredJs("drop.js"))(
+  def drop(created: Option[PicMeta], feedback: Option[UserFeedback], user: Username) = {
+    val content =
       divContainer(
         renderFeedback(feedback),
         fullRow(
@@ -76,10 +76,12 @@ class PicsHtml(jsName: String) extends HtmlBuilder(scalatags.Text) {
           Seq[Modifier]("Saved ", aHref(key.url)(key.key.key))
         }
       )
-    )
+    val conf = PageConf("Pics - Drop", bodyClass = "drop", inner = content)
+    baseIndex("drop", user, conf)
+  }
 
-  def pics(urls: Seq[PicMeta], feedback: Option[UserFeedback], user: Username) =
-    baseIndex("pics", user)(
+  def pics(urls: Seq[PicMeta], feedback: Option[UserFeedback], user: Username) = {
+    val content =
       divClass("pics")(
         renderFeedback(feedback),
         if (urls.isEmpty) {
@@ -92,7 +94,9 @@ class PicsHtml(jsName: String) extends HtmlBuilder(scalatags.Text) {
           )
         }
       )
-    )
+    val conf = PageConf("Pics", bodyClass = "pics", inner = content)
+    baseIndex("pics", user, conf)
+  }
 
   def renderFeedback(feedback: Option[UserFeedback]) =
     feedback.fold(empty) { fb =>
@@ -100,8 +104,8 @@ class PicsHtml(jsName: String) extends HtmlBuilder(scalatags.Text) {
       else alertSuccess(fb.message)
     }
 
-  def eject(message: Option[String]) =
-    basePage("Goodbye!")(
+  def eject(message: Option[String]) = {
+    val content =
       divContainer(
         rowColumn(s"$ColMd6 top-padding")(
           message.fold(empty) { msg =>
@@ -109,15 +113,17 @@ class PicsHtml(jsName: String) extends HtmlBuilder(scalatags.Text) {
           }
         )
       )
-    )
+    basePage(PageConf("Goodbye!", inner = content))
+  }
 
-  def baseIndex(tabName: String, user: Username, extraHeader: Modifier*)(inner: Modifier*) = {
+
+  def baseIndex(tabName: String, user: Username, conf: PageConf) = {
     def navItem(thisTabName: String, tabId: String, url: Call, glyphiconName: String) = {
       val maybeActive = if (tabId == tabName) Option(`class` := "active") else None
       li(maybeActive)(a(href := url)(glyphIcon(glyphiconName), s" $thisTabName"))
     }
 
-    basePage("pics", extraHeader)(
+    val content: Modifier = Seq[Modifier](
       divClass(s"$Navbar $NavbarDefault")(
         divContainer(
           divClass(NavbarHeader)(
@@ -142,30 +148,33 @@ class PicsHtml(jsName: String) extends HtmlBuilder(scalatags.Text) {
           )
         )
       ),
-      inner
+      conf.inner
     )
+    basePage(conf.copy(inner = content))
   }
 
-  def basePage(title: String, extraHeader: Modifier*)(inner: Modifier*) = TagPage(
+  def basePage(conf: PageConf) = TagPage(
     html(lang := En)(
       head(
-        titleTag(title),
+        titleTag(conf.title),
         meta(name := "viewport", content := "width=device-width, initial-scale=1.0"),
         cssLink("//netdna.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"),
         cssLink("//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css"),
         cssLink("//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css"),
         cssLink(at("css/main.css")),
-        extraHeader,
+        conf.extraHeader,
         jsScript("//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"),
         jsScript("//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"),
         jsScript("//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"),
         deferredJsPath(jsName),
       ),
-      body(
+      body(`class` := conf.bodyClass)(
         section(
-          inner
+          conf.inner
         )
       )
     )
   )
 }
+
+case class PageConf(title: String, extraHeader: Modifier = (), bodyClass: String = "", inner: Modifier = ())
