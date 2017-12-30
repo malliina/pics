@@ -1,44 +1,63 @@
 package com.malliina.pics
 
-import scalatags.generic.Bundle
+import com.malliina.html.{Bootstrap, Tags, UserFeedback}
+import com.malliina.http.FullUrl
 
-class HtmlBuilder[Builder, Output <: FragT, FragT](val impl: Bundle[Builder, Output, FragT]) {
+import scala.language.implicitConversions
 
-  import impl.all._
+class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, FragT])
+  extends Bootstrap(ts) {
+
+  import tags._
+  import tags.impl.all._
 
   val FormRole = "form"
   val Post = "POST"
   val Submit = "submit"
-  val DataToggle = "data-toggle"
 
   val dataIdAttr = attr("data-id")
   val dataContentAttr = attr("data-content")
 
   val Button = "button"
 
-  val Btn = "btn"
-  val BtnDanger = "btn btn-danger"
-  val BtnDefault = "btn btn-default"
-  val BtnGroup = "btn-group"
-  val BtnPrimary = "btn btn-primary"
-  val BtnLg = "btn-lg"
-  val BtnSm = "btn-sm"
-  val BtnXs = "btn-xs"
-  val BtnBlock = "btn-block"
-
   val CopyButton = "copy-button"
-  val dataToggle = attr(DataToggle)
 
   val galleryId = "pic-gallery"
+  val picsId = "pics-container"
   val demoButtonId = "demo-button"
+
+  implicit val urlAttr = genericAttr[FullUrl]
+  implicit val keyAttr = genericAttr[Key]
+  implicit def keyFrag(key: Key): Frag = stringFrag(key.key)
+
+  def noPictures = leadPara("No pictures.")
+
+  def picsContent(urls: Seq[PicMeta]): Modifier =
+    divClass("pics-container", id := picsId)(
+      if (urls.isEmpty) noPictures
+      else gallery(urls)
+    )
+
+  def gallery(pics: Seq[BaseMeta]) =
+    divClass("gallery", id := galleryId)(
+      pics map { pic =>
+        thumbnail(pic)
+      }
+    )
+
+  def renderFeedback(feedback: Option[UserFeedback]) =
+    feedback.fold(empty) { fb =>
+      if (fb.isError) alertDanger(fb.message)
+      else alertSuccess(fb.message)
+    }
 
   def thumbId(key: Key) = s"pic-$key"
 
-  def thumbnail(pic: PicMeta, visible: Boolean = true) = {
-    divClass(names("thumbnail", if (visible) "" else "invisible"), id := thumbId(pic.key))(
+  def thumbnail(pic: BaseMeta, visible: Boolean = true) = {
+    divClass(names("thumbnail", if (visible) "" else "invisible"), id := thumbId(pic.key), dataIdAttr := pic.key)(
       divClass("pic")(
-        aHref(pic.url.toString())(
-          img(src := pic.small.toString(), alt := pic.key.key, `class` := "thumb")
+        aHref(pic.url)(
+          img(src := pic.small, alt := pic.key, `class` := "thumb")
         )
       ),
       divClass("caption")(
@@ -47,7 +66,7 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](val impl: Bundle[Builder, Out
             submitButton(`class` := s"$BtnDanger $BtnXs")("Delete")
           )
         ),
-        divClass("pic-link")(aHref(pic.url.toString())(pic.key.key)),
+        divClass("pic-link")(aHref(pic.url)(pic.key)),
         div(a(role := Button,
           tabindex := 0,
           `class` := s"$BtnDefault $BtnXs $CopyButton",
@@ -58,15 +77,8 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](val impl: Bundle[Builder, Out
     )
   }
 
-  def divClass(clazz: String, more: Modifier*) = div(`class` := clazz, more)
-
   def postableForm(onAction: String, more: Modifier*) =
     form(role := FormRole, action := onAction, method := Post, more)
-
-  // WTF? Removing currying requires an AttrValue - should require Modifier?
-  def aHref[V: AttrValue](url: V, more: Modifier*)(text: Modifier*) = a(href := url, more)(text)
-
-  def submitButton(more: Modifier*) = button(`type` := Submit, more)
 
   def names(ns: String*) = ns.filter(_.nonEmpty).mkString(" ")
 }

@@ -4,6 +4,7 @@ import java.nio.file.Path
 import java.time.Instant
 
 import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.html.UserFeedback
 import com.malliina.pics._
 import com.malliina.pics.auth.PicsAuth
 import com.malliina.pics.html.PicsHtml
@@ -73,7 +74,7 @@ class PicsController(html: PicsHtml,
           Pics(entries)
         },
         html = {
-          val feedback = UserFeedback.flashed(req.rh.flash)
+          val feedback = UserFeedbacks.flashed(req.rh.flash)
           html.pics(entries, feedback, req.user)
         }
       )
@@ -84,13 +85,13 @@ class PicsController(html: PicsHtml,
     val created = user.rh.flash.get(CreatedKey).map { k =>
       PicMetas(KeyMeta(Key(k), user.user, Instant.now()), user.rh)
     }
-    val feedback = UserFeedback.flashed(user.rh.flash)
+    val feedback = UserFeedbacks.flashed(user.rh.flash)
     fut(Ok(html.drop(created, feedback, user.user)))
   }
 
   def sync = auth.authAction { _ =>
     Syncer.sync(sources.originals.storage, metaDatabase).map { count =>
-      Redirect(reverse.drop()).flashing(toMap(UserFeedback.success(s"Synced $count assets.")): _*)
+      Redirect(reverse.drop()).flashing(UserFeedback.success(s"Synced $count assets.").toMap: _*)
     }
   }
 
@@ -135,7 +136,7 @@ class PicsController(html: PicsHtml,
           fut(UserFeedback.error(s"Key not found: '$key'."))
         }
       }
-    feedback.map { fb => redir.flashing(toMap(fb): _*) }
+    feedback.map { fb => redir.flashing(fb.toMap: _*) }
   }
 
   def parsed[T](parse: AuthedRequest => Either[Errors, T])(f: T => Future[Result]) =
@@ -226,11 +227,4 @@ class PicsController(html: PicsHtml,
   def cachedAction(result: Result) = cache((req: RequestHeader) => req.path, 180.days)(Action(result))
 
   def fut[T](t: T) = Future.successful(t)
-
-  import UserFeedback._
-
-  private def toMap(fb: UserFeedback): Seq[(String, String)] = Seq(
-    Feedback -> fb.message,
-    Success -> (if (fb.isError) No else Yes)
-  )
 }

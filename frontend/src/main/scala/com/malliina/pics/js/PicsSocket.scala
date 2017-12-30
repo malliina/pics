@@ -1,11 +1,12 @@
 package com.malliina.pics.js
 
-import com.malliina.pics.{HtmlBuilder, PicMeta, Pics}
+import com.malliina.html.Tags
+import com.malliina.pics._
 import org.scalajs.dom
 import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
 import org.scalajs.dom.{Element, Event, Node}
 import org.scalajs.jquery.jQuery
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsError, JsValue}
 
 import scala.concurrent.duration.DurationDouble
 import scala.scalajs.js
@@ -23,7 +24,7 @@ trait Popovers extends js.Object {
 class PicsSocket extends BaseSocket("/sockets") {
   val document = dom.document
 
-  object jsHtml extends HtmlBuilder(scalatags.JsDom)
+  object jsHtml extends HtmlBuilder(new Tags(scalatags.JsDom))
 
   installCopyListeners(document.body)
 
@@ -51,28 +52,58 @@ class PicsSocket extends BaseSocket("/sockets") {
     })
 
   override def handlePayload(payload: JsValue): Unit = {
-    handleValidated[Pics](payload) { pics =>
-      log.info(s"Socket says $pics")
-      pics.pics.foreach { pic =>
-        prepend(pic)
-      }
+    val result = (payload \ PicsJson.EventKey).validate[String].flatMap {
+      case ClientPics.Added =>
+        payload.validate[ClientPics].map { pics => pics.pics.foreach(prepend) }
+      case PicKeys.Removed =>
+        payload.validate[PicKeys].map { keys => keys.keys.foreach(remove) }
+      case other =>
+        JsError(s"Unknown '${PicsJson.EventKey}' value: '$other'.")
     }
+    result.fold(err => log.info(s"Failed to parse '$payload': '$err'."), _ => ())
   }
 
-  def prepend(pic: PicMeta) = {
-    val gallery = document.getElementById(jsHtml.galleryId)
-    val newElem = jsHtml.thumbnail(pic, visible = false).render
-    installCopyListeners(newElem)
-    gallery.insertBefore(newElem, gallery.firstChild)
-    // enables the transition
-    setTimeout(0.1.seconds) {
-      newElem.classList.remove("invisible")
+  def prepend(pic: BaseMeta) =
+    elemById(jsHtml.galleryId).map { gallery =>
+      val newElem = jsHtml.thumbnail(pic, visible = false).render
+      installCopyListeners(newElem)
+      gallery.insertBefore(newElem, gallery.firstChild)
+      // enables the transition
+      setTimeout(0.1.seconds) {
+        newElem.classList.remove("invisible")
+      }
+    }.getOrElse {
+      fill(jsHtml.picsId, jsHtml.gallery(Seq(pic)))
     }
-  }
+
+  import jsHtml.tags.impl.all._
+
+  def remove(key: Key): Unit =
+    for {
+      gallery <- elemById(jsHtml.galleryId)
+      thumb <- Option(gallery.querySelector(s"[data-id='$key']"))
+    } yield {
+      gallery.removeChild(thumb)
+      if (Option(gallery.firstChild).isEmpty) {
+        fill(jsHtml.picsId, jsHtml.noPictures)
+      }
+    }
+
+  def fill(id: String, content: Frag): Unit =
+    elemById(id).foreach { elem =>
+      removeChildren(elem)
+      elem.appendChild(content.render)
+    }
+
+  def elemById(id: String): Option[Element] = Option(document.getElementById(id))
+
+  def removeChildren(elem: Element): Unit =
+    while (Option(elem.firstChild).isDefined)
+      elem.removeChild(elem.firstChild)
 
   /** http://stackoverflow.com/a/30905277
     *
-    * @param text
+    * @param text to copy
     */
   def copyToClipboard(text: String): Unit = {
     // Create a "hidden" input

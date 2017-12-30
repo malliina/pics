@@ -21,15 +21,19 @@ lazy val cross = crossProject.in(file("shared"))
 lazy val crossJvm = cross.jvm
 lazy val crossJs = cross.js
 
-val utilPlayDep = "com.malliina" %% "util-play" % "4.4.0"
+val utilPlayVersion = "4.5.1"
+
+val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
 val commonSettings = Seq(
   organization := "com.malliina",
   scalaVersion := "2.12.4",
+  resolvers += "Sonatype releases" at "https://oss.sonatype.org/content/repositories/releases/",
   libraryDependencies ++= Seq(
     "com.lihaoyi" %%% "scalatags" % "0.6.7",
     "com.typesafe.play" %%% "play-json" % "2.6.8",
-    "com.malliina" %%% "primitives" % "1.3.2"
+    "com.malliina" %%% "primitives" % "1.3.2",
+    "com.malliina" %%% "util-html" % utilPlayVersion
   )
 )
 val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(

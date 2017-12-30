@@ -1,11 +1,10 @@
 package com.malliina.pics.html
 
+import com.malliina.html.UserFeedback
 import com.malliina.http.FullUrl
 import com.malliina.pics.html.PicsHtml._
 import com.malliina.pics.{HtmlBuilder, PicMeta}
-import com.malliina.play.controllers.UserFeedback
 import com.malliina.play.models.Username
-import com.malliina.play.tags.Bootstrap._
 import com.malliina.play.tags.PlayTags._
 import com.malliina.play.tags.Tags._
 import controllers.routes
@@ -46,7 +45,7 @@ object PicsHtml {
     form(role := FormRole, action := onAction, method := Post, more)
 }
 
-class PicsHtml(jsName: String) extends HtmlBuilder(scalatags.Text) {
+class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(scalatags.Text)) {
   def drop(created: Option[PicMeta], feedback: Option[UserFeedback], user: Username) = {
     val content =
       divContainer(
@@ -81,28 +80,10 @@ class PicsHtml(jsName: String) extends HtmlBuilder(scalatags.Text) {
   }
 
   def pics(urls: Seq[PicMeta], feedback: Option[UserFeedback], user: Username) = {
-    val content =
-      divClass("pics")(
-        renderFeedback(feedback),
-        if (urls.isEmpty) {
-          leadPara("No pictures.")
-        } else {
-          divClass("gallery", id := galleryId)(
-            urls map { pic =>
-              thumbnail(pic)
-            }
-          )
-        }
-      )
+    val content = Seq(divClass("pics")(renderFeedback(feedback)), picsContent(urls))
     val conf = PageConf("Pics", bodyClass = "pics", inner = content)
     baseIndex("pics", user, conf)
   }
-
-  def renderFeedback(feedback: Option[UserFeedback]) =
-    feedback.fold(empty) { fb =>
-      if (fb.isError) alertDanger(fb.message)
-      else alertSuccess(fb.message)
-    }
 
   def eject(message: Option[String]) = {
     val content =
@@ -115,7 +96,6 @@ class PicsHtml(jsName: String) extends HtmlBuilder(scalatags.Text) {
       )
     basePage(PageConf("Goodbye!", inner = content))
   }
-
 
   def baseIndex(tabName: String, user: Username, conf: PageConf) = {
     def navItem(thisTabName: String, tabId: String, url: Call, glyphiconName: String) = {
@@ -177,4 +157,7 @@ class PicsHtml(jsName: String) extends HtmlBuilder(scalatags.Text) {
   )
 }
 
-case class PageConf(title: String, extraHeader: Modifier = (), bodyClass: String = "", inner: Modifier = ())
+case class PageConf(title: String,
+                    extraHeader: Modifier = (),
+                    bodyClass: String = "",
+                    inner: Modifier = ())

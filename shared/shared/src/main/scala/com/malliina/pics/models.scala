@@ -23,9 +23,18 @@ object Key {
 case class PicKeys(keys: Seq[Key])
 
 object PicKeys {
-  implicit val json = Json.format[PicKeys]
+  val Removed = "removed"
+  implicit val json = PicsJson.evented(Removed, Json.format[PicKeys])
 }
 
+trait BaseMeta {
+  def key: Key
+  def added: java.util.Date
+  def url: FullUrl
+  def small: FullUrl
+  def medium: FullUrl
+  def large: FullUrl
+}
 /** Using java.util.Date because Scala.js doesn't fully support java.time.* classes.
   */
 case class PicMeta(key: Key,
@@ -33,7 +42,7 @@ case class PicMeta(key: Key,
                    url: FullUrl,
                    small: FullUrl,
                    medium: FullUrl,
-                   large: FullUrl) {
+                   large: FullUrl) extends BaseMeta {
   def withClient(clientKey: Key): ClientPicMeta =
     ClientPicMeta(key, added, url, small, medium, large, clientKey)
 }
@@ -58,7 +67,7 @@ case class ClientPicMeta(key: Key,
                          small: FullUrl,
                          medium: FullUrl,
                          large: FullUrl,
-                         clientKey: Key)
+                         clientKey: Key) extends BaseMeta
 
 object ClientPicMeta {
   implicit val dateformat = PicMeta.dateFormat
@@ -68,5 +77,17 @@ object ClientPicMeta {
 case class ClientPics(pics: Seq[ClientPicMeta])
 
 object ClientPics {
-  implicit val json = Json.format[ClientPics]
+  val Added = "added"
+  implicit val json: Format[ClientPics] = PicsJson.evented(Added, Json.format[ClientPics])
+}
+
+object PicsJson {
+  val EventKey = "event"
+
+  def evented[T](event: String, f: OFormat[T]): Format[T] = {
+    val withEvent = Writes[T] { t =>
+      Json.obj(EventKey -> event) ++ f.writes(t)
+    }
+    Format[T](f, withEvent)
+  }
 }
