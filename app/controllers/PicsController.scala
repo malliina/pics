@@ -9,6 +9,7 @@ import com.malliina.pics._
 import com.malliina.pics.auth.PicsAuth
 import com.malliina.pics.html.PicsHtml
 import com.malliina.play.controllers._
+import com.malliina.play.http.Proxies
 import com.sksamuel.scrimage.ImageParseException
 import controllers.PicsController._
 import play.api.Logger
@@ -27,6 +28,8 @@ object PicsController {
 
   val binaryContentType = ContentType(MimeTypes.BINARY)
   val Json10 = Accepting("application/vnd.pics.v10+json")
+  val JsonAccept = Accepting(MimeTypes.JSON)
+  val HtmlAccept = Accepting(MimeTypes.HTML)
 
   val CreatedKey = "created"
   val KeyKey = "key"
@@ -112,21 +115,19 @@ class PicsController(html: PicsHtml,
     removeKey(key, user, reverse.list())
   }
 
-  private def removeKey(key: Key, user: PicRequest, redirCall: Call): Future[Result] = {
-    val redir = Redirect(redirCall)
-    val feedback: Future[UserFeedback] =
-      metaDatabase.remove(key, user.name).flatMap { wasDeleted =>
-        if (wasDeleted) {
-          picSink.onPicRemoved(key, user)
-          sources.remove(key).map { _ =>
-            UserFeedback.success(s"Deleted key '$key'.")
-          }
-        } else {
-          fut(UserFeedback.error(s"Key not found: '$key'."))
+  private def removeKey(key: Key, user: PicRequest, redirCall: Call): Future[Result] =
+    metaDatabase.remove(key, user.name).flatMap { wasDeleted =>
+      if (wasDeleted) {
+        log.info(s"Key '$key' removed by '${user.name}' from '${Proxies.realAddress(user.rh)}'.")
+        picSink.onPicRemoved(key, user)
+        sources.remove(key).map { _ =>
+          Redirect(redirCall).flashing(UserFeedback.success(s"Deleted key '$key'.").toMap: _*)
         }
+      } else {
+        log.error(s"Key not found: '$key'.")
+        fut(keyNotFound(key))
       }
-    feedback.map { fb => redir.flashing(fb.toMap: _*) }
-  }
+    }
 
   def parsed[T](parse: PicRequest => Either[Errors, T])(f: T => Future[Result]) =
     auth.authAction { req =>
@@ -141,9 +142,9 @@ class PicsController(html: PicsHtml,
       Ok(Json.toJson(json))
     } else {
       renderVaried(rh) {
-        case Accepts.Html() => Ok(html)
+        case PicsController.HtmlAccept() => Ok(html)
         case PicsController.Json10() => Ok(Json.toJson(json))
-        case Accepts.Json() => Ok(Json.toJson(json))
+        case PicsController.JsonAccept() => Ok(Json.toJson(json))
       }
     }
 
@@ -204,9 +205,9 @@ class PicsController(html: PicsHtml,
       badRequest("Unable to parse image.")
   }
 
-  def keyNotFound(key: Key) = onNotFound(s"Not found: $key")
+  def keyNotFound(key: Key) = onNotFound(s"Not found: '$key'.")
 
-  def onNotFound(message: String) = NotFound(Json.obj(Message -> message))
+  def onNotFound(message: String) = NotFound(reasonJson(message))
 
   def badGateway(reason: String) = BadGateway(reasonJson(reason))
 
@@ -216,7 +217,7 @@ class PicsController(html: PicsHtml,
 
   def internalError(reason: String) = InternalServerError(reasonJson(reason))
 
-  def reasonJson(reason: String) = Json.obj(Reason -> reason)
+  def reasonJson(reason: String) = Errors.single(reason)
 
   // cannot cache streamed entities
 

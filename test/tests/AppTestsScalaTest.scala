@@ -2,31 +2,34 @@ package tests
 
 import com.malliina.oauth.GoogleOAuthCredentials
 import com.malliina.pics._
-import com.malliina.pics.app.AppComponents
-import play.api.http.Writeable
-import play.api.mvc.Request
-import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import com.malliina.pics.app.BaseComponents
+import com.malliina.pics.auth.PicsAuthLike
+import play.api.ApplicationLoader.Context
+import play.api.mvc.{RequestHeader, Result, Results}
+
+import scala.concurrent.Future
 
 object TestHandler extends ImageHandler("test", AsIsResizer, TestPics)
 
-abstract class TestAppSuite extends AppSuite(ctx => new AppComponents(
-  ctx,
-  GoogleOAuthCredentials("id", "secret", "scope"),
-  _ => MultiSizeHandler.clones(TestHandler)
-))
+object TestAuthenticator extends PicsAuthLike {
+  val TestQuery = "u"
+  val TestUser = "demouser"
 
-class AppTests extends TestAppSuite {
-  test("can make request") {
-    val result = makeRequest(FakeRequest(GET, "/"))
-    assert(result.header.status === 303)
+  override def authenticate(rh: RequestHeader): Future[Either[Result, PicRequest]] = {
+    val user = rh.getQueryString(TestQuery)
+    val res =
+      if (user.contains(PicOwner.anon.name)) Right(PicRequest.anon(rh))
+      else if (user.contains(TestUser)) Right(PicRequest(PicOwner(user.get), rh))
+      else Left(Results.Unauthorized)
+    Future.successful(res)
   }
-
-  test("can upload file") {
-    val result = makeRequest(FakeRequest(POST, "/pics").withBody("boom"))
-    assert(result.header.status === 400)
-  }
-
-  def makeRequest[T: Writeable](req: Request[T]) =
-    await(route(app, req).get)
 }
+
+class TestComps(context: Context, creds: GoogleOAuthCredentials) extends BaseComponents(context, creds) {
+  override def buildAuthenticator() = TestAuthenticator
+
+  override def buildPics() = MultiSizeHandler.clones(TestHandler)
+}
+
+abstract class TestAppSuite extends AppSuite(ctx => new TestComps(ctx, GoogleOAuthCredentials("id", "secret", "scope")))
+

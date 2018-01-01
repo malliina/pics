@@ -3,11 +3,10 @@ package com.malliina.pics.auth
 import akka.stream.Materializer
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.pics.{Errors, PicOwner, PicRequest}
-import com.malliina.play.auth.{AuthFailure, InvalidCredentials, MissingCredentials, UserAuthenticator}
+import com.malliina.play.auth.{AuthFailure, UserAuthenticator}
 import com.malliina.play.controllers.{AuthBundle, OAuthControl}
-import controllers.{Admin, JWTAuth, PicsController}
+import controllers.Admin
 import play.api.Logger
-import play.api.http.{HeaderNames, MediaRange}
 import play.api.libs.streams.Accumulator
 import play.api.mvc._
 
@@ -28,8 +27,7 @@ object PicsAuth {
   }
 }
 
-class PicsAuth(jwtAuth: JWTAuth,
-               bundle: AuthBundle[PicRequest],
+class PicsAuth(authenticator: PicsAuthLike,
                mat: Materializer,
                actions: DefaultActionBuilder) extends ControllerHelpers {
 
@@ -63,41 +61,9 @@ class PicsAuth(jwtAuth: JWTAuth,
   def auth(rh: RequestHeader): Future[Either[Result, PicRequest]] =
     authed(rh, _ => true)
 
-  def authed(rh: RequestHeader, authorize: PicRequest => Boolean) = {
-    def authJwt = {
-      val res = jwtAuth.userOrAnon(rh).filterOrElse(authorize, unauth)
-      fut(res)
-    }
-
-    def authHtml: Future[Either[Result, PicRequest]] = bundle.authenticator.authenticate(rh).map { e =>
-      e.fold(
-        {
-          case MissingCredentials(req) => Right(PicRequest.anon(req))
-          case other => Left(bundle.onUnauthorized(other))
-        },
-        u => Right(u)
-      ).filterOrElse(authorize, bundle.onUnauthorized(InvalidCredentials(rh)))
-    }
-
-    val execAuth: PartialFunction[MediaRange, Future[Either[Result, PicRequest]]] = {
-      case Accepts.Html() => authHtml
-      case PicsController.Json10() => authJwt
-      case Accepts.Json() => authJwt
-    }
-
-    def acceptedResult(ms: Seq[MediaRange]): Future[Either[Result, PicRequest]] = ms match {
-      case Nil => fut(Left(NotAcceptable(Errors.single(s"No acceptable '${HeaderNames.ACCEPT}' header found."))))
-      case Seq(m, tail@_*) => execAuth.applyOrElse(m, (_: MediaRange) => acceptedResult(tail))
-    }
-
-    val accepted =
-      if (rh.acceptedTypes.isEmpty) Seq(new MediaRange("*", "*", Nil, None, Nil))
-      else rh.acceptedTypes
-
-    acceptedResult(accepted)
+  def authed(rh: RequestHeader, authorize: PicRequest => Boolean): Future[Either[Result, PicRequest]] = {
+    authenticator.authenticate(rh).map(_.filterOrElse(authorize, unauth))
   }
 
   def unauth = Unauthorized(Errors.single("Unauthorized."))
-
-  private def fut[T](t: T) = Future.successful(t)
 }
