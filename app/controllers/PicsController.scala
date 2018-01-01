@@ -115,6 +115,8 @@ class PicsController(html: PicsHtml,
     removeKey(key, user, reverse.list())
   }
 
+  def privacyPolicy = Action(Ok(html.privacyPolicy))
+
   private def removeKey(key: Key, user: PicRequest, redirCall: Call): Future[Result] =
     metaDatabase.remove(key, user.name).flatMap { wasDeleted =>
       if (wasDeleted) {

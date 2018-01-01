@@ -88,6 +88,18 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
     baseIndex("pics", user, conf)
   }
 
+  def privacyPolicy = {
+    val privacyContent: Modifier = divClass("pics-container")(
+      h1("Privacy Policy"),
+      p("This privacy policy describes how your information is used and stored when you use this app."),
+      p("The purpose of using and storing your information is to enable app functionality and optimize your user experience. Your information is not used for any other purposes than enabling application features. Your information is not shared with third parties."),
+      p("Network communications: This app may communicate with other networked servers. The communication enables the transfer of images to and from your devices."),
+      p("Network requests may be logged by server software.")
+    )
+    val page = PageConf("Pics - Privacy Policy", inner = privacyContent)
+    basePage(page)
+  }
+
   def eject(message: Option[String]) = {
     val content =
       divContainer(
