@@ -47,7 +47,8 @@ val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
     "com.typesafe.slick" %% "slick" % "3.2.1",
     "com.h2database" % "h2" % "1.4.196",
     "com.nimbusds" % "nimbus-jose-jwt" % "5.1",
-    "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8"
+    "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8",
+    "com.malliina" %% "logstreams-client" % "0.0.9"
   ),
   pipelineStages := Seq(digest, gzip),
   // pipelineStages in Assets := Seq(digest, gzip)
