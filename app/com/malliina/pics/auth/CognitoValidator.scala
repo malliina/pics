@@ -1,5 +1,6 @@
 package com.malliina.pics.auth
 
+import com.malliina.pics.PicOwner
 import com.malliina.play.models.Username
 import play.api.Logger
 
@@ -37,7 +38,7 @@ class CognitoValidator(conf: KeyConf) extends TokenValidator[CognitoUser](conf) 
     for {
       username <- jwt.readString(UserKey).filterOrElse(_.nonEmpty, InvalidClaims(jwt.token, "Username must be non-empty."))
       groups <- jwt.readStringListOrEmpty(GroupsKey) // .filterOrElse(_.contains(ExpectedPicsGroup), InvalidClaims(jwt.token, s"User does not belong to group '$PicsGroup'."))
-    } yield CognitoUser(Username(username), groups, verified)
+    } yield CognitoUser(PicOwner(username), groups, verified)
   }
 
 }

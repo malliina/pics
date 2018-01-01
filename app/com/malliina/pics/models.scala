@@ -6,13 +6,25 @@ import java.util.Date
 
 import buildinfo.BuildInfo
 import com.malliina.play.http.FullUrls
-import com.malliina.play.models.Username
 import controllers.routes
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
 import play.api.http.Writeable
 import play.api.libs.json._
 import play.api.mvc.{PathBindable, RequestHeader}
+
+case class PicRequest(name: PicOwner, readOnly: Boolean, rh: RequestHeader) {
+  def isAnon = readOnly
+}
+
+object PicRequest {
+  val AnonUser = PicOwner("anon")
+
+  def anon(rh: RequestHeader) = PicRequest(AnonUser, rh)
+
+  def apply(user: PicOwner, rh: RequestHeader): PicRequest =
+    PicRequest(user, readOnly = user == AnonUser, rh)
+}
 
 sealed trait PicResult
 
@@ -60,10 +72,10 @@ object Keys {
 }
 
 case class FlatMeta(key: Key, lastModified: Instant) {
-  def withUser(user: Username) = KeyMeta(key, user, lastModified)
+  def withUser(user: PicOwner) = KeyMeta(key, user, lastModified)
 }
 
-case class KeyMeta(key: Key, owner: Username, added: Instant) {
+case class KeyMeta(key: Key, owner: PicOwner, added: Instant) {
   def toEntry(rh: RequestHeader) = PicMetas(this, rh)
 }
 

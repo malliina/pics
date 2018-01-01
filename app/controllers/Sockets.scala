@@ -20,32 +20,32 @@ object Sockets {
 class Sockets(auth: PicsAuth)(implicit actorSystem: ActorSystem, mat: Materializer) extends PicSink {
   val mediator = actorSystem.actorOf(ClientSockets.props())
 
-  def onPics(pics: ClientPics, owner: Username): Unit =
+  def onPics(pics: ClientPics, owner: PicRequest): Unit =
     unicast(pics, owner)
 
-  def onPicsRemoved(keys: PicKeys, owner: Username): Unit =
+  def onPicsRemoved(keys: PicKeys, owner: PicRequest): Unit =
     unicast(keys, owner)
 
-  def unicast[C: Writes](c: C, to: Username): Unit =
-    mediator ! Unicast(Json.toJson(c), to)
+  def unicast[C: Writes](c: C, to: PicRequest): Unit =
+    mediator ! Unicast(Json.toJson(c), to.name)
 
   def listen = WebSocket.acceptOrResult[JsValue, JsValue] { rh =>
-    auth.auth(rh).map(_.map { authedRequest =>
+    auth.auth(rh).map(_.map { user =>
       ActorFlow.actorRef { out =>
-        ClientSocket.props(SocketContext(out, rh, authedRequest.user, mediator))
+        ClientSocket.props(SocketContext(out, rh, user.name, mediator))
       }
     })
   }
 }
 
 trait PicSink {
-  def onPics(pics: ClientPics, owner: Username): Unit
+  def onPics(pics: ClientPics, owner: PicRequest): Unit
 
-  def onPic(pic: ClientPicMeta, owner: Username): Unit =
+  def onPic(pic: ClientPicMeta, owner: PicRequest): Unit =
     onPics(ClientPics(Seq(pic)), owner)
 
-  def onPicsRemoved(keys: PicKeys, owner: Username): Unit
+  def onPicsRemoved(keys: PicKeys, owner: PicRequest): Unit
 
-  def onPicRemoved(key: Key, owner: Username): Unit =
+  def onPicRemoved(key: Key, owner: PicRequest): Unit =
     onPicsRemoved(PicKeys(Seq(key)), owner)
 }

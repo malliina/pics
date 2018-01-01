@@ -3,7 +3,18 @@ package com.malliina.pics
 import java.util.Date
 
 import com.malliina.http.FullUrl
+import com.malliina.json.ValidatingCompanion
 import play.api.libs.json._
+
+case class PicOwner(name: String)
+
+object PicOwner extends ValidatingCompanion[String, PicOwner] {
+  val anon = PicOwner("anon")
+
+  override def build(input: String): Option[PicOwner] = Option(apply(input))
+
+  override def write(t: PicOwner): String = t.name
+}
 
 case class Key(key: String) {
   override def toString: String = key
@@ -29,12 +40,18 @@ object PicKeys {
 
 trait BaseMeta {
   def key: Key
+
   def added: java.util.Date
+
   def url: FullUrl
+
   def small: FullUrl
+
   def medium: FullUrl
+
   def large: FullUrl
 }
+
 /** Using java.util.Date because Scala.js doesn't fully support java.time.* classes.
   */
 case class PicMeta(key: Key,

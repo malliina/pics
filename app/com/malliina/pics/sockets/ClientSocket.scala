@@ -1,8 +1,8 @@
 package com.malliina.pics.sockets
 
 import akka.actor.{ActorLogging, ActorRef, Props}
+import com.malliina.pics.PicOwner
 import com.malliina.pics.sockets.ClientSockets._
-import com.malliina.play.models.Username
 import com.malliina.play.ws.{ActorMeta, JsonActor}
 import play.api.mvc.RequestHeader
 
@@ -24,5 +24,5 @@ class ClientSocket(ctx: SocketContext) extends JsonActor(ctx) with ActorLogging 
 
 case class SocketContext(out: ActorRef,
                          rh: RequestHeader,
-                         user: Username,
+                         user: PicOwner,
                          mediator: ActorRef) extends ActorMeta

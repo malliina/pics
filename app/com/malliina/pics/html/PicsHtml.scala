@@ -3,7 +3,7 @@ package com.malliina.pics.html
 import com.malliina.html.UserFeedback
 import com.malliina.http.FullUrl
 import com.malliina.pics.html.PicsHtml._
-import com.malliina.pics.{HtmlBuilder, PicMeta}
+import com.malliina.pics.{HtmlBuilder, PicMeta, PicOwner, PicRequest}
 import com.malliina.play.models.Username
 import com.malliina.play.tags.PlayTags._
 import com.malliina.play.tags.Tags._
@@ -12,6 +12,7 @@ import play.api.http.MimeTypes
 import play.api.mvc.Call
 
 import scala.language.implicitConversions
+import scalatags.Text
 import scalatags.Text.GenericAttr
 import scalatags.Text.all._
 
@@ -46,7 +47,9 @@ object PicsHtml {
 }
 
 class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(scalatags.Text)) {
-  def drop(created: Option[PicMeta], feedback: Option[UserFeedback], user: Username) = {
+  implicit def userFrag(user: PicOwner): Text.StringFrag = stringFrag(user.name)
+
+  def drop(created: Option[PicMeta], feedback: Option[UserFeedback], user: PicRequest) = {
     val content =
       divContainer(
         renderFeedback(feedback),
@@ -60,7 +63,7 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
             divClass(FormGroup)(
               divClass(InputGroup)(
                 divClass(InputGroupAddon)("pics/"),
-                input(`type` := Text, `class` := FormControl, name := "key", placeholder := "key")
+                input(`type` := "text", `class` := FormControl, name := "key", placeholder := "key")
               )
             ),
             submitButton(`class` := BtnDanger)("Delete")
@@ -79,8 +82,8 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
     baseIndex("drop", user, conf)
   }
 
-  def pics(urls: Seq[PicMeta], feedback: Option[UserFeedback], user: Username) = {
-    val content = Seq(divClass("pics")(renderFeedback(feedback)), picsContent(urls))
+  def pics(urls: Seq[PicMeta], feedback: Option[UserFeedback], user: PicRequest) = {
+    val content = Seq(divClass("pics")(renderFeedback(feedback)), picsContent(urls, user.readOnly))
     val conf = PageConf("Pics", bodyClass = "pics", inner = content)
     baseIndex("pics", user, conf)
   }
@@ -97,41 +100,50 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
     basePage(PageConf("Goodbye!", inner = content))
   }
 
-  def baseIndex(tabName: String, user: Username, conf: PageConf) = {
+  def baseIndex(tabName: String, user: PicRequest, conf: PageConf) = {
     def navItem(thisTabName: String, tabId: String, url: Call, glyphiconName: String) = {
       val maybeActive = if (tabId == tabName) Option(`class` := "active") else None
       li(maybeActive)(a(href := url)(glyphIcon(glyphiconName), s" $thisTabName"))
     }
 
-    val content: Modifier = Seq[Modifier](
-      divClass(s"$Navbar $NavbarDefault")(
-        divContainer(
-          divClass(NavbarHeader)(
-            hamburgerButton,
-            a(`class` := NavbarBrand, href := reverse.list())("Pics")
+    val navContent =
+      if (user.readOnly) {
+        ulClass(s"$Nav $NavbarNav $NavbarRight")(
+          navItem("Sign In", "signin", reverse.signIn(), "log-in")
+        )
+      } else {
+        modifier(
+          ulClass(s"$Nav $NavbarNav")(
+            navItem("Pics", "pics", reverse.list(), "picture"),
+            navItem("Drop", "drop", reverse.drop(), "upload")
           ),
-          divClass(s"$NavbarCollapse $Collapse")(
-            ulClass(s"$Nav $NavbarNav")(
-              navItem("Pics", "pics", reverse.list(), "picture"),
-              navItem("Drop", "drop", reverse.drop(), "upload")
-            ),
-            ulClass(s"$Nav $NavbarNav $NavbarRight")(
-              li(`class` := Dropdown)(
-                aHref("#", `class` := DropdownToggle, dataToggle := Dropdown, role := Button, ariaHasPopup := True, ariaExpanded := False)(
-                  glyphIcon("user"), s" $user ", spanClass(Caret)
-                ),
-                ulClass(DropdownMenu)(
-                  li(aHref(routes.Admin.logout())(glyphIcon("off"), " Sign Out"))
-                )
+          ulClass(s"$Nav $NavbarNav $NavbarRight")(
+            li(`class` := Dropdown)(
+              aHref("#", `class` := DropdownToggle, dataToggle := Dropdown, role := Button, ariaHasPopup := True, ariaExpanded := False)(
+                glyphIcon("user"), " ", user.name, " ", spanClass(Caret)
+              ),
+              ulClass(DropdownMenu)(
+                li(aHref(routes.Admin.logout())(glyphIcon("off"), " Sign Out"))
               )
             )
           )
         )
-      ),
-      conf.inner
-    )
-    basePage(conf.copy(inner = content))
+      }
+    basePage(conf.copy(inner = modifier(withNavbar(navContent), conf.inner)))
   }
+
+  def withNavbar(navLinks: Modifier*) =
+    divClass(s"$Navbar $NavbarDefault")(
+      divContainer(
+        divClass(NavbarHeader)(
+          hamburgerButton,
+          a(`class` := NavbarBrand, href := reverse.list())("Pics")
+        ),
+        divClass(s"$NavbarCollapse $Collapse")(
+          navLinks
+        )
+      )
+    )
 
   def basePage(conf: PageConf) = TagPage(
     html(lang := En)(

@@ -65,7 +65,7 @@ class PicsSocket extends BaseSocket("/sockets") {
 
   def prepend(pic: BaseMeta) =
     elemById(jsHtml.galleryId).map { gallery =>
-      val newElem = jsHtml.thumbnail(pic, visible = false).render
+      val newElem = jsHtml.thumbnail(pic, visible = false, readOnly = true).render
       installCopyListeners(newElem)
       gallery.insertBefore(newElem, gallery.firstChild)
       // enables the transition
@@ -73,7 +73,7 @@ class PicsSocket extends BaseSocket("/sockets") {
         newElem.classList.remove("invisible")
       }
     }.getOrElse {
-      fill(jsHtml.picsId, jsHtml.gallery(Seq(pic)))
+      fill(jsHtml.picsId, jsHtml.gallery(Seq(pic), readOnly = true))
     }
 
   import jsHtml.tags.impl.all._

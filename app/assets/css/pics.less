@@ -1,3 +1,5 @@
+@item-margin: 10px;
+
 /* http://bootsnipp.com/snippets/featured/bootstrap-drag-and-drop-upload */
 .upload-drop-zone {
   height: 200px;
@@ -27,21 +29,17 @@
 }
 
 .pics-container {
-  padding-right: 15px;
-  padding-left: 15px;
+  padding-right: @item-margin;
+  padding-left: @item-margin;
 }
 
 .gallery {
   display: flex;
   flex-wrap: wrap;
-  margin-left: -10px;
-  margin-right: -10px;
+  margin-left: -@item-margin;
+  margin-right: -@item-margin;
 
   justify-content: center;
-
-  @media(min-width: 725px) {
-    justify-content: inherit;
-  }
 }
 
 .thumbnail {
@@ -121,4 +119,8 @@
 
 .pic-link {
   margin-left: auto;
+}
+
+.pics-feedback {
+  text-align: center;
 }

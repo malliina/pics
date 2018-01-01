@@ -40,8 +40,7 @@ class AppComponents(context: Context,
   val cache = new Cached(defaultCacheApi)
   override lazy val httpErrorHandler = PicsErrorHandler
   val admin = new Admin(html, creds, defaultActionBuilder)
-  val htmlAuth = PicsController.auth(admin)
-  val security = new BaseSecurity(defaultActionBuilder, htmlAuth, materializer)
+  val htmlAuth = PicsAuth.oauth(admin)
   val auth = new PicsAuth(JWTAuth.default, htmlAuth, materializer, defaultActionBuilder)
   val sockets = Sockets(auth, actorSystem, materializer)
   val pics = new PicsController(html, service, sockets, auth, cache, controllerComponents)

@@ -8,9 +8,7 @@ import com.malliina.html.UserFeedback
 import com.malliina.pics._
 import com.malliina.pics.auth.PicsAuth
 import com.malliina.pics.html.PicsHtml
-import com.malliina.play.auth.{AuthFailure, UserAuthenticator}
 import com.malliina.play.controllers._
-import com.malliina.play.http.AuthedRequest
 import com.malliina.play.models.Username
 import controllers.PicsController._
 import play.api.Logger
@@ -37,17 +35,6 @@ object PicsController {
   val XKey = "X-Key"
   val XName = "X-Name"
   val XClientPic = "X-Client-Pic"
-
-  def auth(oauth: OAuthControl): AuthBundle[AuthedRequest] = {
-    val sessionAuth = UserAuthenticator.session(oauth.sessionUserKey)
-      .transform((req, user) => Right(AuthedRequest(user, req)))
-    new AuthBundle[AuthedRequest] {
-      override val authenticator = sessionAuth
-
-      override def onUnauthorized(failure: AuthFailure) =
-        Results.Redirect(oauth.startOAuth)
-    }
-  }
 }
 
 class PicsController(html: PicsHtml,
@@ -66,8 +53,10 @@ class PicsController(html: PicsHtml,
 
   def root = Action(Redirect(reverse.list()))
 
+  def signIn = auth.ownerAuthed { _ => list }
+
   def list = parsed(ListRequest.forRequest) { req =>
-    metaDatabase.load(req.offset, req.limit, req.user).map { keys =>
+    metaDatabase.load(req.offset, req.limit, req.user.name).map { keys =>
       val entries = keys map { key => PicMetas(key, req.rh) }
       renderContent(req.rh)(
         json = {
@@ -83,13 +72,13 @@ class PicsController(html: PicsHtml,
 
   def drop = auth.authAction { user =>
     val created = user.rh.flash.get(CreatedKey).map { k =>
-      PicMetas(KeyMeta(Key(k), user.user, Instant.now()), user.rh)
+      PicMetas(KeyMeta(Key(k), user.name, Instant.now()), user.rh)
     }
     val feedback = UserFeedbacks.flashed(user.rh.flash)
-    fut(Ok(html.drop(created, feedback, user.user)))
+    fut(Ok(html.drop(created, feedback, user)))
   }
 
-  def sync = auth.authAction { _ =>
+  def sync = auth.adminAction { _ =>
     Syncer.sync(sources.originals.storage, metaDatabase).map { count =>
       Redirect(reverse.drop()).flashing(UserFeedback.success(s"Synced $count assets.").toMap: _*)
     }
@@ -106,27 +95,27 @@ class PicsController(html: PicsHtml,
   def sendPic(key: Key, source: DataSource) =
     picAction(source.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
 
-  def put = auth.authed { (authedRequest: AuthedRequest) =>
+  def put = auth.authed { (user: PicRequest) =>
     Action(parse.temporaryFile).async { req =>
       log.info(s"Received file. Resizing and uploading...")
-      saveFile(req.body.path, authedRequest.user, req)
+      saveFile(req.body.path, user, req)
     }
   }
 
-  def delete = auth.authed { (authedRequest: AuthedRequest) =>
+  def delete = auth.ownerAuthed { (user: PicRequest) =>
     Action.async(parse.form(deleteForm)) { req =>
-      removeKey(req.body, authedRequest.user, reverse.drop())
+      removeKey(req.body, user, reverse.drop())
     }
   }
 
-  def remove(key: Key) = auth.authAction { r =>
-    removeKey(key, r.user, reverse.list())
+  def remove(key: Key) = auth.ownerAction { user =>
+    removeKey(key, user, reverse.list())
   }
 
-  def removeKey(key: Key, user: Username, redirCall: Call): Future[Result] = {
+  private def removeKey(key: Key, user: PicRequest, redirCall: Call): Future[Result] = {
     val redir = Redirect(redirCall)
     val feedback: Future[UserFeedback] =
-      metaDatabase.remove(key, user).flatMap { wasDeleted =>
+      metaDatabase.remove(key, user.name).flatMap { wasDeleted =>
         if (wasDeleted) {
           picSink.onPicRemoved(key, user)
           sources.remove(key).map { _ =>
@@ -139,7 +128,7 @@ class PicsController(html: PicsHtml,
     feedback.map { fb => redir.flashing(fb.toMap: _*) }
   }
 
-  def parsed[T](parse: AuthedRequest => Either[Errors, T])(f: T => Future[Result]) =
+  def parsed[T](parse: PicRequest => Either[Errors, T])(f: T => Future[Result]) =
     auth.authAction { req =>
       parse(req).fold(
         errors => fut(BadRequest(errors)),
@@ -180,7 +169,7 @@ class PicsController(html: PicsHtml,
         stream.contentType.map(_.contentType))
     )
 
-  private def saveFile(tempFile: Path, by: Username, rh: RequestHeader): Future[Result] = {
+  private def saveFile(tempFile: Path, by: PicRequest, rh: RequestHeader): Future[Result] = {
     pics.save(tempFile, by, rh.headers.get(XName)).map { meta =>
       val clientPic = rh.headers.get(XClientPic).map(Key.apply).getOrElse(meta.key)
       val picMeta = PicMetas(meta, rh)

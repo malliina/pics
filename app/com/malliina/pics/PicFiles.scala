@@ -63,9 +63,9 @@ trait DataSource extends SourceLike {
 }
 
 trait MetaSource extends SourceLike {
-  def load(from: Int, until: Int, user: Username): Future[Seq[KeyMeta]]
+  def load(from: Int, until: Int, user: PicOwner): Future[Seq[KeyMeta]]
 
-  def saveMeta(key: Key, owner: Username): Future[KeyMeta]
+  def saveMeta(key: Key, owner: PicOwner): Future[KeyMeta]
 
-  def remove(key: Key, user: Username): Future[Boolean]
+  def remove(key: Key, user: PicOwner): Future[Boolean]
 }

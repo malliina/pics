@@ -28,20 +28,21 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
 
   implicit val urlAttr = genericAttr[FullUrl]
   implicit val keyAttr = genericAttr[Key]
+
   implicit def keyFrag(key: Key): Frag = stringFrag(key.key)
 
-  def noPictures = leadPara("No pictures.")
+  def noPictures = p(`class` := s"$Lead pics-feedback")("No pictures.")
 
-  def picsContent(urls: Seq[PicMeta]): Modifier =
+  def picsContent(urls: Seq[PicMeta], readOnly: Boolean): Modifier =
     divClass("pics-container", id := picsId)(
       if (urls.isEmpty) noPictures
-      else gallery(urls)
+      else gallery(urls, readOnly)
     )
 
-  def gallery(pics: Seq[BaseMeta]) =
+  def gallery(pics: Seq[BaseMeta], readOnly: Boolean) =
     divClass("gallery", id := galleryId)(
       pics map { pic =>
-        thumbnail(pic)
+        thumbnail(pic, readOnly)
       }
     )
 
@@ -53,14 +54,11 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
 
   def thumbId(key: Key) = s"pic-$key"
 
-  def thumbnail(pic: BaseMeta, visible: Boolean = true) = {
-    divClass(names("thumbnail", if (visible) "" else "invisible"), id := thumbId(pic.key), dataIdAttr := pic.key)(
-      divClass("pic")(
-        aHref(pic.url)(
-          img(src := pic.small, alt := pic.key, `class` := "thumb")
-        )
-      ),
-      divClass("caption")(
+  def thumbnail(pic: BaseMeta, readOnly: Boolean, visible: Boolean = true) = {
+    if (readOnly) {
+      thumb(pic, visible)
+    } else {
+      val more = divClass("caption")(
         div(
           postableForm(s"/pics/${pic.key}/delete")(
             submitButton(`class` := s"$BtnDanger $BtnXs")("Delete")
@@ -74,6 +72,18 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
           dataToggle := "popover",
           dataContentAttr := "Copied!")("Copy"))
       )
+      thumb(pic, visible, more)
+    }
+  }
+
+  def thumb(pic: BaseMeta, visible: Boolean, more: Modifier*) = {
+    divClass(names("thumbnail", if (visible) "" else "invisible"), id := thumbId(pic.key), dataIdAttr := pic.key)(
+      divClass("pic")(
+        aHref(pic.url)(
+          img(src := pic.small, alt := pic.key, `class` := "thumb")
+        )
+      ),
+      more
     )
   }
 

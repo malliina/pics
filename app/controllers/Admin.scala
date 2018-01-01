@@ -1,17 +1,22 @@
 package controllers
 
 import com.malliina.oauth.GoogleOAuthCredentials
+import com.malliina.pics.PicOwner
 import com.malliina.pics.html.PicsHtml
 import com.malliina.play.controllers.OAuthControl
 import com.malliina.play.models.Email
 import play.api.mvc._
 
+object Admin {
+  val AdminEmail = Email("malliina123@gmail.com")
+  val AdminUser = PicOwner("malliina123@gmail.com")
+}
+
 class Admin(html: PicsHtml, creds: GoogleOAuthCredentials, actions: ActionBuilder[Request, AnyContent])
   extends OAuthControl(actions, creds) {
-  val authorizedEmail = Email("malliina123@gmail.com")
   val reverse = routes.Admin
 
-  override def isAuthorized(email: Email): Boolean = email == authorizedEmail
+  override def isAuthorized(email: Email): Boolean = email == Admin.AdminEmail
 
   override def startOAuth: Call = reverse.initiate()
 
@@ -19,7 +24,7 @@ class Admin(html: PicsHtml, creds: GoogleOAuthCredentials, actions: ActionBuilde
 
   override def onOAuthSuccess: Call = routes.PicsController.list()
 
-  override def ejectCall: Call = reverse.ejectUser()
+  override def ejectCall: Call = routes.PicsController.list()
 
   def logout = actions {
     ejectWith(logoutMessage).withNewSession

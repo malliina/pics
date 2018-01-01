@@ -1,8 +1,8 @@
 package com.malliina.pics.sockets
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
+import com.malliina.pics.PicOwner
 import com.malliina.pics.sockets.ClientSockets._
-import com.malliina.play.models.Username
 import play.api.libs.json.JsValue
 
 class ClientSockets extends Actor with ActorLogging {
@@ -41,8 +41,8 @@ object ClientSockets {
 
   case class Broadcast(json: JsValue) extends Message
 
-  case class Unicast(json: JsValue, to: Username) extends Message
+  case class Unicast(json: JsValue, to: PicOwner) extends Message
 
-  case class PicClient(out: ActorRef, username: Username)
+  case class PicClient(out: ActorRef, username: PicOwner)
 
 }

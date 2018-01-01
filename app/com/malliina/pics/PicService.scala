@@ -5,7 +5,6 @@ import java.nio.file.{Files, Path}
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.pics.PicService.log
 import com.malliina.pics.db.{PicsDatabase, PicsMetaDatabase}
-import com.malliina.play.models.Username
 import org.apache.commons.io.FilenameUtils
 import play.api.Logger
 
@@ -28,7 +27,7 @@ class PicService(val metaDatabase: PicsMetaDatabase,
     * @param preferredName optional preferred file name - probably useless
     * @return metadata of the saved key
     */
-  def save(tempFile: Path, by: Username, preferredName: Option[String]): Future[KeyMeta] = {
+  def save(tempFile: Path, by: PicRequest, preferredName: Option[String]): Future[KeyMeta] = {
     // without dot
     val name = preferredName getOrElse tempFile.getFileName.toString
     val ext = Option(FilenameUtils.getExtension(name)).filter(_.nonEmpty).getOrElse("jpeg")
@@ -39,7 +38,7 @@ class PicService(val metaDatabase: PicsMetaDatabase,
     //    val thumbFile = renamedFile resolveSibling s"$name-thumb.$ext"
     for {
       _ <- handler.handle(renamedFile, key)
-      meta <- metaDatabase.saveMeta(key, by)
+      meta <- metaDatabase.saveMeta(key, by.name)
     } yield {
       meta
     }
