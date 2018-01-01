@@ -5,7 +5,7 @@ import java.nio.file.Path
 import akka.stream.Materializer
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.pics.MultiSizeHandler.log
-import com.sksamuel.scrimage.Image
+import com.sksamuel.scrimage.{Image, ImageParseException}
 import play.api.Logger
 
 import scala.concurrent.Future
@@ -36,7 +36,6 @@ class MultiSizeHandler(val smalls: ImageHandler,
                        val originals: ImageHandler) extends ImageHandlerLike {
   val handlers = Seq(smalls, mediums, larges, originals)
 
-
   override def handleImage(image: Image, key: Key) = {
     val work = Future.traverse(handlers)(_.handleImage(image, key))
     work.flatMap { paths =>
@@ -46,6 +45,12 @@ class MultiSizeHandler(val smalls: ImageHandler,
     }
   }
 
+  /** Might fail with Exception, ImageParseException, ...
+    *
+    * @param original orig image
+    * @param key desired key
+    * @return
+    */
   override def handle(original: Path, key: Key): Future[Path] = {
     log.info(s"Handling '$key'...")
     Future(Image.fromPath(original)).flatMap { image =>

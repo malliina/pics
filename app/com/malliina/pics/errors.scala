@@ -4,6 +4,7 @@ import java.io.IOException
 import java.nio.file.Path
 
 import com.malliina.pics.auth.JWTError
+import com.sksamuel.scrimage.ImageParseException
 import play.api.http.Writeable
 import play.api.libs.json.Json
 
@@ -18,7 +19,11 @@ case class UnsupportedFormat(format: String, supported: Seq[String])
 case class ImageReaderFailure(file: Path)
   extends ImageFailure
 
+case class ResizeException(ipe: ImageParseException)
+  extends ImageFailure
+
 case class SingleError(message: String, key: String)
+
 
 object SingleError {
   implicit val json = Json.format[SingleError]

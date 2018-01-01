@@ -24,7 +24,7 @@ class AppTests extends TestAppSuite {
 
   test("can upload file") {
     val result = makeRequest(FakeRequest(POST, "/pics").withBody("boom"))
-    assert(result.header.status === 303)
+    assert(result.header.status === 400)
   }
 
   def makeRequest[T: Writeable](req: Request[T]) =

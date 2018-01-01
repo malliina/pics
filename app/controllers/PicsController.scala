@@ -9,7 +9,7 @@ import com.malliina.pics._
 import com.malliina.pics.auth.PicsAuth
 import com.malliina.pics.html.PicsHtml
 import com.malliina.play.controllers._
-import com.malliina.play.models.Username
+import com.sksamuel.scrimage.ImageParseException
 import controllers.PicsController._
 import play.api.Logger
 import play.api.cache.Cached
@@ -98,7 +98,7 @@ class PicsController(html: PicsHtml,
   def put = auth.authed { (user: PicRequest) =>
     Action(parse.temporaryFile).async { req =>
       log.info(s"Received file. Resizing and uploading...")
-      saveFile(req.body.path, user, req)
+      saveFile(req.body.path, user)
     }
   }
 
@@ -169,7 +169,8 @@ class PicsController(html: PicsHtml,
         stream.contentType.map(_.contentType))
     )
 
-  private def saveFile(tempFile: Path, by: PicRequest, rh: RequestHeader): Future[Result] = {
+  private def saveFile(tempFile: Path, by: PicRequest): Future[Result] = {
+    val rh = by.rh
     pics.save(tempFile, by, rh.headers.get(XName)).map { meta =>
       val clientPic = rh.headers.get(XClientPic).map(Key.apply).getOrElse(meta.key)
       val picMeta = PicMetas(meta, rh)
@@ -180,10 +181,13 @@ class PicsController(html: PicsHtml,
         XKey -> meta.key.key,
         XClientPic -> clientPic.key
       )
-    }.recover { case t: ImageFailure => failResize(t) }
+    }.recover {
+      case t: ImageFailure => failResize(t, by)
+      case ipa: ImageParseException => failResize(ResizeException(ipa), by)
+    }
   }
 
-  def failResize(error: ImageFailure): Result = error match {
+  def failResize(error: ImageFailure, by: PicRequest): Result = error match {
     case UnsupportedFormat(format, supported) =>
       val msg = s"Unsupported format: '$format', must be one of: '${supported.mkString(", ")}'"
       log.error(msg)
@@ -195,6 +199,9 @@ class PicsController(html: PicsHtml,
     case ImageReaderFailure(file) =>
       log.error(s"Unable to read image from file '$file'")
       badRequest("Unable to read image.")
+    case ResizeException(ipa) =>
+      log.error(s"Unable to parse image by '${by.name}'.", ipa)
+      badRequest("Unable to parse image.")
   }
 
   def keyNotFound(key: Key) = onNotFound(s"Not found: $key")

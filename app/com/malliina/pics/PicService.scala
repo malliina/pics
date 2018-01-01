@@ -22,6 +22,8 @@ class PicService(val metaDatabase: PicsMetaDatabase,
 
   /** Resizes the image in `tempFile`, uploads it to S3 and saves image metadata in the database.
     *
+    * Fails with Exception, ImageParseException, ...
+    *
     * @param tempFile      original file
     * @param by            file owner
     * @param preferredName optional preferred file name - probably useless

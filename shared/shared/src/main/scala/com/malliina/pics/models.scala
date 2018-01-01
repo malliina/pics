@@ -6,7 +6,9 @@ import com.malliina.http.FullUrl
 import com.malliina.json.ValidatingCompanion
 import play.api.libs.json._
 
-case class PicOwner(name: String)
+case class PicOwner(name: String) {
+  override def toString = name
+}
 
 object PicOwner extends ValidatingCompanion[String, PicOwner] {
   val anon = PicOwner("anon")
