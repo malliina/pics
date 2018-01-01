@@ -16,6 +16,13 @@ object PicOwner extends ValidatingCompanion[String, PicOwner] {
   override def write(t: PicOwner): String = t.name
 }
 
+case class ProfileInfo(user: PicOwner, readOnly: Boolean)
+
+object ProfileInfo {
+  val Welcome = "welcome"
+  implicit val json = PicsJson.evented(Welcome, Json.format[ProfileInfo])
+}
+
 case class Key(key: String) {
   override def toString: String = key
 

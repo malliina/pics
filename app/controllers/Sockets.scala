@@ -32,7 +32,7 @@ class Sockets(auth: PicsAuth)(implicit actorSystem: ActorSystem, mat: Materializ
   def listen = WebSocket.acceptOrResult[JsValue, JsValue] { rh =>
     auth.auth(rh).map(_.map { user =>
       ActorFlow.actorRef { out =>
-        ClientSocket.props(SocketContext(out, rh, user.name, mediator))
+        ClientSocket.props(SocketContext(out, user, mediator))
       }
     })
   }

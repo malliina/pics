@@ -24,6 +24,8 @@ trait Popovers extends js.Object {
 class PicsSocket extends BaseSocket("/sockets") {
   val document = dom.document
 
+  var isReadOnly = false
+
   object jsHtml extends HtmlBuilder(new Tags(scalatags.JsDom))
 
   installCopyListeners(document.body)
@@ -57,6 +59,8 @@ class PicsSocket extends BaseSocket("/sockets") {
         payload.validate[ClientPics].map { pics => pics.pics.foreach(prepend) }
       case PicKeys.Removed =>
         payload.validate[PicKeys].map { keys => keys.keys.foreach(remove) }
+      case ProfileInfo.Welcome =>
+        payload.validate[ProfileInfo].map { profile => onProfile(profile) }
       case other =>
         JsError(s"Unknown '${PicsJson.EventKey}' value: '$other'.")
     }
@@ -65,7 +69,7 @@ class PicsSocket extends BaseSocket("/sockets") {
 
   def prepend(pic: BaseMeta) =
     elemById(jsHtml.galleryId).map { gallery =>
-      val newElem = jsHtml.thumbnail(pic, visible = false, readOnly = true).render
+      val newElem = jsHtml.thumbnail(pic, visible = false, readOnly = isReadOnly).render
       installCopyListeners(newElem)
       gallery.insertBefore(newElem, gallery.firstChild)
       // enables the transition
@@ -73,7 +77,7 @@ class PicsSocket extends BaseSocket("/sockets") {
         newElem.classList.remove("invisible")
       }
     }.getOrElse {
-      fill(jsHtml.picsId, jsHtml.gallery(Seq(pic), readOnly = true))
+      fill(jsHtml.picsId, jsHtml.gallery(Seq(pic), readOnly = isReadOnly))
     }
 
   import jsHtml.tags.impl.all._
@@ -88,6 +92,10 @@ class PicsSocket extends BaseSocket("/sockets") {
         fill(jsHtml.picsId, jsHtml.noPictures)
       }
     }
+
+  def onProfile(info: ProfileInfo): Unit = {
+    isReadOnly = info.readOnly
+  }
 
   def fill(id: String, content: Frag): Unit =
     elemById(id).foreach { elem =>

@@ -5,6 +5,7 @@ import com.malliina.pics.PicOwner
 import com.malliina.pics.html.PicsHtml
 import com.malliina.play.controllers.OAuthControl
 import com.malliina.play.models.Email
+import play.api.mvc.Results.Redirect
 import play.api.mvc._
 
 object Admin {
@@ -32,5 +33,9 @@ class Admin(html: PicsHtml, creds: GoogleOAuthCredentials, actions: ActionBuilde
 
   def ejectUser = actions { (req: Request[AnyContent]) =>
     Results.Ok(html.eject(req.flash.get(messageKey)))
+  }
+
+  override def onOAuthUnauthorized(email: Email) = {
+    Redirect(reverse.ejectUser()).flashing(messageKey -> unauthorizedMessage(email))
   }
 }
