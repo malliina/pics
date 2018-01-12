@@ -56,7 +56,8 @@ class PicsController(html: PicsHtml,
 
   def root = Action(Redirect(reverse.list()))
 
-  def signIn = auth.ownerAuthed { _ => list }
+  // def signIn = auth.ownerAuthed { _ => list }
+  def signIn = Action(Redirect(routes.Admin.initiate()))
 
   def list = parsed(ListRequest.forRequest) { req =>
     metaDatabase.load(req.offset, req.limit, req.user.name).map { keys =>
@@ -115,6 +116,8 @@ class PicsController(html: PicsHtml,
     removeKey(key, user, reverse.list())
   }
 
+  def deleteKey(key: Key) = remove(key)
+
   def privacyPolicy = Action(Ok(html.privacyPolicy))
 
   private def removeKey(key: Key, user: PicRequest, redirCall: Call): Future[Result] =
@@ -123,7 +126,10 @@ class PicsController(html: PicsHtml,
         log.info(s"Key '$key' removed by '${user.name}' from '${Proxies.realAddress(user.rh)}'.")
         picSink.onPicRemoved(key, user)
         sources.remove(key).map { _ =>
-          Redirect(redirCall).flashing(UserFeedback.success(s"Deleted key '$key'.").toMap: _*)
+          renderResult(user.rh)(
+            json = Accepted,
+            html = Redirect(redirCall).flashing(UserFeedback.success(s"Deleted key '$key'.").toMap: _*)
+          )
         }
       } else {
         log.error(s"Key not found: '$key'.")
@@ -140,15 +146,19 @@ class PicsController(html: PicsHtml,
     }
 
   def renderContent[A: Writes, B: Writeable](rh: RequestHeader)(json: => A, html: => B) =
+    renderResult(rh)(Ok(Json.toJson(json)), Ok(html))
+
+  def renderResult(rh: RequestHeader)(json: => Result, html: => Result): Result = {
     if (rh.getQueryString("f").contains("json")) {
-      Ok(Json.toJson(json))
+      json
     } else {
       renderVaried(rh) {
-        case PicsController.HtmlAccept() => Ok(html)
-        case PicsController.Json10() => Ok(Json.toJson(json))
-        case PicsController.JsonAccept() => Ok(Json.toJson(json))
+        case PicsController.HtmlAccept() => html
+        case PicsController.Json10() => json
+        case PicsController.JsonAccept() => json
       }
     }
+  }
 
   def renderVaried(rh: RequestHeader)(f: PartialFunction[MediaRange, Result]) = render(f)(rh)
 
