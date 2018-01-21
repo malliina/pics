@@ -1,11 +1,12 @@
 package com.malliina.pics.sockets
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
+import akka.actor.{Actor, ActorRef, Props, Terminated}
 import com.malliina.pics.PicOwner
 import com.malliina.pics.sockets.ClientSockets._
+import play.api.Logger
 import play.api.libs.json.JsValue
 
-class ClientSockets extends Actor with ActorLogging {
+class ClientSockets extends Actor {
   var clients: Set[PicClient] = Set.empty
 
   override def receive: Receive = {
@@ -30,6 +31,7 @@ class ClientSockets extends Actor with ActorLogging {
 }
 
 object ClientSockets {
+  private val log = Logger(getClass)
 
   def props() = Props(new ClientSockets)
 
