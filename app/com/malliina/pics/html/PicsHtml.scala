@@ -96,8 +96,7 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
       p("Network communications: This app may communicate with other networked servers. The communication enables the transfer of images to and from your devices."),
       p("Network requests may be logged by server software.")
     )
-    val page = PageConf("Pics - Privacy Policy", inner = privacyContent)
-    basePage(page)
+    basePage(PageConf("Pics - Privacy Policy", inner = privacyContent))
   }
 
   def support = {
@@ -105,7 +104,7 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
       h1("Support"),
       p("For support issues:"),
       ul(
-        li("Email us at ", aHref("mailto:malliina123@gmail.com")("malliina123@gmail.com")),
+        li("Email us at ", aHref("mailto:info@skogberglabs.com")("info@skogberglabs.com")),
         li("Open an issue on ", aHref("https://github.com/malliina/pics-ios/issues")("GitHub"))
       )
     )
