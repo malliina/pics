@@ -54,6 +54,12 @@ class PicsController(html: PicsHtml,
 
   def ping = Action(Caching.NoCache(Ok(Json.toJson(AppMeta.default))))
 
+  def version = Action { req =>
+    renderVaried(req) {
+      case Json10() => Ok(Json.toJson(AppMeta.default))
+    }
+  }
+
   def root = Action(Redirect(reverse.list()))
 
   // def signIn = auth.ownerAuthed { _ => list }
@@ -155,9 +161,9 @@ class PicsController(html: PicsHtml,
       json
     } else {
       renderVaried(rh) {
-        case PicsController.HtmlAccept() => html
-        case PicsController.Json10() => json
-        case PicsController.JsonAccept() => json
+        case HtmlAccept() => html
+        case Json10() => json
+        case JsonAccept() => json
       }
     }
   }

@@ -1,6 +1,7 @@
 GET           /                        controllers.PicsController.root
 GET           /drop                    controllers.PicsController.drop
 GET           /ping                    controllers.PicsController.ping
+GET           /version                 controllers.PicsController.version
 GET           /pics                    controllers.PicsController.list
 #GET         /pics/*key           controllers.Home.pic(key: com.malliina.pics.Key)
 POST          /pics                    controllers.PicsController.put
