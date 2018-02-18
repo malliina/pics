@@ -65,7 +65,8 @@ val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
   routesImport ++= Seq(
     "com.malliina.pics.Key",
     "com.malliina.pics.Keys.bindable"
-  )
+  ),
+  linuxPackageSymlinks := linuxPackageSymlinks.value.filterNot(_.link == "/usr/bin/starter")
 )
 
 val frontendSettings = commonSettings ++ Seq(
