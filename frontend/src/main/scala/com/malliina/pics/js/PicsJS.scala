@@ -5,10 +5,13 @@ import org.scalajs.dom
 object PicsJS {
   def main(args: Array[String]): Unit = {
     if (has("pics")) {
-      val socket = new PicsSocket
+      new PicsSocket
     }
     if (has("drop")) {
-      val drop = new PicDrop
+      new PicDrop
+    }
+    if (has("login")) {
+      new Login
     }
   }
 

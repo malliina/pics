@@ -10,7 +10,8 @@ resolvers ++= Seq(
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-language:implicitConversions")
 
 Seq(
-  "com.malliina" % "sbt-play" % "1.2.1",
+  "com.malliina" % "sbt-play" % "1.2.2",
+  "com.malliina" % "sbt-filetree" % "0.2.1",
   "com.typesafe.sbt" % "sbt-gzip" % "1.0.2",
   "com.typesafe.sbt" % "sbt-digest" % "1.1.4",
   "com.typesafe.sbt" % "sbt-less" % "1.1.2",

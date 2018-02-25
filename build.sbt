@@ -1,12 +1,14 @@
 import com.malliina.sbtplay.PlayProject
 import play.sbt.PlayImport
 import sbt.Keys.scalaVersion
+import com.malliina.sbt.filetree.DirMap
 
 lazy val root = project.in(file("."))
   .settings(commonSettings: _*)
   .aggregate(frontend, backend)
 
 lazy val backend = PlayProject.linux("pics")
+  .enablePlugins(FileTreePlugin)
   .settings(backendSettings: _*)
   .dependsOn(crossJvm)
 
@@ -21,7 +23,7 @@ lazy val cross = crossProject.in(file("shared"))
 lazy val crossJvm = cross.jvm
 lazy val crossJs = cross.js
 
-val utilPlayVersion = "4.5.1"
+val utilPlayVersion = "4.6.2"
 
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
@@ -39,7 +41,7 @@ val commonSettings = Seq(
 val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
   libraryDependencies ++= Seq(
     "org.apache.commons" % "commons-text" % "1.2",
-    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.265",
+    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.285",
     PlayImport.ehcache,
     PlayImport.ws,
     utilPlayDep,
@@ -66,7 +68,14 @@ val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
     "com.malliina.pics.Key",
     "com.malliina.pics.Keys.bindable"
   ),
-  linuxPackageSymlinks := linuxPackageSymlinks.value.filterNot(_.link == "/usr/bin/starter")
+  linuxPackageSymlinks := linuxPackageSymlinks.value.filterNot(_.link == "/usr/bin/starter"),
+  fileTreeSources := Seq(
+    DirMap(
+      source = (resourceDirectory in Assets).value,
+      destination = "com.malliina.pics.assets.AppAssets",
+      mapFunc = "com.malliina.pics.html.PicsHtml.at"
+    )
+  )
 )
 
 val frontendSettings = commonSettings ++ Seq(

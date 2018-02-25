@@ -14,12 +14,12 @@ class PicsErrorHandler extends HttpErrorHandler {
   private val log = Logger(getClass)
 
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
-    log.warn(s"Client error with status $statusCode: '$message'.")
+    log.warn(s"Client error with status $statusCode for $request: '$message'.")
     fut(Status(statusCode)(Errors.single(message)))
   }
 
   override def onServerError(request: RequestHeader, exception: Throwable): Future[Result] = {
-    log.error(s"Server error.", exception)
+    log.error(s"Server error for $request.", exception)
     fut(Status(500)(Errors.single("A server error occurred.")))
   }
 

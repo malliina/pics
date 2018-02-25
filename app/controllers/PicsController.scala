@@ -65,6 +65,10 @@ class PicsController(html: PicsHtml,
   // def signIn = auth.ownerAuthed { _ => list }
   def signIn = Action(Redirect(routes.Admin.initiate()))
 
+  def login = auth.authed { user =>
+    Action(Ok(html.login(user)))
+  }
+
   def list = parsed(ListRequest.forRequest) { req =>
     metaDatabase.load(req.offset, req.limit, req.user.name).map { keys =>
       val entries = keys map { key => PicMetas(key, req.rh) }

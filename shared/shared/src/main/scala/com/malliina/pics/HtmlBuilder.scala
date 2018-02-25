@@ -61,13 +61,13 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
       val more = divClass("caption")(
         div(
           postableForm(s"/pics/${pic.key}/delete")(
-            submitButton(`class` := s"$BtnDanger $BtnXs")("Delete")
+            submitButton(`class` := s"${btn.danger} ${btn.sm}")("Delete")
           )
         ),
-        divClass("pic-link")(aHref(pic.url)(pic.key)),
+        divClass("pic-link")(a(href := pic.url)(pic.key)),
         div(a(role := Button,
           tabindex := 0,
-          `class` := s"$BtnDefault $BtnXs $CopyButton",
+          `class` := s"${btn.light} ${btn.sm} $CopyButton",
           dataIdAttr := pic.url.toString(),
           dataToggle := "popover",
           dataContentAttr := "Copied!")("Copy"))
@@ -79,7 +79,7 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
   def thumb(pic: BaseMeta, visible: Boolean, more: Modifier*) = {
     divClass(names("thumbnail", if (visible) "" else "invisible"), id := thumbId(pic.key), dataIdAttr := pic.key)(
       divClass("pic")(
-        aHref(pic.url)(
+        a(href := pic.url)(
           img(src := pic.small, alt := pic.key, `class` := "thumb")
         )
       ),

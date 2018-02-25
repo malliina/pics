@@ -2,10 +2,12 @@ package com.malliina.pics.html
 
 import com.malliina.html.UserFeedback
 import com.malliina.http.FullUrl
+import com.malliina.pics.assets.AppAssets
 import com.malliina.pics.html.PicsHtml._
-import com.malliina.pics.{HtmlBuilder, PicMeta, PicOwner, PicRequest}
+import com.malliina.pics.{html => _, _}
 import com.malliina.play.models.Username
 import com.malliina.play.tags.PlayTags._
+import com.malliina.play.tags.TagPage
 import com.malliina.play.tags.Tags._
 import controllers.routes
 import play.api.http.MimeTypes
@@ -28,6 +30,7 @@ object PicsHtml {
   val dataIdAttr = attr("data-id")
   val dataContentAttr = attr("data-content")
   val defer = attr("defer").empty
+  val async = attr("async").empty
 
   val reverse = routes.PicsController
 
@@ -39,6 +42,7 @@ object PicsHtml {
   def deferredJs(file: String) = deferredJsPath(s"js/$file")
 
   def deferredJsPath(path: String) = script(`type` := MimeTypes.JAVASCRIPT, src := at(path), defer)
+  def deferredAsyncJs[V: AttrValue](v: V) = script(`type` := MimeTypes.JAVASCRIPT, src := v, defer, async)
 
   def at(file: String) = routes.PicsAssets.versioned(file)
 
@@ -46,8 +50,44 @@ object PicsHtml {
     form(role := FormRole, action := onAction, method := Post, more)
 }
 
-class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(scalatags.Text)) {
+class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(scalatags.Text)) with LoginStrings {
   implicit def userFrag(user: PicOwner): Text.StringFrag = stringFrag(user.name)
+
+  import tags._
+
+  val novalidate = attr("novalidate").empty
+
+  def login(user: PicRequest) = {
+    // <div class="g-signin2" data-onsuccess="onSignIn"></div>
+    val googleButton = div(`class` := "g-signin2", data("onsuccess") := GoogleSignInCallback)
+    val loginForm = form(id := LoginFormId, method := Post, `class` := s"${col.sm.six} ${col.md.six} ${col.lg.four}", novalidate)(
+      divClass(FormGroup)(
+        labeledInput("Email address", EmailId, "email", Option("me@example.com"))
+      ),
+      divClass(FormGroup)(
+        labeledInput("Password", PasswordId, "password", None)
+      ),
+      divClass(FormGroup)(
+        submitButton(`class` := btn.primary, "Log in")
+      )
+    )
+
+    val conf = PageConf(
+      "Pics - Login",
+      bodyClass = "login",
+      inner = modifier(loginForm, googleButton),
+      extraHeader = modifier(
+        jsScript(AppAssets.js.aws_cognito_sdk_min_js),
+        jsScript(AppAssets.js.amazon_cognito_identity_min_js)
+      )
+    )
+    baseIndex("login", user, conf)
+  }
+
+  def labeledInput(labelText: String, inId: String, inType: String, maybePlaceholder: Option[String]) = modifier(
+    label(`for` := inId)(labelText),
+    input(`type` := inType, `class` := FormControl, id := inId, maybePlaceholder.fold(empty)(ph => placeholder := ph))
+  )
 
   def drop(created: Option[PicMeta], feedback: Option[UserFeedback], user: PicRequest) = {
     val content =
@@ -55,18 +95,20 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
         renderFeedback(feedback),
         fullRow(
           postableForm(reverse.sync().toString, `class` := "drop-row form-inline")(
-            submitButton(`class` := BtnDefault)("Sync")
+            submitButton(`class` := btn.info)("Sync")
           )
         ),
         fullRow(
           postableForm(reverse.delete().toString, `class` := "drop-row form-inline", id := "delete-form")(
-            divClass(FormGroup)(
-              divClass(InputGroup)(
-                divClass(InputGroupAddon)("pics/"),
-                input(`type` := "text", `class` := FormControl, name := "key", placeholder := "key")
+            divClass("input-group")(
+              divClass("input-group-prepend")(
+                spanClass("input-group-text")("pics/")
+              ),
+              input(`type` := "text", `class` := FormControl, name := "key", placeholder := "key"),
+              divClass("input-group-append")(
+                submitButton(`class` := btnOutline.danger)("Delete")
               )
-            ),
-            submitButton(`class` := BtnDanger)("Delete")
+            )
           )
         ),
         div(`class` := "upload-drop-zone", id := "drop-zone")(
@@ -75,7 +117,7 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
         tag("progress")(id := "progress", min := "0", max := "100", value := "0")(0),
         div(id := "feedback"),
         created.fold(empty) { key =>
-          Seq[Modifier]("Saved ", aHref(key.url)(key.key.key))
+          Seq[Modifier]("Saved ", a(href := key.url)(key.key.key))
         }
       )
     val conf = PageConf("Pics - Drop", bodyClass = "drop", inner = content)
@@ -104,8 +146,8 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
       h1("Support"),
       p("For support issues:"),
       ul(
-        li("Email us at ", aHref("mailto:info@skogberglabs.com")("info@skogberglabs.com")),
-        li("Open an issue on ", aHref("https://github.com/malliina/pics-ios/issues")("GitHub"))
+        li("Email us at ", a(href := "mailto:info@skogberglabs.com")("info@skogberglabs.com")),
+        li("Open an issue on ", a(href := "https://github.com/malliina/pics-ios/issues")("GitHub"))
       )
     )
     basePage(PageConf("Pics - Support", inner = content))
@@ -114,9 +156,9 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
   def eject(message: Option[String]) = {
     val content =
       divContainer(
-        rowColumn(s"$ColMd6 top-padding")(
+        rowColumn(s"${col.md.six} top-padding")(
           message.fold(empty) { msg =>
-            div(`class` := s"$Lead $AlertSuccess", role := Alert)(msg)
+            alertSuccess(msg)
           }
         )
       )
@@ -124,29 +166,32 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
   }
 
   def baseIndex(tabName: String, user: PicRequest, conf: PageConf) = {
-    def navItem(thisTabName: String, tabId: String, url: Call, glyphiconName: String) = {
-      val maybeActive = if (tabId == tabName) Option(`class` := "active") else None
-      li(maybeActive)(a(href := url)(glyphIcon(glyphiconName), s" $thisTabName"))
+    def navItem(thisTabName: String, tabId: String, url: Call, iconicName: String) = {
+      val itemClass = if (tabId == tabName) "nav-item active" else "nav-item"
+      li(`class` := itemClass)(a(href := url, `class` := "nav-link")(iconic(iconicName), s" $thisTabName"))
     }
 
     val navContent =
       if (user.readOnly) {
-        ulClass(s"$Nav $NavbarNav $NavbarRight")(
-          navItem("Sign In", "signin", reverse.signIn(), "log-in")
+        modifier(
+          ulClass(s"${navbar.Nav} $MrAuto")(),
+          ulClass(navbar.Nav)(
+            navItem("Sign In", "signin", reverse.signIn(), "account-login")
+          )
         )
       } else {
         modifier(
-          ulClass(s"$Nav $NavbarNav")(
+          ulClass(s"${navbar.Nav} $MrAuto")(
             navItem("Pics", "pics", reverse.list(), "picture"),
             navItem("Drop", "drop", reverse.drop(), "upload")
           ),
-          ulClass(s"$Nav $NavbarNav $NavbarRight")(
-            li(`class` := Dropdown)(
-              aHref("#", `class` := DropdownToggle, dataToggle := Dropdown, role := Button, ariaHasPopup := True, ariaExpanded := False)(
-                glyphIcon("user"), " ", user.name, " ", spanClass(Caret)
+          ulClass(s"${navbar.Nav}")(
+            li(`class` := s"nav-item $Dropdown")(
+              a(href := "#", `class` := s"nav-link $DropdownToggle", dataToggle := Dropdown, role := Button, aria.haspopup := tags.True, aria.expanded := tags.False)(
+                iconic("person"), s" ${user.name} ", spanClass(Caret)
               ),
               ulClass(DropdownMenu)(
-                li(aHref(routes.Admin.logout())(glyphIcon("off"), " Sign Out"))
+                li(a(href := routes.Admin.logout(), `class` := "nav-link")(iconic("account-logout"), " Sign Out"))
               )
             )
           )
@@ -156,31 +201,24 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
   }
 
   def withNavbar(navLinks: Modifier*) =
-    divClass(s"$Navbar $NavbarDefault")(
-      divContainer(
-        divClass(NavbarHeader)(
-          hamburgerButton,
-          a(`class` := NavbarBrand, href := reverse.list())("Pics")
-        ),
-        divClass(s"$NavbarCollapse $Collapse")(
-          navLinks
-        )
-      )
-    )
+    navbar.basic(reverse.list(), "Pics", navLinks)
 
   def basePage(conf: PageConf) = TagPage(
     html(lang := En)(
       head(
+        meta(charset := "utf-8"),
         titleTag(conf.title),
-        meta(name := "viewport", content := "width=device-width, initial-scale=1.0"),
-        cssLink("//netdna.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"),
-        cssLink("//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css"),
-        cssLink("//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css"),
+        deviceWidthViewport,
+//        meta(name := "google-signin-client_id", content := "122390040180-78dau8o0fd6eelgfdhed6g2pj4hlh701.apps.googleusercontent.com"),
+        meta(name := "google-signin-client_id", content := "122390040180-trrc20rg9dbpube37o15e62uihi884ot.apps.googleusercontent.com"),
+        cssLinkHashed("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css", "sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"),
+        cssLink("https://use.fontawesome.com/releases/v5.0.6/css/all.css"),
         cssLink(at("css/main.css")),
         conf.extraHeader,
-        jsScript("//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"),
-        jsScript("//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"),
-        jsScript("//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"),
+        jsHashed("https://code.jquery.com/jquery-3.2.1.slim.min.js", "sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"),
+        jsHashed("https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js", "sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"),
+        jsHashed("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js", "sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"),
+        deferredAsyncJs("https://apis.google.com/js/platform.js"),
         deferredJsPath(jsName),
       ),
       body(`class` := conf.bodyClass)(

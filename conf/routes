@@ -16,6 +16,7 @@ GET           /oauth                   controllers.Admin.initiate
 GET           /oauthcb                 controllers.Admin.redirResponse
 GET           /eject                   controllers.Admin.ejectUser
 GET           /signin                  controllers.PicsController.signIn
+GET           /login                  controllers.PicsController.login
 GET           /legal/privacy           controllers.PicsController.privacyPolicy
 GET           /support                 controllers.PicsController.support
 GET           /*key/small              controllers.PicsController.small(key: com.malliina.pics.Key)
