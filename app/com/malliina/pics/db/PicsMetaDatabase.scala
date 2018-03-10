@@ -1,10 +1,6 @@
 package com.malliina.pics.db
 
 import com.malliina.pics._
-import com.malliina.pics.db.Mappings._
-import com.malliina.play.models.Username
-import slick.dbio.{DBIOAction, NoStream}
-import slick.jdbc.H2Profile.api._
 
 import scala.concurrent.Future
 
@@ -18,7 +14,11 @@ object PicsMetaDatabase {
   }
 }
 
-class PicsMetaDatabase(db: PicsDatabase) extends MetaSource {
+class PicsMetaDatabase(val db: PicsDatabase) extends MetaSource {
+
+  import db.mappings._
+  import db.profile.api._
+
   implicit val ec = db.ec
   val pics = db.picsTable
 

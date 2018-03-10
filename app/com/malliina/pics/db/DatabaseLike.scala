@@ -4,9 +4,9 @@ import java.sql.SQLException
 
 import com.malliina.pics.db.DatabaseLike.log
 import play.api.Logger
-import slick.jdbc.H2Profile.api._
+import slick.jdbc.JdbcProfile
 import slick.jdbc.meta.MTable
-import slick.lifted.{AbstractTable, TableQuery}
+import slick.lifted.AbstractTable
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -15,7 +15,10 @@ object DatabaseLike {
   private val log = Logger(getClass)
 }
 
-trait DatabaseLike {
+abstract class DatabaseLike(val profile: JdbcProfile) {
+
+  import profile.api._
+
   def ec: ExecutionContext
 
   def database: Database

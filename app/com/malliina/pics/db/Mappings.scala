@@ -4,9 +4,16 @@ import java.time.Instant
 
 import com.malliina.pics.{Key, PicOwner}
 import com.malliina.play.models.Username
-import slick.jdbc.H2Profile.api._
+import slick.jdbc.JdbcProfile
 
 object Mappings {
+  def apply(profile: JdbcProfile) = new Mappings(profile)
+}
+
+class Mappings(val profile: JdbcProfile) {
+
+  import profile.api._
+
   implicit val instantMapping = MappedColumnType.base[Instant, java.sql.Timestamp](i => java.sql.Timestamp.from(i), _.toInstant)
   implicit val usernameMapping = MappedColumnType.base[Username, String](Username.raw, Username.apply)
   implicit val keyMapping = MappedColumnType.base[Key, String](k => k.key, Key.apply)

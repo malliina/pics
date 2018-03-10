@@ -48,6 +48,8 @@ val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
     utilPlayDep % Test classifier "tests",
     "com.typesafe.slick" %% "slick" % "3.2.1",
     "com.h2database" % "h2" % "1.4.196",
+    "org.mariadb.jdbc" % "mariadb-java-client" % "2.2.3",
+    "com.zaxxer" % "HikariCP" % "2.7.8",
     "com.nimbusds" % "nimbus-jose-jwt" % "5.4",
     "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8",
     "com.malliina" %% "logstreams-client" % "0.0.9"

@@ -18,6 +18,7 @@ class AppLoader extends DefaultApp(ctx => new AppComponents(ctx, GoogleOAuthRead
 
 class AppComponents(context: Context, creds: GoogleOAuthCredentials) extends BaseComponents(context, creds) {
   override lazy val httpErrorHandler = PicsErrorHandler
+
   override def buildAuthenticator() = PicsAuthenticator(JWTAuth.default, htmlAuth)
 
   override def buildPics() = MultiSizeHandler.default(materializer)
@@ -34,10 +35,12 @@ abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials)
   def buildPics(): MultiSizeHandler
 
   private val log = Logger(getClass)
-  val html = PicsHtml.build(environment.mode == Mode.Prod)
+  val mode = environment.mode
+  val html = PicsHtml.build(mode == Mode.Prod)
   val db: PicsDatabase =
-    if (environment.mode == Mode.Test) PicsDatabase.inMemory()
-    else PicsDatabase.default()
+    if (mode == Mode.Prod) PicsDatabase.prod()
+    else if (mode == Mode.Dev) PicsDatabase.dev()
+    else PicsDatabase.inMemory()
   db.init()
   val service = PicService(db, buildPics())
   log.info(s"Using pics dir '${FilePics.picsDir}'.")
