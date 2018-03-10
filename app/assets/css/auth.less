@@ -1,0 +1,124 @@
+@form-background: #fcfcfc;
+
+.auth-form {
+  background: @form-background;
+  margin-top: 40px;
+
+  width: 100%;
+  padding: 0;
+
+  @media (min-width: 430px) {
+    width: 400px;
+    padding: 15px 40px;
+  }
+}
+
+.login-divider {
+  position: relative;
+  text-align: center;
+  margin-bottom: 35px;
+
+  > .line {
+    position: absolute;
+    background-color: #dedede;
+    height: 1px;
+    width: 100%;
+    left: 0;
+    top: 50%;
+  }
+
+  > .text {
+    display: inline-block;
+    background: @form-background;
+    position: relative;
+    padding: 0 12px;
+    z-index: 1;
+    line-height: 20px;
+    font-size: 14px;
+  }
+}
+
+.social-container {
+  margin-bottom: 35px;
+
+  a:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.social-button {
+  display: block;
+  text-decoration: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  height: 45px;
+  margin: 0 0 10px 0;
+  padding: 6px 12px;
+  background: white none;
+  border: 1px solid #eeeeee;
+  border-radius: 4px;
+  color: black;
+
+  font-family: Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+
+  &:hover {
+    text-decoration: none;
+  }
+
+  &.google {
+
+    &:hover {
+      background-color: #eeeeee;
+    }
+  }
+
+  &.facebook {
+    color: white;
+    background-color: #4267b2;
+
+    &:hover {
+      background-color: #2955ad;
+    }
+  }
+
+  &.amazon {
+    background-color: #f7bc22;
+
+    &:hover {
+      background-color: #ffae00;
+    }
+  }
+}
+
+.social-logo {
+  width: 22px;
+  height: 100%;
+  text-align: center;
+  margin-right: 25px;
+  display: inline-block;
+  vertical-align: middle;
+
+  &.google {
+    background: url('/assets/svg/logo-google.svg') no-repeat center;
+  }
+
+  &.facebook {
+    background: url('/assets/svg/logo-facebook.svg') no-repeat center;
+  }
+
+  &.amazon {
+    background: url('/assets/svg/logo-amazon.svg') no-repeat center;
+  }
+}
+
+.social-text {
+  position: relative;
+  top: 1px;
+
+  &:hover {
+    text-decoration: none;
+  }
+}

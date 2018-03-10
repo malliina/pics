@@ -12,10 +12,15 @@ import scala.concurrent.Future
 
 trait PicsAuthLike {
   def authenticate(rh: RequestHeader): Future[Either[Result, PicRequest]]
+
+  def validateToken(token: AccessToken): Either[Result, CognitoUser]
+
+  def unauth = Results.Unauthorized(Errors.single("Unauthorized."))
 }
 
 object PicsAuthenticator {
-  def apply(jwtAuth: JWTAuth, bundle: AuthBundle[PicRequest]) = new PicsAuthenticator(jwtAuth, bundle)
+  def apply(jwtAuth: JWTAuth, bundle: AuthBundle[PicRequest]) =
+    new PicsAuthenticator(jwtAuth, bundle)
 }
 
 class PicsAuthenticator(jwtAuth: JWTAuth, bundle: AuthBundle[PicRequest]) extends PicsAuthLike {
@@ -38,6 +43,9 @@ class PicsAuthenticator(jwtAuth: JWTAuth, bundle: AuthBundle[PicRequest]) extend
     acceptedResult(accepted)
   }
 
+  override def validateToken(token: AccessToken): Either[Result, CognitoUser] =
+    jwtAuth.validateToken(token)
+
   def authJwt(rh: RequestHeader) = fut(jwtAuth.userOrAnon(rh))
 
   def authHtml(rh: RequestHeader): Future[Either[Result, PicRequest]] =
@@ -50,8 +58,6 @@ class PicsAuthenticator(jwtAuth: JWTAuth, bundle: AuthBundle[PicRequest]) extend
         u => Right(u)
       )
     }
-
-  def unauth = Results.Unauthorized(Errors.single("Unauthorized."))
 
   private def fut[T](t: T) = Future.successful(t)
 }

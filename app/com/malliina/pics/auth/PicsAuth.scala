@@ -2,6 +2,7 @@ package com.malliina.pics.auth
 
 import akka.stream.Materializer
 import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.pics.auth.PicsAuth.log
 import com.malliina.pics.{Errors, PicOwner, PicRequest}
 import com.malliina.play.auth.{AuthFailure, UserAuthenticator}
 import com.malliina.play.controllers.{AuthBundle, OAuthControl}
@@ -27,7 +28,7 @@ object PicsAuth {
   }
 }
 
-class PicsAuth(authenticator: PicsAuthLike,
+class PicsAuth(val authenticator: PicsAuthLike,
                mat: Materializer,
                actions: DefaultActionBuilder) extends ControllerHelpers {
 
@@ -62,8 +63,11 @@ class PicsAuth(authenticator: PicsAuthLike,
     authed(rh, _ => true)
 
   def authed(rh: RequestHeader, authorize: PicRequest => Boolean): Future[Either[Result, PicRequest]] = {
-    authenticator.authenticate(rh).map(_.filterOrElse(authorize, unauth))
+    authenticator.authenticate(rh).map(_.filterOrElse(authorize, unauth(rh)))
   }
 
-  def unauth = Unauthorized(Errors.single("Unauthorized."))
+  def unauth(rh: RequestHeader) = {
+    log.error(s"Auth failed for '$rh'.")
+    Unauthorized(Errors.single("Unauthorized."))
+  }
 }

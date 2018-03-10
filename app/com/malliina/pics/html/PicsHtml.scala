@@ -42,6 +42,7 @@ object PicsHtml {
   def deferredJs(file: String) = deferredJsPath(s"js/$file")
 
   def deferredJsPath(path: String) = script(`type` := MimeTypes.JAVASCRIPT, src := at(path), defer)
+
   def deferredAsyncJs[V: AttrValue](v: V) = script(`type` := MimeTypes.JAVASCRIPT, src := v, defer, async)
 
   def at(file: String) = routes.PicsAssets.versioned(file)
@@ -57,10 +58,25 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
 
   val novalidate = attr("novalidate").empty
 
-  def login(user: PicRequest) = {
-    // <div class="g-signin2" data-onsuccess="onSignIn"></div>
-    val googleButton = div(`class` := "g-signin2", data("onsuccess") := GoogleSignInCallback)
-    val loginForm = form(id := LoginFormId, method := Post, `class` := s"${col.sm.six} ${col.md.six} ${col.lg.four}", novalidate)(
+  def socialButton(provider: String, linkTo: Call, linkText: String) =
+    a(`class` := s"social-button $provider", href := linkTo)(
+      span(`class` := s"social-logo $provider"), span(`class` := "social-text", linkText)
+    )
+
+  def signIn(feedback: Option[UserFeedback] = None) = {
+    val heading = fullRow(h1("Sign In"))
+    val socials = rowColumn(s"${col.md.twelve} social-container")(
+      socialButton("google", routes.CognitoControl.google(), "Sign in with Google"),
+      socialButton("facebook", routes.CognitoControl.facebook(), "Sign in with Facebook"),
+      socialButton("amazon", routes.CognitoControl.amazon(), "Sign in with Amazon")
+    )
+    val loginDivider = divClass("login-divider")(
+      divClass("line"),
+      divClass("text")("or")
+    )
+    val loginForm = form(id := LoginFormId, `class` := col.md.twelve, method := Post, novalidate)(
+      input(`type` := "hidden", name := "token", id := "token"),
+      input(`type` := "hidden", name := "error", id := "error"),
       divClass(FormGroup)(
         labeledInput("Email address", EmailId, "email", Option("me@example.com"))
       ),
@@ -68,20 +84,23 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
         labeledInput("Password", PasswordId, "password", None)
       ),
       divClass(FormGroup)(
-        submitButton(`class` := btn.primary, "Log in")
+        submitButton(`class` := btn.primary, "Sign in")
+      ),
+      divClass(FormGroup)(
+        renderFeedback(feedback)
       )
     )
 
     val conf = PageConf(
       "Pics - Login",
       bodyClass = "login",
-      inner = modifier(loginForm, googleButton),
+      inner = divClass("container")(divClass("auth-form ml-auto mr-auto")(heading, socials, loginDivider, row(loginForm))),
       extraHeader = modifier(
         jsScript(AppAssets.js.aws_cognito_sdk_min_js),
         jsScript(AppAssets.js.amazon_cognito_identity_min_js)
       )
     )
-    baseIndex("login", user, conf)
+    baseIndex("login", None, conf)
   }
 
   def labeledInput(labelText: String, inId: String, inType: String, maybePlaceholder: Option[String]) = modifier(
@@ -121,13 +140,13 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
         }
       )
     val conf = PageConf("Pics - Drop", bodyClass = "drop", inner = content)
-    baseIndex("drop", user, conf)
+    baseIndex("drop", if(user.readOnly) None else Option(user.name), conf)
   }
 
   def pics(urls: Seq[PicMeta], feedback: Option[UserFeedback], user: PicRequest) = {
     val content = Seq(divClass("pics")(renderFeedback(feedback)), picsContent(urls, user.readOnly))
     val conf = PageConf("Pics", bodyClass = "pics", inner = content)
-    baseIndex("pics", user, conf)
+    baseIndex("pics", if(user.readOnly) None else Option(user.name), conf)
   }
 
   def privacyPolicy = {
@@ -165,43 +184,42 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
     basePage(PageConf("Goodbye!", inner = content))
   }
 
-  def baseIndex(tabName: String, user: PicRequest, conf: PageConf) = {
+  def baseIndex(tabName: String, user: Option[PicOwner], conf: PageConf) = {
     def navItem(thisTabName: String, tabId: String, url: Call, iconicName: String) = {
       val itemClass = if (tabId == tabName) "nav-item active" else "nav-item"
       li(`class` := itemClass)(a(href := url, `class` := "nav-link")(iconic(iconicName), s" $thisTabName"))
     }
 
-    val navContent =
-      if (user.readOnly) {
-        modifier(
-          ulClass(s"${navbar.Nav} $MrAuto")(),
-          ulClass(navbar.Nav)(
-            navItem("Sign In", "signin", reverse.signIn(), "account-login")
-          )
-        )
-      } else {
-        modifier(
-          ulClass(s"${navbar.Nav} $MrAuto")(
-            navItem("Pics", "pics", reverse.list(), "picture"),
-            navItem("Drop", "drop", reverse.drop(), "upload")
-          ),
-          ulClass(s"${navbar.Nav}")(
-            li(`class` := s"nav-item $Dropdown")(
-              a(href := "#", `class` := s"nav-link $DropdownToggle", dataToggle := Dropdown, role := Button, aria.haspopup := tags.True, aria.expanded := tags.False)(
-                iconic("person"), s" ${user.name} ", spanClass(Caret)
-              ),
-              ulClass(DropdownMenu)(
-                li(a(href := routes.Admin.logout(), `class` := "nav-link")(iconic("account-logout"), " Sign Out"))
-              )
+    val navContent = user.map { u =>
+      modifier(
+        ulClass(s"${navbar.Nav} $MrAuto")(
+          navItem("Pics", "pics", reverse.list(), "picture"),
+          navItem("Drop", "drop", reverse.drop(), "upload")
+        ),
+        ulClass(s"${navbar.Nav}")(
+          li(`class` := s"nav-item $Dropdown")(
+            a(href := "#", `class` := s"nav-link $DropdownToggle", dataToggle := Dropdown, role := Button, aria.haspopup := tags.True, aria.expanded := tags.False)(
+              iconic("person"), s" ${u.name} ", spanClass(Caret)
+            ),
+            ulClass(DropdownMenu)(
+              li(a(href := routes.Admin.logout(), `class` := "nav-link")(iconic("account-logout"), " Sign Out"))
             )
           )
         )
-      }
+      )
+    }.getOrElse {
+      modifier(
+        ulClass(s"${navbar.Nav} $MrAuto")(),
+        ulClass(navbar.Nav)(
+          navItem("Sign In", "signin", reverse.signIn(), "account-login")
+        )
+      )
+    }
     basePage(conf.copy(inner = modifier(withNavbar(navContent), conf.inner)))
   }
 
   def withNavbar(navLinks: Modifier*) =
-    navbar.basic(reverse.list(), "Pics", navLinks)
+    navbar.basic(reverse.list(), "Pics", navLinks, navClass = s"${navbar.Navbar} navbar-expand-sm ${navbar.Light} ${navbar.BgLight}")
 
   def basePage(conf: PageConf) = TagPage(
     html(lang := En)(
@@ -209,16 +227,14 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
         meta(charset := "utf-8"),
         titleTag(conf.title),
         deviceWidthViewport,
-//        meta(name := "google-signin-client_id", content := "122390040180-78dau8o0fd6eelgfdhed6g2pj4hlh701.apps.googleusercontent.com"),
-        meta(name := "google-signin-client_id", content := "122390040180-trrc20rg9dbpube37o15e62uihi884ot.apps.googleusercontent.com"),
         cssLinkHashed("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css", "sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"),
         cssLink("https://use.fontawesome.com/releases/v5.0.6/css/all.css"),
+        cssLink("https://fonts.googleapis.com/css?family=Roboto:400,500"),
         cssLink(at("css/main.css")),
         conf.extraHeader,
         jsHashed("https://code.jquery.com/jquery-3.2.1.slim.min.js", "sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"),
         jsHashed("https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js", "sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"),
         jsHashed("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js", "sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"),
-        deferredAsyncJs("https://apis.google.com/js/platform.js"),
         deferredJsPath(jsName),
       ),
       body(`class` := conf.bodyClass)(

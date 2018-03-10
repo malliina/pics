@@ -3,9 +3,9 @@ package tests
 import com.malliina.oauth.GoogleOAuthCredentials
 import com.malliina.pics._
 import com.malliina.pics.app.BaseComponents
-import com.malliina.pics.auth.PicsAuthLike
+import com.malliina.pics.auth.{AccessToken, CognitoUser, PicsAuthLike}
 import play.api.ApplicationLoader.Context
-import play.api.mvc.{RequestHeader, Result, Results}
+import play.api.mvc.{RequestHeader, Result}
 
 import scala.concurrent.Future
 
@@ -20,9 +20,12 @@ object TestAuthenticator extends PicsAuthLike {
     val res =
       if (user.contains(PicOwner.anon.name)) Right(PicRequest.anon(rh))
       else if (user.contains(TestUser)) Right(PicRequest(PicOwner(user.get), rh))
-      else Left(Results.Unauthorized)
+      else Left(unauth)
     Future.successful(res)
   }
+
+  override def validateToken(token: AccessToken): Either[Result, CognitoUser] =
+    Left(unauth)
 }
 
 class TestComps(context: Context, creds: GoogleOAuthCredentials) extends BaseComponents(context, creds) {
@@ -32,4 +35,3 @@ class TestComps(context: Context, creds: GoogleOAuthCredentials) extends BaseCom
 }
 
 abstract class TestAppSuite extends AppSuite(ctx => new TestComps(ctx, GoogleOAuthCredentials("id", "secret", "scope")))
-

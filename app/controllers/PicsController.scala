@@ -5,8 +5,9 @@ import java.time.Instant
 
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.html.UserFeedback
+import com.malliina.pics.LoginStrings.{AuthFailed, MfaRequired}
 import com.malliina.pics._
-import com.malliina.pics.auth.PicsAuth
+import com.malliina.pics.auth.{AccessToken, PicsAuth}
 import com.malliina.pics.html.PicsHtml
 import com.malliina.play.controllers._
 import com.malliina.play.http.Proxies
@@ -46,8 +47,20 @@ class PicsController(html: PicsHtml,
                      auth: PicsAuth,
                      cache: Cached,
                      comps: ControllerComponents) extends AbstractController(comps) {
+
+  case class TokenForm(token: Option[String], error: Option[String]) {
+    def toEither =
+      error.map(e => Left(e))
+        .orElse(token.map(t => Right(AccessToken(t))))
+        .getOrElse(Left(AuthFailed))
+  }
+
   val placeHolderResource = "400x300.png"
   val deleteForm: Form[Key] = Form(mapping(KeyKey -> nonEmptyText)(Key.apply)(Key.unapply))
+  val tokenForm: Form[TokenForm] = Form(mapping(
+    "token" -> optional(nonEmptyText),
+    "error" -> optional(nonEmptyText)
+  )(TokenForm.apply)(TokenForm.unapply))
   val reverse = routes.PicsController
   val metaDatabase = pics.metaDatabase
   val sources = pics.handler
@@ -62,11 +75,31 @@ class PicsController(html: PicsHtml,
 
   def root = Action(Redirect(reverse.list()))
 
-  // def signIn = auth.ownerAuthed { _ => list }
-  def signIn = Action(Redirect(routes.Admin.initiate()))
+  def signInSingle = Action(Redirect(routes.Admin.initiate()))
 
-  def login = auth.authed { user =>
-    Action(Ok(html.login(user)))
+  def signIn = Action(Ok(html.signIn()))
+
+  def postSignIn = Action(parse.form(tokenForm)) { req =>
+    req.body.toEither.fold(
+      err => {
+        failForm(err, req)
+      },
+      token => {
+        auth.authenticator.validateToken(token).fold(
+          _ => {
+            failForm(LoginStrings.AuthFailed, req)
+          },
+          user => {
+            Redirect(routes.PicsController.list()).withSession("username" -> user.username.name)
+          }
+        )
+      }
+    )
+  }
+
+  private def failForm(message: String, rh: RequestHeader) = {
+    log.error(s"Form authentication failed from '$rh'.")
+    BadRequest(html.signIn(Option(UserFeedback.error(message))))
   }
 
   def list = parsed(ListRequest.forRequest) { req =>

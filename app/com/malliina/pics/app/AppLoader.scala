@@ -18,8 +18,6 @@ class AppLoader extends DefaultApp(ctx => new AppComponents(ctx, GoogleOAuthRead
 
 class AppComponents(context: Context, creds: GoogleOAuthCredentials) extends BaseComponents(context, creds) {
   override lazy val httpErrorHandler = PicsErrorHandler
-  override val router: Router = new Routes(httpErrorHandler, pics, admin, sockets, picsAssets)
-
   override def buildAuthenticator() = PicsAuthenticator(JWTAuth.default, htmlAuth)
 
   override def buildPics() = MultiSizeHandler.default(materializer)
@@ -51,6 +49,7 @@ abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials)
   val auth = new PicsAuth(authenticator, materializer, defaultActionBuilder)
   val sockets = Sockets(auth, actorSystem, materializer)
   val pics = new PicsController(html, service, sockets, auth, cache, controllerComponents)
+  val cognitoControl = CognitoControl.pics(defaultActionBuilder)
   val picsAssets = new PicsAssets(assets)
-  override val router: Router = new Routes(httpErrorHandler, pics, admin, sockets, picsAssets)
+  override val router: Router = new Routes(httpErrorHandler, pics, admin, sockets, picsAssets, cognitoControl)
 }

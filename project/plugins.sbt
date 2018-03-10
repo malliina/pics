@@ -15,7 +15,7 @@ Seq(
   "com.typesafe.sbt" % "sbt-gzip" % "1.0.2",
   "com.typesafe.sbt" % "sbt-digest" % "1.1.4",
   "com.typesafe.sbt" % "sbt-less" % "1.1.2",
-  "org.scala-js" % "sbt-scalajs" % "0.6.21",
+  "org.scala-js" % "sbt-scalajs" % "0.6.22",
   "com.vmunier" % "sbt-web-scalajs" % "1.0.6"
 ) map addSbtPlugin
 

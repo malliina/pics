@@ -1,14 +1,20 @@
 package controllers
 
-import com.malliina.oauth.GoogleOAuthCredentials
+import com.malliina.http.AsyncHttp
+import com.malliina.oauth.{GoogleOAuth, GoogleOAuthCredentials}
 import com.malliina.pics.PicOwner
 import com.malliina.pics.html.PicsHtml
 import com.malliina.play.controllers.OAuthControl
+import com.malliina.play.http.FullUrls
 import com.malliina.play.models.Email
+import controllers.Admin.log
+import play.api.Logger
 import play.api.mvc.Results.Redirect
 import play.api.mvc._
 
 object Admin {
+  private val log = Logger(getClass)
+
   val AdminEmail = Email("malliina123@gmail.com")
   val AdminUser = PicOwner("malliina123@gmail.com")
 }
@@ -16,6 +22,7 @@ object Admin {
 class Admin(html: PicsHtml, creds: GoogleOAuthCredentials, actions: ActionBuilder[Request, AnyContent])
   extends OAuthControl(actions, creds) {
   val reverse = routes.Admin
+  val httpClient = new AsyncHttp()
 
   override def isAuthorized(email: Email): Boolean = email == Admin.AdminEmail
 

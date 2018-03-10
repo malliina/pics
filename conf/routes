@@ -15,8 +15,13 @@ GET           /assets/*file            controllers.PicsAssets.versioned(path = "
 GET           /oauth                   controllers.Admin.initiate
 GET           /oauthcb                 controllers.Admin.redirResponse
 GET           /eject                   controllers.Admin.ejectUser
-GET           /signin                  controllers.PicsController.signIn
-GET           /login                  controllers.PicsController.login
+GET           /login                   controllers.PicsController.signInSingle
+GET           /cognito                 controllers.CognitoControl.cognitoCallback
+GET           /sign-in                 controllers.PicsController.signIn
+POST          /sign-in                 controllers.PicsController.postSignIn
+GET           /sign-in/google          controllers.CognitoControl.google
+GET           /sign-in/facebook        controllers.CognitoControl.facebook
+GET           /sign-in/amazon          controllers.CognitoControl.amazon
 GET           /legal/privacy           controllers.PicsController.privacyPolicy
 GET           /support                 controllers.PicsController.support
 GET           /*key/small              controllers.PicsController.small(key: com.malliina.pics.Key)
