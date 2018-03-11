@@ -5,18 +5,17 @@ import com.malliina.http.FullUrl
 import com.malliina.pics.assets.AppAssets
 import com.malliina.pics.html.PicsHtml._
 import com.malliina.pics.{html => _, _}
-import com.malliina.play.models.Username
 import com.malliina.play.tags.PlayTags._
 import com.malliina.play.tags.TagPage
 import com.malliina.play.tags.Tags._
 import controllers.routes
 import play.api.http.MimeTypes
 import play.api.mvc.Call
-
-import scala.language.implicitConversions
 import scalatags.Text
 import scalatags.Text.GenericAttr
 import scalatags.Text.all._
+
+import scala.language.implicitConversions
 
 object PicsHtml {
   def build(isProd: Boolean): PicsHtml = {
@@ -94,13 +93,16 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
     val conf = PageConf(
       "Pics - Login",
       bodyClass = "login",
-      inner = divClass("container")(divClass("auth-form ml-auto mr-auto")(heading, socials, loginDivider, row(loginForm))),
+      inner = modifier(
+        emptyNavbar,
+        divClass("container")(divClass("auth-form ml-auto mr-auto")(heading, socials, loginDivider, row(loginForm)))
+      ),
       extraHeader = modifier(
         jsScript(AppAssets.js.aws_cognito_sdk_min_js),
         jsScript(AppAssets.js.amazon_cognito_identity_min_js)
       )
     )
-    baseIndex("login", None, conf)
+    basePage(conf)
   }
 
   def labeledInput(labelText: String, inId: String, inType: String, maybePlaceholder: Option[String]) = modifier(
@@ -140,18 +142,18 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
         }
       )
     val conf = PageConf("Pics - Drop", bodyClass = "drop", inner = content)
-    baseIndex("drop", if(user.readOnly) None else Option(user.name), conf)
+    baseIndex("drop", if (user.readOnly) None else Option(user.name), conf)
   }
 
   def pics(urls: Seq[PicMeta], feedback: Option[UserFeedback], user: PicRequest) = {
     val content = Seq(divClass("pics")(renderFeedback(feedback)), picsContent(urls, user.readOnly))
     val conf = PageConf("Pics", bodyClass = "pics", inner = content)
-    baseIndex("pics", if(user.readOnly) None else Option(user.name), conf)
+    baseIndex("pics", if (user.readOnly) None else Option(user.name), conf)
   }
 
   def privacyPolicy = {
     val privacyContent: Modifier = divContainer(
-      h1("Privacy Policy"),
+      h1(`class` := "page-header")("Privacy Policy"),
       p("This privacy policy describes how your information is used and stored when you use this app."),
       p("The purpose of using and storing your information is to enable app functionality and optimize your user experience. Your information is not used for any other purposes than enabling application features. Your information is not shared with third parties."),
       p("Network communications: This app may communicate with other networked servers. The communication enables the transfer of images to and from your devices."),
@@ -202,7 +204,7 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
               iconic("person"), s" ${u.name} ", spanClass(Caret)
             ),
             ulClass(DropdownMenu)(
-              li(a(href := routes.Admin.logout(), `class` := "nav-link")(iconic("account-logout"), " Sign Out"))
+              li(a(href := routes.CognitoControl.signOut(), `class` := "nav-link")(iconic("account-logout"), " Sign Out"))
             )
           )
         )
@@ -220,6 +222,13 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
 
   def withNavbar(navLinks: Modifier*) =
     navbar.basic(reverse.list(), "Pics", navLinks, navClass = s"${navbar.Navbar} navbar-expand-sm ${navbar.Light} ${navbar.BgLight}")
+
+  def emptyNavbar =
+    nav(`class` := s"${navbar.Navbar} ${navbar.Light} ${navbar.BgLight}")(
+      divClass(Container)(
+        a(`class` := navbar.Brand, href := reverse.list())("Pics")
+      )
+    )
 
   def basePage(conf: PageConf) = TagPage(
     html(lang := En)(

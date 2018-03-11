@@ -21,7 +21,9 @@ object PicsDatabase {
 
   def apply(ds: DataSource, profile: JdbcProfile) = new PicsDatabase(ds, profile, ExecutionContexts.cached)
 
-  def dev() = {
+  def dev() = Conf.fromEnv().map(maria).getOrElse(defaultFile())
+
+  def defaultFile() = {
     val path = sys.props.get("pics.home")
       .map(h => Paths.get(h))
       .getOrElse(FileUtilities.tempDir)
@@ -40,14 +42,14 @@ object PicsDatabase {
     h2(path.toString)
   }
 
-  def h2(memOrFile: String) = {
+  def h2(memOrFile: String): PicsDatabase = {
     val databaseUrlSettings = sys.props.get(PicsDatabase.H2UrlSettings)
       .map(_.trim)
       .filter(_.nonEmpty)
       .map(ss => s";$ss")
       .getOrElse("")
     val url = s"jdbc:h2:$memOrFile;DB_CLOSE_DELAY=-1$databaseUrlSettings"
-    log info s"Connecting to: $url"
+    log info s"Connecting to '$url'..."
     apply(JdbcConnectionPool.create(url, "", ""), H2Profile)
   }
 
@@ -57,12 +59,13 @@ object PicsDatabase {
 
   def mariaFromEnvOrFail() = maria(Conf.fromEnvOrFail())
 
-  def maria(conf: Conf) = {
+  def maria(conf: Conf): PicsDatabase = {
     val hikari = new HikariConfig()
     hikari.setDriverClassName("org.mariadb.jdbc.Driver")
     hikari.setJdbcUrl(conf.url)
     hikari.setUsername(conf.user)
     hikari.setPassword(conf.pass)
+    log info s"Connecting to '${conf.url}'..."
     apply(new HikariDataSource(hikari), MySQLProfile)
   }
 

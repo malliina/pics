@@ -22,6 +22,9 @@ POST          /sign-in                 controllers.PicsController.postSignIn
 GET           /sign-in/google          controllers.CognitoControl.google
 GET           /sign-in/facebook        controllers.CognitoControl.facebook
 GET           /sign-in/amazon          controllers.CognitoControl.amazon
+GET           /sign-out/leave          controllers.CognitoControl.signOut
+GET           /sign-out                controllers.CognitoControl.signOutCallback
+
 GET           /legal/privacy           controllers.PicsController.privacyPolicy
 GET           /support                 controllers.PicsController.support
 GET           /*key/small              controllers.PicsController.small(key: com.malliina.pics.Key)

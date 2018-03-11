@@ -1,37 +1,5 @@
 @item-margin: 10px;
 
-h1 {
-  margin-bottom: 35px;
-}
-
-/* http://bootsnipp.com/snippets/featured/bootstrap-drag-and-drop-upload */
-.upload-drop-zone {
-  height: 200px;
-  border-width: 2px;
-  margin-bottom: 20px;
-}
-
-.upload-drop-zone {
-  color: #ccc;
-  border-style: dashed;
-  border-color: #ccc;
-  line-height: 200px;
-  text-align: center
-}
-
-.upload-drop-zone.drop {
-  color: #222;
-  border-color: #222;
-}
-
-.hide {
-  display: none;
-}
-
-.top-padding {
-  padding-top: 60px;
-}
-
 .pics-container {
   padding-right: @item-margin;
   padding-left: @item-margin;
@@ -47,10 +15,6 @@ h1 {
 }
 
 .thumbnail {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   margin: 10px;
 
   width: 100%;
@@ -91,10 +55,16 @@ h1 {
 }
 
 .pic {
+  overflow: hidden;
   text-align: center;
 
+  width: 100%;
   max-width: 320px;
   height: 240px;
+
+  &.captioned {
+    margin-bottom: .5rem;
+  }
 
   @media (min-width: 725px) {
     width: 320px;
@@ -103,7 +73,9 @@ h1 {
 }
 
 .thumb {
-  max-height: 100%;
+  display: block;
+  height: auto;
+  width: 100%;
 }
 
 .caption {
@@ -123,6 +95,7 @@ h1 {
 
 .pic-link {
   margin-left: auto;
+  line-height: 31px;
 }
 
 .pics-feedback {

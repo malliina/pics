@@ -11,7 +11,7 @@ case class CognitoIdentityConf(clientId: String,
 
   def authUrlAmazon(state: String, redirUrl: FullUrl) = authUrl("LoginWithAmazon", state, redirUrl)
 
-  def authUrl(identityProvider: String, state: String, redirUrl: FullUrl) = {
+  def authUrl(identityProvider: String, state: String, redirUrl: FullUrl): FullUrl = {
     val queryParams = Map(
       "identity_provider" -> identityProvider,
       "redirect_uri" -> redirUrl.url,
@@ -22,6 +22,14 @@ case class CognitoIdentityConf(clientId: String,
     )
     val stringParams = stringify(queryParams)
     domain.append(s"/oauth2/authorize?$stringParams")
+  }
+
+  def logoutUrl(callback: FullUrl): FullUrl = {
+    val params = Map(
+      "client_id" -> clientId,
+      "logout_uri" -> callback.url
+    )
+    domain.append(s"/logout?${stringify(params)}")
   }
 
   def tokensUrl = domain.append(s"/oauth2/token")

@@ -58,10 +58,10 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
     if (readOnly) {
       thumb(pic, visible)
     } else {
-      val more = divClass("caption")(
+      val more = figcaption(`class` := "figure-caption caption")(
         div(
           postableForm(s"/pics/${pic.key}/delete")(
-            submitButton(`class` := s"${btn.danger} ${btn.sm}")("Delete")
+            submitButton(`class` := s"${btnOutline.danger} ${btn.sm}")("Delete")
           )
         ),
         divClass("pic-link")(a(href := pic.url)(pic.key)),
@@ -77,8 +77,11 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
   }
 
   def thumb(pic: BaseMeta, visible: Boolean, more: Modifier*) = {
-    divClass(names("thumbnail", if (visible) "" else "invisible"), id := thumbId(pic.key), dataIdAttr := pic.key)(
-      divClass("pic")(
+    figure(
+      `class` := names("figure thumbnail img-thumbnail", if (visible) "" else "invisible"),
+      id := thumbId(pic.key),
+      dataIdAttr := pic.key)(
+      divClass(names("pic", if (more.nonEmpty) "captioned" else ""))(
         a(href := pic.url)(
           img(src := pic.small, alt := pic.key, `class` := "thumb")
         )

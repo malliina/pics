@@ -36,12 +36,20 @@ class CognitoControl(conf: CognitoIdentityConf, actions: ActionBuilder[Request, 
 
   def amazon = socialLogin((state, redir) => conf.authUrlAmazon(state, redir))
 
-  def socialLogin(authUrl: (AuthState, FullUrl) => FullUrl) = actions { req =>
+  private def socialLogin(authUrl: (AuthState, FullUrl) => FullUrl) = actions { req =>
     val state = CognitoControl.randomState()
     Redirect(authUrl(state, redirUrl(req)).url).withSession(State -> state)
   }
 
   def redirUrl(rh: RequestHeader) = FullUrls(routes.CognitoControl.cognitoCallback(), rh)
+
+  def signOut = actions { req =>
+    Redirect(conf.logoutUrl(FullUrls(routes.CognitoControl.signOutCallback(), req)).url)
+  }
+
+  def signOutCallback = actions { _ =>
+    Redirect(routes.PicsController.list()).flashing("message" -> "You have now logged out.").withNewSession
+  }
 
   /** Called by Cognito when the authentication flow is complete.
     *
