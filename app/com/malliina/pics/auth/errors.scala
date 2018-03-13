@@ -3,9 +3,28 @@ package com.malliina.pics.auth
 import java.text.ParseException
 import java.time.Instant
 
+import play.api.libs.json.{JsError, JsPath, JsonValidationError}
+
 import scala.concurrent.duration.{Duration, DurationLong}
 
-sealed abstract class JWTError(val key: String) {
+sealed abstract class AuthError(val key: String) {
+  def message: String
+}
+
+object JsonError {
+  def apply(err: Seq[(JsPath, Seq[JsonValidationError])]): JsonError =
+    apply(JsError(err))
+
+  def apply(message: String): JsonError =
+    JsonError(JsError(message))
+}
+
+case class JsonError(err: JsError)
+  extends AuthError("json_error") {
+  override def message = s"JSON error. $err"
+}
+
+sealed abstract class JWTError(key: String) extends AuthError(key) {
   def token: TokenValue
 
   def message: String
@@ -16,6 +35,13 @@ case class Expired(token: TokenValue, exp: Instant, now: Instant)
   def since: Duration = (now.toEpochMilli - exp.toEpochMilli).millis
 
   override def message = s"Token expired $since ago, at $exp."
+}
+
+case class NotYetValid(token: TokenValue, nbf: Instant, now: Instant)
+  extends JWTError("not_yet_valid") {
+  def validIn = (nbf.toEpochMilli - now.toEpochMilli).millis
+
+  override def message = s"Token not yet valid. Valid in $validIn. Valid from $nbf, checked at $now."
 }
 
 case class IssuerMismatch(token: TokenValue, actual: String, expected: String)
@@ -43,3 +69,8 @@ case class ParseError(token: TokenValue, e: ParseException)
 
 case class MissingData(token: TokenValue, message: String)
   extends JWTError("missing_data")
+
+//case class JsonError(token: TokenValue, error: JsError)
+//  extends JWTError("json_error") {
+//  override def message = s"JSON error. $error"
+//}

@@ -17,6 +17,7 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
 
   val dataIdAttr = attr("data-id")
   val dataContentAttr = attr("data-content")
+  val novalidate = attr("novalidate").empty
 
   val Button = "button"
 

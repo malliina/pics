@@ -52,7 +52,8 @@ val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
     "com.zaxxer" % "HikariCP" % "2.7.8",
     "com.nimbusds" % "nimbus-jose-jwt" % "5.4",
     "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8",
-    "com.malliina" %% "logstreams-client" % "0.0.9"
+    "com.malliina" %% "logstreams-client" % "0.0.9",
+    "com.malliina" %% "okclient" % "1.3.5"
   ),
   pipelineStages := Seq(digest, gzip),
   // pipelineStages in Assets := Seq(digest, gzip)

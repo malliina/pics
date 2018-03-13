@@ -1,5 +1,7 @@
 package com.malliina.pics.auth
 
+import java.time.Instant
+
 import com.malliina.pics.PicOwner
 import com.malliina.play.models.Email
 import play.api.Logger
@@ -39,22 +41,7 @@ case class CognitoValidation(issuer: String,
 import com.malliina.pics.auth.CognitoValidator._
 
 abstract class CognitoValidator[T <: TokenValue, U](keys: Seq[KeyConf], issuer: String)
-  extends TokenValidator[T, U](keys, issuer) {
-
-  def checkClaim(key: String, expected: String, parsed: ParsedJWT): Either[JWTError, ParsedJWT] = {
-    parsed.readString(key).flatMap { actual =>
-      if (actual == expected) Right(parsed)
-      else Left(InvalidClaims(parsed.token, s"Claim '$key' must equal '$expected', was '$actual'."))
-    }
-  }
-
-  def checkContains(key: String, expected: String, parsed: ParsedJWT): Either[JWTError, Seq[String]] = {
-    parsed.readStringListOrEmpty(key).flatMap { arr =>
-      if (arr.contains(expected)) Right(arr)
-      else Left(InvalidClaims(parsed.token, s"Claim '$key' does not contain '$expected', was '${arr.mkString(", ")}'."))
-    }
-  }
-}
+  extends StaticTokenValidator[T, U](keys, issuer)
 
 class CognitoAccessValidator(keys: Seq[KeyConf], issuer: String, clientId: String)
   extends CognitoValidator[AccessToken, CognitoUser](keys, issuer) {
@@ -68,7 +55,7 @@ class CognitoAccessValidator(keys: Seq[KeyConf], issuer: String, clientId: Strin
     } yield CognitoUser(PicOwner(username), email.map(Email.apply), groups, verified)
   }
 
-  override protected def validateClaims(parsed: ParsedJWT): Either[JWTError, ParsedJWT] =
+  override protected def validateClaims(parsed: ParsedJWT, now: Instant): Either[JWTError, ParsedJWT] =
     for {
       _ <- checkClaim(TokenUse, Access, parsed)
       _ <- checkClaim(ClientId, clientId, parsed)
@@ -86,7 +73,7 @@ class CognitoIdValidator(keys: Seq[KeyConf], issuer: String, clientId: String)
     } yield CognitoUser(PicOwner(email.email), Option(email), groups, verified)
   }
 
-  override protected def validateClaims(parsed: ParsedJWT): Either[JWTError, ParsedJWT] =
+  override protected def validateClaims(parsed: ParsedJWT, now: Instant): Either[JWTError, ParsedJWT] =
     for {
       _ <- checkClaim(TokenUse, Id, parsed)
       _ <- checkContains(Aud, clientId, parsed)

@@ -1,7 +1,10 @@
 package com.malliina.pics.auth
 
+import java.text.ParseException
 import java.time.Instant
 
+import com.malliina.http.FullUrl
+import com.malliina.play.models.Email
 import com.malliina.values.JsonCompanion
 import com.nimbusds.jose.JWSAlgorithm
 import com.nimbusds.jose.jwk.KeyUse
@@ -32,18 +35,91 @@ abstract class TokenCompanion[T <: TokenValue] extends JsonCompanion[String, T] 
   override def write(t: T) = t.token
 }
 
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
+
 case class CognitoTokens(accessToken: AccessToken, idToken: IdToken, refreshToken: RefreshToken)
 
 object CognitoTokens {
-
-  import play.api.libs.functional.syntax._
-  import play.api.libs.json._
-
   implicit val json: Format[CognitoTokens] = (
     (JsPath \ "access_token").format[AccessToken] and
       (JsPath \ "id_token").format[IdToken] and
       (JsPath \ "refresh_token").format[RefreshToken]
     ) (CognitoTokens.apply, unlift(CognitoTokens.unapply))
+}
+
+case class GitHubTokens(accessToken: AccessToken, tokenType: String)
+
+object GitHubTokens {
+  implicit val json: Format[GitHubTokens] = (
+    (JsPath \ "access_token").format[AccessToken] and
+      (JsPath \ "token_type").formatWithDefault[String]("dummy")
+    ) (GitHubTokens.apply, unlift(GitHubTokens.unapply))
+}
+
+case class GitHubEmail(email: Email, primary: Boolean, verified: Boolean, visibility: Option[String])
+
+object GitHubEmail {
+  implicit val json = Json.format[GitHubEmail]
+}
+
+trait OpenIdConf {
+  def jwksUri: FullUrl
+}
+
+case class SimpleOpenIdConf(jwksUri: FullUrl) extends OpenIdConf
+
+object SimpleOpenIdConf {
+  implicit val reader = Reads[SimpleOpenIdConf] { json =>
+    (json \ "jwks_uri").validate[FullUrl].map(apply)
+  }
+}
+
+case class MicrosoftOAuthConf(authorizationEndpoint: FullUrl,
+                              tokenEndpoint: FullUrl,
+                              jwksUri: FullUrl,
+                              endSessionEndpoint: FullUrl,
+                              scopesSupported: Seq[String],
+                              issuer: String,
+                              claimsSupported: Seq[String]) extends OpenIdConf
+
+object MicrosoftOAuthConf {
+  implicit val reader: Reads[MicrosoftOAuthConf] = (
+    (JsPath \ "authorization_endpoint").read[FullUrl] and
+      (JsPath \ "token_endpoint").read[FullUrl] and
+      (JsPath \ "jwks_uri").read[FullUrl] and
+      (JsPath \ "end_session_endpoint").read[FullUrl] and
+      (JsPath \ "scopes_supported").read[Seq[String]] and
+      (JsPath \ "issuer").read[String] and
+      (JsPath \ "claims_supported").read[Seq[String]]
+    ) (MicrosoftOAuthConf.apply _)
+}
+
+/** https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-v2-protocols-oauth-code
+  *
+  * @param accessToken
+  * @param idToken      only returned if scope "openid" is requested
+  * @param refreshToken only returned if scope "offline_access" is requested
+  * @param tokenType    Bearer
+  * @param expiresIn    seconds
+  * @param scope
+  */
+case class MicrosoftTokens(idToken: IdToken,
+                           accessToken: Option[AccessToken],
+                           refreshToken: Option[RefreshToken],
+                           tokenType: Option[String],
+                           expiresIn: Option[Int],
+                           scope: Option[String])
+
+object MicrosoftTokens {
+  implicit val json: Format[MicrosoftTokens] = (
+    (JsPath \ "id_token").format[IdToken] and
+      (JsPath \ "access_token").formatNullable[AccessToken] and
+      (JsPath \ "refresh_token").formatNullable[RefreshToken] and
+      (JsPath \ "token_type").formatNullable[String] and
+      (JsPath \ "expires_in").formatNullable[Int] and
+      (JsPath \ "scope").formatNullable[String]
+    ) (MicrosoftTokens.apply, unlift(MicrosoftTokens.unapply))
 }
 
 case class ParsedJWT(jwt: SignedJWT,
@@ -67,7 +143,7 @@ case class ParsedJWT(jwt: SignedJWT,
     read(Option(claims.getStringListClaim(key)).map(_.asScala), key)
 
   def read[T](danger: => T, key: String): Either[JWTError, T] =
-    TokenValidator.read(token, danger, s"Claim missing: '$key'.")
+    StaticTokenValidator.read(token, danger, s"Claim missing: '$key'.")
 }
 
 case class Verified(parsed: ParsedJWT) {
@@ -82,6 +158,23 @@ case class KeyConf(n: Base64URL,
                    kty: String)
 
 object KeyConf {
+  implicit val reader = Reads[KeyConf] { json =>
+    for {
+      n <- (json \ "n").validate[String].map(new Base64URL(_))
+      kid <- (json \ "kid").validate[String]
+      use <- (json \ "use").validate[String].flatMap(parseUse)
+      e <- (json \ "e").validate[String].map(new Base64URL(_))
+      kty <- (json \ "kty").validate[String]
+    } yield KeyConf(n, kid, use, e, JWSAlgorithm.RS256, kty)
+  }
+
+  def parseUse(s: String): JsResult[KeyUse] =
+    try {
+      JsSuccess(KeyUse.parse(s))
+    } catch {
+      case pe: ParseException => JsError(pe.getMessage)
+    }
+
   val cognito = rsa(
     "poGdLTTbCHKgSg8uXc8jCNmzBg6CBbREelhbdwNwdt0HpbEKnt5D3IeateCPVv2zAwXHaRmT0OzgOz2T9nZnD1nLRO_cisIwfFQfrlooKO3xklLUleTnkBx2mLqgzvpvZ6y9oqgduH2ekGt7Pz8z9sB3T7X-4QBeuDaV67mxhoGtRnldDrOpHAXf4ILeuDXL-8-R7WfDHehlDofU4OU6Xhpe5gT0oj-L9q5T63IfTpblS5aKx346YfVjN1dx3G1Urclf6cTPSQpqgYYH1gx98Mf5T2UcRQ_GZSO7St1MBz9psfdlvP0kiegM4_mqyM_GzI5mLEss3KktdMhzBZZUJQ",
     "Ord14hhhzSdst7wfmIK59oBMEdxIEEerDlP3M5sjYCY=",
@@ -114,4 +207,10 @@ object KeyConf {
     JWSAlgorithm.RS256,
     "RSA"
   )
+}
+
+case class JWTKeys(keys: Seq[KeyConf])
+
+object JWTKeys {
+  implicit val json = Json.reads[JWTKeys]
 }

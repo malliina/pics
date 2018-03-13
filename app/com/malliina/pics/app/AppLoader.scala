@@ -54,5 +54,6 @@ abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials)
   val pics = new PicsController(html, service, sockets, auth, cache, controllerComponents)
   val cognitoControl = CognitoControl.pics(defaultActionBuilder)
   val picsAssets = new PicsAssets(assets)
-  override val router: Router = new Routes(httpErrorHandler, pics, admin, sockets, picsAssets, cognitoControl)
+  val social = Social.buildOrFail(defaultActionBuilder)
+  override val router: Router = new Routes(httpErrorHandler, pics, admin, sockets, picsAssets, cognitoControl, social)
 }
