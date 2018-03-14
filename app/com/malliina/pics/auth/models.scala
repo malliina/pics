@@ -4,6 +4,7 @@ import java.text.ParseException
 import java.time.Instant
 
 import com.malliina.http.FullUrl
+import com.malliina.json.JsonFormats
 import com.malliina.play.models.Email
 import com.malliina.values.JsonCompanion
 import com.nimbusds.jose.JWSAlgorithm
@@ -75,6 +76,18 @@ object SimpleOpenIdConf {
   }
 }
 
+case class AuthEndpoints(authorizationEndpoint: FullUrl,
+                         tokenEndpoint: FullUrl,
+                         jwksUri: FullUrl) extends OpenIdConf
+
+object AuthEndpoints {
+  implicit val reader: Reads[AuthEndpoints] = (
+    (JsPath \ "authorization_endpoint").read[FullUrl] and
+      (JsPath \ "token_endpoint").read[FullUrl] and
+      (JsPath \ "jwks_uri").read[FullUrl]
+    ) (AuthEndpoints.apply _)
+}
+
 case class MicrosoftOAuthConf(authorizationEndpoint: FullUrl,
                               tokenEndpoint: FullUrl,
                               jwksUri: FullUrl,
@@ -95,6 +108,18 @@ object MicrosoftOAuthConf {
     ) (MicrosoftOAuthConf.apply _)
 }
 
+trait TokenSet {
+  def idToken: IdToken
+}
+
+case class SimpleTokens(idToken: IdToken)
+
+object SimpleTokens {
+  implicit val reader = Reads[SimpleTokens] { json =>
+    (json \ "id_token").validate[IdToken].map(SimpleTokens(_))
+  }
+}
+
 /** https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-v2-protocols-oauth-code
   *
   * @param accessToken
@@ -108,18 +133,34 @@ case class MicrosoftTokens(idToken: IdToken,
                            accessToken: Option[AccessToken],
                            refreshToken: Option[RefreshToken],
                            tokenType: Option[String],
-                           expiresIn: Option[Int],
-                           scope: Option[String])
+                           expiresIn: Option[Duration],
+                           scope: Option[String]) extends TokenSet
 
 object MicrosoftTokens {
+  implicit val durFormat = JsonFormats.durationFormat
   implicit val json: Format[MicrosoftTokens] = (
     (JsPath \ "id_token").format[IdToken] and
       (JsPath \ "access_token").formatNullable[AccessToken] and
       (JsPath \ "refresh_token").formatNullable[RefreshToken] and
       (JsPath \ "token_type").formatNullable[String] and
-      (JsPath \ "expires_in").formatNullable[Int] and
+      (JsPath \ "expires_in").formatNullable[Duration] and
       (JsPath \ "scope").formatNullable[String]
     ) (MicrosoftTokens.apply, unlift(MicrosoftTokens.unapply))
+}
+
+case class GoogleTokens(idToken: IdToken,
+                        accessToken: AccessToken,
+                        expiresIn: Duration,
+                        tokenType: String) extends TokenSet
+
+object GoogleTokens {
+  implicit val durFormat = JsonFormats.durationFormat
+  implicit val json: Format[GoogleTokens] = (
+    (JsPath \ "id_token").format[IdToken] and
+      (JsPath \ "access_token").format[AccessToken] and
+      (JsPath \ "expires_in").format[Duration] and
+      (JsPath \ "token_type").format[String]
+    ) (GoogleTokens.apply, unlift(GoogleTokens.unapply))
 }
 
 case class ParsedJWT(jwt: SignedJWT,

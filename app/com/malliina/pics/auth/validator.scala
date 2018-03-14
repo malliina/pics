@@ -3,10 +3,13 @@ package com.malliina.pics.auth
 import java.text.ParseException
 import java.time.Instant
 
+import com.malliina.pics.auth.StaticTokenValidator.read
 import com.nimbusds.jose.crypto.RSASSAVerifier
 import com.nimbusds.jose.jwk.RSAKey
 import com.nimbusds.jwt.SignedJWT
 import play.api.Logger
+
+case class Code(code: String)
 
 object StaticTokenValidator {
   def read[T](token: TokenValue, f: => T, onMissing: => String): Either[JWTError, T] =
@@ -34,23 +37,34 @@ abstract class StaticTokenValidator[T <: TokenValue, U](keys: Seq[KeyConf], issu
   protected def toUser(v: Verified): Either[JWTError, U]
 }
 
+object GoogleValidator {
+  val issuers = Seq("https://accounts.google.com", "accounts.google.com")
+
+  def apply(clientId: String) = new GoogleValidator(clientId, issuers)
+}
+
+class GoogleValidator(clientId: String, issuers: Seq[String]) extends TokenValidator(issuers) {
+  override protected def validateClaims(parsed: ParsedJWT, now: Instant): Either[JWTError, ParsedJWT] = {
+    for {
+      _ <- checkContains(CognitoValidator.Aud, clientId, parsed)
+    } yield parsed
+  }
+}
+
 object MicrosoftValidator {
   val issuerMicrosoftConsumer = "https://login.microsoftonline.com/9188040d-6c67-4c5b-b112-36a304b66dad/v2.0"
 
-  def apply(clientId: String) = new MicrosoftValidator(issuerMicrosoftConsumer, clientId)
+  def apply(clientId: String) = new MicrosoftValidator(clientId, issuerMicrosoftConsumer)
 }
 
-class MicrosoftValidator(issuer: String, clientId: String) extends TokenValidator(issuer) {
-
-  import StaticTokenValidator.read
-
+class MicrosoftValidator(clientId: String, issuer: String) extends TokenValidator(issuer) {
   override protected def validateClaims(parsed: ParsedJWT, now: Instant): Either[JWTError, ParsedJWT] =
     for {
       _ <- checkContains(CognitoValidator.Aud, clientId, parsed)
       _ <- checkNbf(parsed, now)
     } yield parsed
 
-  def checkNbf(parsed: ParsedJWT, now: Instant) =
+  def checkNbf(parsed: ParsedJWT, now: Instant): Either[JWTError, Instant] =
     read(parsed.token, parsed.claims.getNotBeforeTime, "nbf").flatMap { nbf =>
       val nbfInstant = nbf.toInstant
       if (now.isBefore(nbfInstant)) Left(NotYetValid(parsed.token, nbfInstant, now))
@@ -58,9 +72,8 @@ class MicrosoftValidator(issuer: String, clientId: String) extends TokenValidato
     }
 }
 
-abstract class TokenValidator(issuer: String) {
-
-  import StaticTokenValidator.read
+abstract class TokenValidator(issuers: Seq[String]) {
+  def this(issuer: String) = this(Seq(issuer))
 
   protected def validateClaims(parsed: ParsedJWT, now: Instant): Either[JWTError, ParsedJWT]
 
@@ -81,8 +94,8 @@ abstract class TokenValidator(issuer: String) {
   protected def verify(parsed: ParsedJWT, keys: Seq[KeyConf], now: Instant): Either[JWTError, Verified] = {
     val now = Instant.now()
     val token = parsed.token
-    if (parsed.iss != issuer) {
-      Left(IssuerMismatch(token, parsed.iss, issuer))
+    if (!issuers.contains(parsed.iss)) {
+      Left(IssuerMismatch(token, parsed.iss, issuers))
     } else {
       keys.find(_.kid == parsed.kid).map { keyConf =>
         val verifier = buildVerifier(keyConf)

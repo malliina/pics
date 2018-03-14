@@ -44,9 +44,9 @@ case class NotYetValid(token: TokenValue, nbf: Instant, now: Instant)
   override def message = s"Token not yet valid. Valid in $validIn. Valid from $nbf, checked at $now."
 }
 
-case class IssuerMismatch(token: TokenValue, actual: String, expected: String)
+case class IssuerMismatch(token: TokenValue, actual: String, allowed: Seq[String])
   extends JWTError("issuer_mismatch") {
-  def message = s"Issuer mismatch. Expected '$expected', got '$actual'."
+  def message = s"Issuer mismatch. Got '$actual', but expected one of '${allowed.mkString(", ")}'."
 }
 
 case class InvalidSignature(token: TokenValue)
