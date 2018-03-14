@@ -34,7 +34,7 @@ val commonSettings = Seq(
   libraryDependencies ++= Seq(
     "com.lihaoyi" %%% "scalatags" % "0.6.7",
     "com.typesafe.play" %%% "play-json" % "2.6.8",
-    "com.malliina" %%% "primitives" % "1.3.5",
+    "com.malliina" %%% "primitives" % "1.4.0",
     "com.malliina" %%% "util-html" % utilPlayVersion
   )
 )
@@ -53,7 +53,7 @@ val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
     "com.nimbusds" % "nimbus-jose-jwt" % "5.4",
     "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8",
     "com.malliina" %% "logstreams-client" % "0.0.9",
-    "com.malliina" %% "okclient" % "1.3.5"
+    "com.malliina" %% "okclient" % "1.4.0"
   ),
   pipelineStages := Seq(digest, gzip),
   // pipelineStages in Assets := Seq(digest, gzip)

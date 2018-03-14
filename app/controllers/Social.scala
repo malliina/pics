@@ -30,6 +30,8 @@ object Social {
 
     def google = readConf("google_client_id", "google_client_secret")
 
+    def facebook = readConf("facebook_client_id", "facebook_client_secret")
+
     def readConf(clientIdKey: String, clientSecretKey: String) = {
       val attempt = for {
         clientId <- read(clientIdKey)
@@ -40,17 +42,19 @@ object Social {
   }
 
   def buildOrFail(actions: ActionBuilder[Request, AnyContent]) =
-    new Social(actions, Conf.github, Conf.microsoft, Conf.google)
+    new Social(actions, Conf.github, Conf.microsoft, Conf.google, Conf.facebook)
 }
 
 class Social(actions: ActionBuilder[Request, AnyContent],
              githubConf: Conf,
              microsoftConf: Conf,
-             googleConf: Conf) {
+             googleConf: Conf,
+             facebookConf: Conf) {
   val httpClient = new AsyncHttp()
   val microsoftValidator = StandardCodeValidator(CodeValidationConf.microsoft(routes.Social.microsoftCallback(), microsoftConf, httpClient))
   val gitHubValidator = new GitHubCodeValidator(githubConf, httpClient)
   val googleValidator = StandardCodeValidator(CodeValidationConf.google(routes.Social.googleCallback(), googleConf, httpClient))
+  val facebookValidator = new FacebookCodeValidator(routes.Social.facebookCallback(), facebookConf, httpClient)
 
   def microsoft = actions.async { req => microsoftValidator.start(req) }
 
@@ -63,6 +67,10 @@ class Social(actions: ActionBuilder[Request, AnyContent],
   def google2 = actions.async { req => googleValidator.start(req) }
 
   def googleCallback = actions.async { req => googleValidator.validateCode(req) }
+
+  def facebook2 = actions.async { req => facebookValidator.start(req) }
+
+  def facebookCallback = actions.async { req => facebookValidator.validateCode(req) }
 
   def twitter = actions {
     Ok

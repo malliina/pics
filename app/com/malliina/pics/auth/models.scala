@@ -163,6 +163,23 @@ object GoogleTokens {
     ) (GoogleTokens.apply, unlift(GoogleTokens.unapply))
 }
 
+case class FacebookTokens(accessToken: AccessToken, tokenType: String, expiresIn: Duration)
+
+object FacebookTokens {
+  implicit val durFormat = JsonFormats.durationFormat
+  implicit val json: Format[FacebookTokens] = (
+    (JsPath \ "access_token").format[AccessToken] and
+      (JsPath \ "token_type").format[String] and
+      (JsPath \ "expires_in").format[Duration]
+    ) (FacebookTokens.apply, unlift(FacebookTokens.unapply))
+}
+
+case class EmailResponse(email: Email)
+
+object EmailResponse {
+  implicit val json = Json.format[EmailResponse]
+}
+
 case class ParsedJWT(jwt: SignedJWT,
                      claims: JWTClaimsSet,
                      kid: String,

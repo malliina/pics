@@ -19,8 +19,7 @@ object JsonError {
     JsonError(JsError(message))
 }
 
-case class JsonError(err: JsError)
-  extends AuthError("json_error") {
+case class JsonError(err: JsError) extends AuthError("json_error") {
   override def message = s"JSON error. $err"
 }
 
@@ -69,8 +68,3 @@ case class ParseError(token: TokenValue, e: ParseException)
 
 case class MissingData(token: TokenValue, message: String)
   extends JWTError("missing_data")
-
-//case class JsonError(token: TokenValue, error: JsError)
-//  extends JWTError("json_error") {
-//  override def message = s"JSON error. $error"
-//}
