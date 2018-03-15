@@ -20,8 +20,8 @@ object AuthHtml extends HtmlBuilder(new com.malliina.html.Tags(scalatags.Text)) 
   def signIn(feedback: Option[UserFeedback] = None) = {
     val heading = fullRow(h1("Sign In"))
     val socials = rowColumn(s"${col.md.twelve} social-container")(
-      socialButton("google", routes.CognitoControl.google(), "Sign in with Google"),
-      socialButton("facebook", routes.CognitoControl.facebook(), "Sign in with Facebook"),
+      socialButton("google", routes.Social.google(), "Sign in with Google"),
+      socialButton("facebook", routes.Social.facebook(), "Sign in with Facebook"),
       socialButton("amazon", routes.CognitoControl.amazon(), "Sign in with Amazon"),
       socialButton("google", routes.Social.github(), "Sign in with GitHub"),
       socialButton("google", routes.Social.twitter(), "Sign in with Twitter"),

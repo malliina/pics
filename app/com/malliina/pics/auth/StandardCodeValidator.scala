@@ -5,7 +5,6 @@ import com.malliina.pics.auth.CodeValidator._
 import com.malliina.play.json.JsonMessages
 import com.malliina.play.models.Email
 import controllers.CognitoControl
-import controllers.Social.Conf
 import play.api.Logger
 import play.api.mvc.Results.{BadGateway, Redirect}
 import play.api.mvc.{Call, RequestHeader, Result}
@@ -13,20 +12,20 @@ import play.api.mvc.{Call, RequestHeader, Result}
 import scala.concurrent.Future
 
 case class CodeValidationConf(redirCall: Call,
-                              conf: Conf,
+                              conf: AuthConf,
                               client: KeyClient,
                               extraStartParams: Map[String, String] = Map.empty,
                               extraValidateParams: Map[String, String] = Map.empty)
 
 object CodeValidationConf {
-  def google(redirCall: Call, conf: Conf, http: AsyncHttp) = CodeValidationConf(
+  def google(redirCall: Call, conf: AuthConf, http: AsyncHttp) = CodeValidationConf(
     redirCall,
     conf,
     KeyClient.google(conf.clientId, http),
     Map(LoginHint -> "sub")
   )
 
-  def microsoft(redirCall: Call, conf: Conf, http: AsyncHttp) = CodeValidationConf(
+  def microsoft(redirCall: Call, conf: AuthConf, http: AsyncHttp) = CodeValidationConf(
     redirCall,
     conf,
     KeyClient.microsoft(conf.clientId, http),
@@ -40,7 +39,8 @@ object StandardCodeValidator {
 }
 
 class StandardCodeValidator(codeConf: CodeValidationConf)
-  extends CodeValidator with StateValidation {
+  extends CodeValidator
+    with StateValidation {
   private val log = Logger(getClass)
   val conf = codeConf.conf
   val redirCall = codeConf.redirCall
@@ -76,16 +76,14 @@ class StandardCodeValidator(codeConf: CodeValidationConf)
       GrantType -> AuthorizationCode
     ) ++ codeConf.extraValidateParams
     fetchConf().flatMapRight { oauthConf =>
-      http.postForm(oauthConf.tokenEndpoint.url, params).flatMap { res =>
-        res.parse[SimpleTokens].fold(err => fut(Left(JsonError(err))), tokens => {
-          client.validate(tokens.idToken).map { result =>
-            for {
-              verified <- result
-              _ <- checkNonce(tokens.idToken, verified, req)
-              email <- verified.parsed.readString(EmailKey).map(Email.apply)
-            } yield email
-          }
-        })
+      readAs[SimpleTokens](http.postForm(oauthConf.tokenEndpoint.url, params)).flatMapRight { tokens =>
+        client.validate(tokens.idToken).map { result =>
+          for {
+            verified <- result
+            _ <- checkNonce(tokens.idToken, verified, req)
+            email <- verified.parsed.readString(EmailKey).map(Email.apply)
+          } yield email
+        }
       }
     }
   }
@@ -97,7 +95,5 @@ class StandardCodeValidator(codeConf: CodeValidationConf)
     }
 
   def fetchConf(): Future[Either[JsonError, AuthEndpoints]] =
-    http.get(client.knownUrl.url).map { res =>
-      res.parse[AuthEndpoints].asEither.left.map(err => JsonError(err))
-    }
+    readAs[AuthEndpoints](http.get(client.knownUrl.url))
 }

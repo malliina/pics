@@ -14,6 +14,32 @@ import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 
 import scala.concurrent.duration.{Duration, DurationLong}
 
+case class AuthConf(clientId: String, clientSecret: String)
+
+object AuthConf {
+
+  def read(key: String) = sys.env.get(key).orElse(sys.props.get(key))
+    .toRight(s"Key missing: '$key'. Set it as an environment variable or system property.")
+
+  def orFail(read: Either[String, AuthConf]) = read.fold(err => throw new Exception(err), identity)
+
+  def github = readConf("github_client_id", "github_client_secret")
+
+  def microsoft = readConf("microsoft_client_id", "microsoft_client_secret")
+
+  def google = readConf("google_client_id", "google_client_secret")
+
+  def facebook = readConf("facebook_client_id", "facebook_client_secret")
+
+  def readConf(clientIdKey: String, clientSecretKey: String) = {
+    val attempt = for {
+      clientId <- read(clientIdKey)
+      clientSecret <- read(clientSecretKey)
+    } yield AuthConf(clientId, clientSecret)
+    orFail(attempt)
+  }
+}
+
 sealed trait TokenValue {
   def token: String
 

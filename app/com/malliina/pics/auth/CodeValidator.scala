@@ -4,12 +4,14 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 import com.malliina.concurrent.ExecutionContexts
+import com.malliina.http.WebResponse
 import com.malliina.pics.auth.CodeValidator._
 import com.malliina.play.http.FullUrls
 import com.malliina.play.json.JsonMessages
 import com.malliina.play.models.Email
 import controllers.routes
 import play.api.Logger
+import play.api.libs.json.Reads
 import play.api.mvc.Results.Redirect
 import play.api.mvc.{Call, RequestHeader, Result, Results}
 
@@ -104,4 +106,7 @@ trait CodeValidator {
   protected def fut[T](t: T) = Future.successful(t)
 
   protected def redirUrl(call: Call, rh: RequestHeader) = FullUrls(call, rh)
+
+  def readAs[T: Reads](response: Future[WebResponse]) =
+    response.map(_.parse[T].asEither.left.map(err => JsonError(err)))
 }

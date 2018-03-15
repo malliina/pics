@@ -3,14 +3,13 @@ package com.malliina.pics.auth
 import com.malliina.http.AsyncHttp
 import com.malliina.pics.auth.CodeValidator._
 import com.malliina.play.models.Email
-import controllers.Social.Conf
 import play.api.http.{HeaderNames, MimeTypes}
 import play.api.mvc.Results.Redirect
 import play.api.mvc.{RequestHeader, Result}
 
 import scala.concurrent.Future
 
-class GitHubCodeValidator(conf: Conf, http: AsyncHttp)
+class GitHubCodeValidator(conf: AuthConf, http: AsyncHttp)
   extends CodeValidator
     with NoStateValidation {
 
@@ -31,28 +30,14 @@ class GitHubCodeValidator(conf: Conf, http: AsyncHttp)
       ClientSecret -> conf.clientSecret,
       CodeKey -> code.code
     )
-    http.postEmpty("https://github.com/login/oauth/access_token", headers, params).flatMap { res =>
-      res.parse[GitHubTokens].fold(
-        err => {
-          fut(Left(JsonError(err)))
-        },
-        tokens => {
-          http.get(s"https://api.github.com/user/emails?access_token=${tokens.accessToken}").map { res =>
-            res.parse[Seq[GitHubEmail]].map(_.find(e => e.primary && e.verified)).fold(
-              err => {
-                Left(JsonError(err))
-              },
-              maybePrimary => {
-                maybePrimary.map { primary =>
-                  Right(primary.email)
-                }.getOrElse {
-                  Left(JsonError("No primary and verified email found."))
-                }
-              }
-            )
-          }
+    readAs[GitHubTokens](http.postEmpty("https://github.com/login/oauth/access_token", headers, params)).flatMapRight { tokens =>
+      readAs[Seq[GitHubEmail]](http.get(s"https://api.github.com/user/emails?access_token=${tokens.accessToken}")).mapRight { emails =>
+        emails.find(email => email.primary && email.verified).map { primaryEmail =>
+          Right(primaryEmail.email)
+        }.getOrElse {
+          Left(JsonError("No primary and verified email found."))
         }
-      )
+      }
     }
   }
 }

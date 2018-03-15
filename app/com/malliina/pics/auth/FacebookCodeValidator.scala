@@ -5,14 +5,14 @@ import com.malliina.pics.auth.CodeValidator._
 import com.malliina.play.http.FullUrls
 import com.malliina.play.models.Email
 import controllers.CognitoControl
-import controllers.Social.Conf
 import play.api.mvc.Results.Redirect
 import play.api.mvc.{Call, RequestHeader, Result}
 
 import scala.concurrent.Future
 
-class FacebookCodeValidator(redirCall: Call, conf: Conf, http: AsyncHttp)
-  extends CodeValidator with StateValidation {
+class FacebookCodeValidator(redirCall: Call, conf: AuthConf, http: AsyncHttp)
+  extends CodeValidator
+    with StateValidation {
 
   override def start(req: RequestHeader): Future[Result] = {
     val baseUrl = "https://www.facebook.com/v2.12/dialog/oauth?"
@@ -35,12 +35,10 @@ class FacebookCodeValidator(redirCall: Call, conf: Conf, http: AsyncHttp)
       CodeKey -> code.code
     )
     val url = FullUrl("https", "graph.facebook.com", s"/v2.12/oauth/access_token?${stringify(params)}")
-    http.get(url.url).map { res => res.parse[FacebookTokens].asEither.left.map(err => JsonError(err)) }.flatMapRight { tokens =>
+    readAs[FacebookTokens](http.get(url.url)).flatMapRight { tokens =>
       // https://developers.facebook.com/docs/php/howto/example_retrieve_user_profile
       val emailUrl = FullUrl("https", "graph.facebook.com", s"/v2.12/me?fields=email&access_token=${tokens.accessToken}")
-      http.get(emailUrl.url).map { emailResponse =>
-        emailResponse.parse[EmailResponse].asEither.left.map(err => JsonError(err)).map(_.email)
-      }
+      readAs[EmailResponse](http.get(emailUrl.url)).mapR(_.email)
     }
   }
 }
