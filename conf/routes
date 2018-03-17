@@ -16,7 +16,6 @@ GET           /oauth                              controllers.Admin.initiate
 GET           /oauthcb                            controllers.Admin.redirResponse
 GET           /eject                              controllers.Admin.ejectUser
 GET           /login                              controllers.PicsController.signInSingle
-GET           /cognito                            controllers.CognitoControl.cognitoCallback
 GET           /sign-in                            controllers.PicsController.signIn
 POST          /sign-in                            controllers.PicsController.postSignIn
 #GET           /sign-in/google                     controllers.CognitoControl.google
@@ -27,6 +26,7 @@ GET           /sign-in/github                     controllers.Social.github
 GET           /sign-in/microsoft                  controllers.Social.microsoft
 GET           /sign-in/google                     controllers.Social.google
 GET           /sign-in/facebook                   controllers.Social.facebook
+GET           /sign-in/callbacks/amazon           controllers.CognitoControl.cognitoCallback
 GET           /sign-in/callbacks/twitter          controllers.Social.twitterCallback
 GET           /sign-in/callbacks/github           controllers.Social.githubCallback
 GET           /sign-in/callbacks/microsoft        controllers.Social.microsoftCallback

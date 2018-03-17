@@ -14,6 +14,8 @@ import play.api.routing.Router
 import play.api.{BuiltInComponentsFromContext, Logger, Mode, NoHttpFiltersComponents}
 import router.Routes
 
+import scala.concurrent.Future
+
 class AppLoader extends DefaultApp(ctx => new AppComponents(ctx, GoogleOAuthReader.load))
 
 class AppComponents(context: Context, creds: GoogleOAuthCredentials) extends BaseComponents(context, creds) {
@@ -56,4 +58,8 @@ abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials)
   val picsAssets = new PicsAssets(assets)
   val social = Social.buildOrFail(defaultActionBuilder)
   override val router: Router = new Routes(httpErrorHandler, pics, admin, sockets, picsAssets, cognitoControl, social)
+
+  applicationLifecycle.addStopHook { () =>
+    Future.successful(db.database.close())
+  }
 }

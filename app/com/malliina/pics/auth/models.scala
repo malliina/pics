@@ -31,6 +31,8 @@ object AuthConf {
 
   def facebook = readConf("facebook_client_id", "facebook_client_secret")
 
+  def twitter = readConf("twitter_client_id", "twitter_client_secret")
+
   def readConf(clientIdKey: String, clientSecretKey: String) = {
     val attempt = for {
       clientId <- read(clientIdKey)
@@ -57,6 +59,12 @@ object IdToken extends TokenCompanion[IdToken]
 case class RefreshToken(token: String) extends TokenValue
 
 object RefreshToken extends TokenCompanion[RefreshToken]
+
+case class RequestToken(token: String) extends TokenValue
+
+object RequestToken extends TokenCompanion[RequestToken] {
+  val Key = "request_token"
+}
 
 abstract class TokenCompanion[T <: TokenValue] extends JsonCompanion[String, T] {
   override def write(t: T) = t.token
@@ -148,12 +156,10 @@ object SimpleTokens {
 
 /** https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-v2-protocols-oauth-code
   *
-  * @param accessToken
   * @param idToken      only returned if scope "openid" is requested
   * @param refreshToken only returned if scope "offline_access" is requested
   * @param tokenType    Bearer
   * @param expiresIn    seconds
-  * @param scope
   */
 case class MicrosoftTokens(idToken: IdToken,
                            accessToken: Option[AccessToken],
@@ -198,6 +204,58 @@ object FacebookTokens {
       (JsPath \ "token_type").format[String] and
       (JsPath \ "expires_in").format[Duration]
     ) (FacebookTokens.apply, unlift(FacebookTokens.unapply))
+}
+
+case class TwitterTokens(oauthToken: RequestToken, oauthTokenSecret: String, oauthCallbackConfirmed: Boolean)
+
+object TwitterTokens {
+  def fromString(in: String) = {
+    val map = in.split("&").toList.flatMap { kv =>
+      val parts = kv.split("=")
+      if (parts.length == 2) {
+        val Array(k, v) = parts
+        Option(k -> v)
+      } else {
+        None
+      }
+    }.toMap
+    for {
+      ot <- map.get("oauth_token").map(RequestToken.apply)
+      ots <- map.get("oauth_token_secret")
+      c <- map.get("oauth_callback_confirmed")
+    } yield TwitterTokens(ot, ots, c == "true")
+  }
+}
+
+case class TwitterAccess(oauthToken: AccessToken, oauthTokenSecret: String)
+
+object TwitterAccess {
+  def fromString(in: String) = {
+    val map = in.split("&").toList.flatMap { kv =>
+      val parts = kv.split("=")
+      if (parts.length == 2) {
+        val Array(k, v) = parts
+        Option(k -> v)
+      } else {
+        None
+      }
+    }.toMap
+    for {
+      ot <- map.get("oauth_token").map(AccessToken.apply)
+      ots <- map.get("oauth_token_secret")
+    } yield TwitterAccess(ot, ots)
+  }
+}
+
+case class TwitterUser(id: String, name: String, screenName: String, email: Option[Email])
+
+object TwitterUser {
+  implicit val json: Format[TwitterUser] = (
+    (JsPath \ "id_str").format[String] and
+      (JsPath \ "name").format[String] and
+      (JsPath \ "screen_name").format[String] and
+      (JsPath \ "email").formatNullable[Email]
+    ) (TwitterUser.apply, unlift(TwitterUser.unapply))
 }
 
 case class EmailResponse(email: Email)
