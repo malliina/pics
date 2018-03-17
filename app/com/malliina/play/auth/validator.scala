@@ -1,9 +1,9 @@
-package com.malliina.pics.auth
+package com.malliina.play.auth
 
 import java.text.ParseException
 import java.time.Instant
 
-import com.malliina.pics.auth.StaticTokenValidator.read
+import com.malliina.play.auth.StaticTokenValidator.read
 import com.nimbusds.jose.crypto.RSASSAVerifier
 import com.nimbusds.jose.jwk.RSAKey
 import com.nimbusds.jwt.SignedJWT

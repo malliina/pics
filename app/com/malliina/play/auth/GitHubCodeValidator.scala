@@ -1,7 +1,7 @@
-package com.malliina.pics.auth
+package com.malliina.play.auth
 
 import com.malliina.http.AsyncHttp
-import com.malliina.pics.auth.CodeValidator._
+import com.malliina.play.auth.CodeValidator._
 import com.malliina.play.models.Email
 import play.api.http.{HeaderNames, MimeTypes}
 import play.api.mvc.Results.Redirect

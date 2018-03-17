@@ -1,11 +1,11 @@
-package com.malliina.pics.auth
+package com.malliina.play.auth
 
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 import com.malliina.concurrent.ExecutionContexts
 import com.malliina.http.WebResponse
-import com.malliina.pics.auth.AuthValidator.log
+import com.malliina.play.auth.AuthValidator.log
 import com.malliina.play.http.FullUrls
 import com.malliina.play.json.JsonMessages
 import com.malliina.play.models.Email

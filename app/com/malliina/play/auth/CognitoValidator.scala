@@ -1,4 +1,4 @@
-package com.malliina.pics.auth
+package com.malliina.play.auth
 
 import java.time.Instant
 
@@ -38,7 +38,7 @@ case class CognitoValidation(issuer: String,
                              clientIdKey: String,
                              clientId: String)
 
-import com.malliina.pics.auth.CognitoValidator._
+import com.malliina.play.auth.CognitoValidator._
 
 abstract class CognitoValidator[T <: TokenValue, U](keys: Seq[KeyConf], issuer: String)
   extends StaticTokenValidator[T, U](keys, issuer)

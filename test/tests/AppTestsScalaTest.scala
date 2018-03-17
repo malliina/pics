@@ -3,7 +3,8 @@ package tests
 import com.malliina.oauth.GoogleOAuthCredentials
 import com.malliina.pics._
 import com.malliina.pics.app.BaseComponents
-import com.malliina.pics.auth.{AccessToken, AuthConf, CognitoUser, PicsAuthLike}
+import com.malliina.pics.auth.PicsAuthLike
+import com.malliina.play.auth.{AccessToken, AuthConf, CognitoUser}
 import controllers.Social.SocialConf
 import play.api.ApplicationLoader.Context
 import play.api.mvc.{RequestHeader, Result}

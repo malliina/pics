@@ -3,6 +3,7 @@ package controllers
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.http.AsyncHttp
 import com.malliina.pics.auth._
+import com.malliina.play.auth._
 import controllers.Social.SocialConf
 import play.api.mvc._
 

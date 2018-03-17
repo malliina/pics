@@ -1,7 +1,7 @@
-package com.malliina.pics.auth
+package com.malliina.play.auth
 
 import com.malliina.http.FullUrl
-import com.malliina.pics.auth.TwitterValidator._
+import com.malliina.play.auth.TwitterValidator._
 import org.scalatest.FunSuite
 
 import scala.collection.SortedMap

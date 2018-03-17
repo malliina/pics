@@ -1,4 +1,4 @@
-package com.malliina.pics.auth
+package com.malliina.play.auth
 
 import org.scalatest.FunSuite
 

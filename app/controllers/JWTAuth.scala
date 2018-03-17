@@ -2,6 +2,7 @@ package controllers
 
 import com.malliina.pics.auth._
 import com.malliina.pics.{Errors, PicRequest, SingleError}
+import com.malliina.play.auth._
 import controllers.JWTAuth.log
 import play.api.Logger
 import play.api.http.HeaderNames.AUTHORIZATION

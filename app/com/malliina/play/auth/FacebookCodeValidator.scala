@@ -1,7 +1,7 @@
-package com.malliina.pics.auth
+package com.malliina.play.auth
 
 import com.malliina.http.{AsyncHttp, FullUrl}
-import com.malliina.pics.auth.CodeValidator._
+import com.malliina.play.auth.CodeValidator._
 import com.malliina.play.http.FullUrls
 import com.malliina.play.models.Email
 import controllers.CognitoControl

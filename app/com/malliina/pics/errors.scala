@@ -3,7 +3,7 @@ package com.malliina.pics
 import java.io.IOException
 import java.nio.file.Path
 
-import com.malliina.pics.auth.JWTError
+import com.malliina.play.auth.JWTError
 import com.sksamuel.scrimage.ImageParseException
 import play.api.http.Writeable
 import play.api.libs.json.Json

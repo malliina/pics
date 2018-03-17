@@ -1,4 +1,4 @@
-package com.malliina.pics.auth
+package com.malliina.play.auth
 
 import com.malliina.pics.PicOwner
 import com.malliina.play.models.Email

@@ -1,4 +1,4 @@
-package com.malliina.pics.auth
+package com.malliina.play.auth
 
 import java.nio.charset.StandardCharsets
 import java.time.Instant
@@ -6,7 +6,7 @@ import java.util.Base64
 
 import com.malliina.http.AsyncHttp.ContentTypeHeaderName
 import com.malliina.http.{AsyncHttp, FullUrl}
-import com.malliina.pics.auth.TwitterValidator._
+import com.malliina.play.auth.TwitterValidator._
 import com.malliina.play.http.FullUrls
 import controllers.CognitoControl
 import org.apache.commons.codec.digest.HmacUtils

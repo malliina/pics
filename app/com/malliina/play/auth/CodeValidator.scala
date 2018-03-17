@@ -1,8 +1,8 @@
-package com.malliina.pics.auth
+package com.malliina.play.auth
 
 import com.malliina.concurrent.ExecutionContexts
 import com.malliina.http.WebResponse
-import com.malliina.pics.auth.CodeValidator._
+import com.malliina.play.auth.CodeValidator._
 import com.malliina.play.models.Email
 import play.api.Logger
 import play.api.libs.json.Reads

@@ -2,8 +2,9 @@ package com.malliina.pics.auth
 
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.pics.{Errors, PicRequest}
-import com.malliina.play.auth.MissingCredentials
+import com.malliina.play.auth.{MissingCredentials, AccessToken}
 import com.malliina.play.controllers.AuthBundle
+import com.malliina.play.auth.CognitoUser
 import controllers.{JWTAuth, PicsController}
 import play.api.http.{HeaderNames, MediaRange}
 import play.api.mvc.{RequestHeader, Result, Results}

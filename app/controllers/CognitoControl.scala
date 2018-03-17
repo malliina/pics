@@ -6,7 +6,7 @@ import java.security.SecureRandom
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.http.{AsyncHttp, FullUrl}
 import com.malliina.oauth.GoogleOAuth
-import com.malliina.pics.auth._
+import com.malliina.play.auth.{CognitoIdentityConf, CognitoTokens, CognitoValidator}
 import com.malliina.play.http.FullUrls
 import com.malliina.play.json.JsonMessages
 import controllers.CognitoControl.log

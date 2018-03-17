@@ -5,10 +5,11 @@ import java.time.Instant
 
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.html.UserFeedback
-import com.malliina.pics.LoginStrings.{AuthFailed, MfaRequired}
+import com.malliina.pics.LoginStrings.AuthFailed
 import com.malliina.pics._
-import com.malliina.pics.auth.{AccessToken, PicsAuth}
+import com.malliina.pics.auth.PicsAuth
 import com.malliina.pics.html.PicsHtml
+import com.malliina.play.auth.AccessToken
 import com.malliina.play.controllers._
 import com.malliina.play.http.Proxies
 import com.sksamuel.scrimage.ImageParseException
