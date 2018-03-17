@@ -6,6 +6,7 @@ import com.malliina.pics.auth.{PicsAuth, PicsAuthLike, PicsAuthenticator}
 import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.html.PicsHtml
 import com.malliina.play.app.DefaultApp
+import controllers.Social.SocialConf
 import controllers._
 import play.api.ApplicationLoader.Context
 import play.api.cache.Cached
@@ -16,9 +17,10 @@ import router.Routes
 
 import scala.concurrent.Future
 
-class AppLoader extends DefaultApp(ctx => new AppComponents(ctx, GoogleOAuthReader.load))
+class AppLoader extends DefaultApp(ctx => new AppComponents(ctx, GoogleOAuthReader.load, SocialConf()))
 
-class AppComponents(context: Context, creds: GoogleOAuthCredentials) extends BaseComponents(context, creds) {
+class AppComponents(context: Context, creds: GoogleOAuthCredentials, socialConf: SocialConf)
+  extends BaseComponents(context, creds, socialConf) {
   override lazy val httpErrorHandler = PicsErrorHandler
 
   override def buildAuthenticator() = PicsAuthenticator(JWTAuth.default, htmlAuth)
@@ -26,7 +28,7 @@ class AppComponents(context: Context, creds: GoogleOAuthCredentials) extends Bas
   override def buildPics() = MultiSizeHandler.default(materializer)
 }
 
-abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials)
+abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials, socialConf: SocialConf)
   extends BuiltInComponentsFromContext(context)
     with NoHttpFiltersComponents
     with EhCacheComponents
@@ -56,7 +58,7 @@ abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials)
   val pics = new PicsController(html, service, sockets, auth, cache, controllerComponents)
   val cognitoControl = CognitoControl.pics(defaultActionBuilder)
   val picsAssets = new PicsAssets(assets)
-  val social = Social.buildOrFail(defaultActionBuilder)
+  val social = Social.buildOrFail(defaultActionBuilder, socialConf)
   override val router: Router = new Routes(httpErrorHandler, pics, admin, sockets, picsAssets, cognitoControl, social)
 
   applicationLifecycle.addStopHook { () =>

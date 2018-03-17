@@ -3,25 +3,32 @@ package controllers
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.http.AsyncHttp
 import com.malliina.pics.auth._
+import controllers.Social.SocialConf
 import play.api.mvc._
 
 object Social {
-  def buildOrFail(actions: ActionBuilder[Request, AnyContent]) =
-    new Social(actions, AuthConf.github, AuthConf.microsoft, AuthConf.google, AuthConf.facebook, AuthConf.twitter)
+  def buildOrFail(actions: ActionBuilder[Request, AnyContent], socialConf: SocialConf) =
+    new Social(actions, socialConf)
+
+  case class SocialConf(githubConf: AuthConf,
+                        microsoftConf: AuthConf,
+                        googleConf: AuthConf,
+                        facebookConf: AuthConf,
+                        twitterConf: AuthConf)
+
+  object SocialConf {
+    def apply(): SocialConf = SocialConf(AuthConf.github, AuthConf.microsoft, AuthConf.google, AuthConf.facebook, AuthConf.twitter)
+  }
+
 }
 
-class Social(actions: ActionBuilder[Request, AnyContent],
-             githubConf: AuthConf,
-             microsoftConf: AuthConf,
-             googleConf: AuthConf,
-             facebookConf: AuthConf,
-             twitterConf: AuthConf) {
+class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
   val httpClient = new AsyncHttp()
-  val microsoftValidator = StandardCodeValidator(CodeValidationConf.microsoft(routes.Social.microsoftCallback(), microsoftConf, httpClient))
-  val gitHubValidator = new GitHubCodeValidator(githubConf, httpClient)
-  val googleValidator = StandardCodeValidator(CodeValidationConf.google(routes.Social.googleCallback(), googleConf, httpClient))
-  val facebookValidator = new FacebookCodeValidator(routes.Social.facebookCallback(), facebookConf, httpClient)
-  val twitterValidator = new TwitterValidator(routes.Social.twitterCallback(), twitterConf, httpClient)
+  val microsoftValidator = StandardCodeValidator(CodeValidationConf.microsoft(routes.Social.microsoftCallback(), conf.microsoftConf, httpClient))
+  val gitHubValidator = new GitHubCodeValidator(conf.githubConf, httpClient)
+  val googleValidator = StandardCodeValidator(CodeValidationConf.google(routes.Social.googleCallback(), conf.googleConf, httpClient))
+  val facebookValidator = new FacebookCodeValidator(routes.Social.facebookCallback(), conf.facebookConf, httpClient)
+  val twitterValidator = new TwitterValidator(routes.Social.twitterCallback(), conf.twitterConf, httpClient)
 
   def microsoft = start(microsoftValidator)
 

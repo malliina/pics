@@ -3,7 +3,8 @@ package tests
 import com.malliina.oauth.GoogleOAuthCredentials
 import com.malliina.pics._
 import com.malliina.pics.app.BaseComponents
-import com.malliina.pics.auth.{AccessToken, CognitoUser, PicsAuthLike}
+import com.malliina.pics.auth.{AccessToken, AuthConf, CognitoUser, PicsAuthLike}
+import controllers.Social.SocialConf
 import play.api.ApplicationLoader.Context
 import play.api.mvc.{RequestHeader, Result}
 
@@ -28,10 +29,15 @@ object TestAuthenticator extends PicsAuthLike {
     Left(unauth)
 }
 
-class TestComps(context: Context, creds: GoogleOAuthCredentials) extends BaseComponents(context, creds) {
+class TestComps(context: Context, creds: GoogleOAuthCredentials, socialConf: SocialConf)
+  extends BaseComponents(context, creds, socialConf) {
   override def buildAuthenticator() = TestAuthenticator
 
   override def buildPics() = MultiSizeHandler.clones(TestHandler)
 }
 
-abstract class TestAppSuite extends AppSuite(ctx => new TestComps(ctx, GoogleOAuthCredentials("id", "secret", "scope")))
+abstract class TestAppSuite extends AppSuite(ctx => {
+  val fakeConf = AuthConf("", "")
+  val fakeSocialConf = SocialConf(fakeConf, fakeConf, fakeConf, fakeConf, fakeConf)
+  new TestComps(ctx, GoogleOAuthCredentials("id", "secret", "scope"), fakeSocialConf)
+})
