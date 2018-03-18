@@ -3,38 +3,17 @@ package com.malliina.play.auth
 import com.malliina.concurrent.ExecutionContexts
 import com.malliina.http.WebResponse
 import com.malliina.play.auth.CodeValidator._
+import com.malliina.play.http.FullUrls
 import com.malliina.play.models.Email
+import controllers.CognitoControl
 import play.api.Logger
 import play.api.libs.json.Reads
-import play.api.mvc.{RequestHeader, Result}
+import play.api.mvc.{Call, RequestHeader, Result}
 
 import scala.concurrent.Future
 
-trait NoStateValidation {
-  self: CodeValidator =>
-
-  override def validateCallback(req: RequestHeader): Future[Result] =
-    self.onStateOk(req)
-}
-
-trait StateValidation {
-  self: CodeValidator =>
-
-  override def validateCallback(req: RequestHeader): Future[Result] = {
-    val requestState = req.getQueryString(State)
-    val sessionState = req.session.get(State)
-    val isStateOk = requestState.exists(rs => sessionState.contains(rs))
-    if (isStateOk) {
-      self.onStateOk(req)
-    } else {
-      log.error(s"Authentication failed, state mismatch. $req")
-      unauthorizedFut
-    }
-  }
-}
-
 object CodeValidator {
-  implicit val log = Logger(getClass)
+  private val log = Logger(getClass)
 
   val AuthorizationCode = "authorization_code"
   val ClientId = "client_id"
@@ -54,20 +33,48 @@ object CodeValidator {
   implicit val ec = ExecutionContexts.cached
 
   def readAs[T: Reads](response: Future[WebResponse]) =
-    response.map(_.parse[T].asEither.left.map(err => JsonError(err)))
+    response.map(r => r.parse[T].asEither.left.map(err => JsonError(err)))
 }
 
 trait CodeValidator extends AuthValidator {
+  def conf: AuthConf
+
+  def redirCall: Call
+
   def validate(code: Code, req: RequestHeader): Future[Either[AuthError, Email]]
 
-  def onStateOk(req: RequestHeader): Future[Result] = {
-    req.getQueryString(CodeKey).map { code =>
-      validate(Code(code), req).map(toResult)
-    }.getOrElse {
-      log.error(s"Authentication failed, code mismatch. $req")
+  override def validateCallback(req: RequestHeader): Future[Result] = {
+    val requestState = req.getQueryString(State)
+    val sessionState = req.session.get(State)
+    val isStateOk = requestState.exists(rs => sessionState.contains(rs))
+    if (isStateOk) {
+      req.getQueryString(CodeKey).map { code =>
+        validate(Code(code), req).map(toResult)
+      }.getOrElse {
+        log.error(s"Authentication failed, code mismatch. $req")
+        unauthorizedFut
+      }
+    } else {
+      log.error(s"Authentication failed, state mismatch. $req")
       unauthorizedFut
     }
   }
 
   protected def urlEncode(s: String) = AuthValidator.urlEncode(s)
+
+  def randomState() = CognitoControl.randomState()
+
+  protected def redirUrl(call: Call, rh: RequestHeader) = urlEncode(FullUrls(call, rh).url)
+
+  /** Not encoded.
+    */
+  def validationParams(code: Code, req: RequestHeader) = {
+    Map(
+      ClientId -> conf.clientId,
+      ClientSecret -> conf.clientSecret,
+      RedirectUri -> FullUrls(redirCall, req).url,
+      CodeKey -> code.code
+    )
+  }
 }
+

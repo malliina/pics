@@ -2,6 +2,7 @@ package com.malliina.play.auth
 
 import com.malliina.http.AsyncHttp
 import com.malliina.play.auth.CodeValidator._
+import com.malliina.play.http.FullUrls
 import com.malliina.play.json.JsonMessages
 import com.malliina.play.models.Email
 import controllers.CognitoControl
@@ -35,13 +36,14 @@ object CodeValidationConf {
 }
 
 object StandardCodeValidator {
+  private val log = Logger(getClass)
+
   def apply(conf: CodeValidationConf) = new StandardCodeValidator(conf)
 }
 
 class StandardCodeValidator(codeConf: CodeValidationConf)
-  extends CodeValidator
-    with StateValidation {
-  private val log = Logger(getClass)
+  extends CodeValidator {
+
   val conf = codeConf.conf
   val redirCall = codeConf.redirCall
   val client = codeConf.client
@@ -55,26 +57,23 @@ class StandardCodeValidator(codeConf: CodeValidationConf)
     val params = Map(
       ClientId -> conf.clientId,
       ResponseType -> CodeKey,
-      RedirectUri -> redirUrl(redirCall, req).url,
-      Scope -> urlEncode(scope),
+      RedirectUri -> FullUrls(redirCall, req).url,
+      Scope -> scope,
       Nonce -> nonce,
       State -> state
     ) ++ codeConf.extraStartParams
-    val url = oauthConf.authorizationEndpoint.append(s"?${stringify(params)}")
+    val encodedParams = params.mapValues(urlEncode)
+    val url = oauthConf.authorizationEndpoint.append(s"?${stringify(encodedParams)}")
     Redirect(url.url).withSession(State -> state, Nonce -> nonce)
   }.onFail { err =>
-    log.error(err.message)
+    StandardCodeValidator.log.error(err.message)
     BadGateway(JsonMessages.failure(err.message))
   }
 
   override def validate(code: Code, req: RequestHeader): Future[Either[AuthError, Email]] = {
-    val params = Map(
-      ClientId -> conf.clientId,
-      ClientSecret -> conf.clientSecret,
-      CodeKey -> code.code,
-      RedirectUri -> redirUrl(redirCall, req).url,
-      GrantType -> AuthorizationCode
-    ) ++ codeConf.extraValidateParams
+    val params = validationParams(code, req) ++
+      Map(GrantType -> AuthorizationCode) ++
+      codeConf.extraValidateParams
     fetchConf().flatMapRight { oauthConf =>
       readAs[SimpleTokens](http.postForm(oauthConf.tokenEndpoint.url, params)).flatMapRight { tokens =>
         client.validate(tokens.idToken).map { result =>

@@ -26,7 +26,7 @@ object Social {
 class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
   val httpClient = new AsyncHttp()
   val microsoftValidator = StandardCodeValidator(CodeValidationConf.microsoft(routes.Social.microsoftCallback(), conf.microsoftConf, httpClient))
-  val gitHubValidator = new GitHubCodeValidator(conf.githubConf, httpClient)
+  val gitHubValidator = new GitHubCodeValidator(routes.Social.githubCallback(), conf.githubConf, httpClient)
   val googleValidator = StandardCodeValidator(CodeValidationConf.google(routes.Social.googleCallback(), conf.googleConf, httpClient))
   val facebookValidator = new FacebookCodeValidator(routes.Social.facebookCallback(), conf.facebookConf, httpClient)
   val twitterValidator = new TwitterValidator(routes.Social.twitterCallback(), conf.twitterConf, httpClient)

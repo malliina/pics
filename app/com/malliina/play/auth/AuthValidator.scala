@@ -6,14 +6,13 @@ import java.nio.charset.StandardCharsets
 import com.malliina.concurrent.ExecutionContexts
 import com.malliina.http.WebResponse
 import com.malliina.play.auth.AuthValidator.log
-import com.malliina.play.http.FullUrls
 import com.malliina.play.json.JsonMessages
 import com.malliina.play.models.Email
 import controllers.routes
 import play.api.Logger
 import play.api.libs.json.Reads
 import play.api.mvc.Results.Redirect
-import play.api.mvc.{Call, RequestHeader, Result, Results}
+import play.api.mvc.{RequestHeader, Result, Results}
 
 import scala.concurrent.Future
 
@@ -54,8 +53,6 @@ trait AuthValidator {
   protected def unauthorized = Results.Unauthorized(JsonMessages.failure("Authentication failed."))
 
   protected def fut[T](t: T) = Future.successful(t)
-
-  protected def redirUrl(call: Call, rh: RequestHeader) = FullUrls(call, rh)
 
   protected def readAs[T: Reads](response: Future[WebResponse]) = CodeValidator.readAs[T](response)
 }
