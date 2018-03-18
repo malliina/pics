@@ -1,6 +1,5 @@
 package controllers
 
-import com.malliina.pics.auth._
 import com.malliina.pics.{Errors, PicRequest, SingleError}
 import com.malliina.play.auth._
 import controllers.JWTAuth.log
@@ -11,7 +10,7 @@ import play.api.mvc._
 object JWTAuth {
   private val log = Logger(getClass)
 
-  val default = new JWTAuth(CognitoValidator.picsAccess)
+  val default = new JWTAuth(CognitoValidators.picsAccess)
 
   def failJwt(error: JWTError) = failSingle(SingleError.forJWT(error))
 

@@ -6,6 +6,7 @@ import java.util.Date
 
 import buildinfo.BuildInfo
 import com.malliina.play.http.FullUrls
+import com.malliina.play.models.Username
 import controllers.routes
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
@@ -21,6 +22,9 @@ object PicRequest {
   val AnonUser = PicOwner("anon")
 
   def anon(rh: RequestHeader) = PicRequest(AnonUser, rh)
+
+  def apply(user: Username, rh: RequestHeader): PicRequest =
+    apply(PicOwner(user.name), rh)
 
   def apply(user: PicOwner, rh: RequestHeader): PicRequest =
     PicRequest(user, readOnly = user == AnonUser, rh)

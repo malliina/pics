@@ -1,8 +1,6 @@
 package controllers
 
-import com.malliina.concurrent.ExecutionContexts.cached
-import com.malliina.http.{AsyncHttp, OkClient}
-import com.malliina.pics.auth._
+import com.malliina.http.OkClient
 import com.malliina.play.auth._
 import controllers.Social.SocialConf
 import play.api.mvc._
@@ -25,11 +23,12 @@ object Social {
 
 class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
   val okClient = OkClient.default
-  val microsoftValidator = StandardCodeValidator(CodeValidationConf.microsoft(routes.Social.microsoftCallback(), conf.microsoftConf, okClient))
-  val gitHubValidator = new GitHubCodeValidator(routes.Social.githubCallback(), conf.githubConf, okClient)
-  val googleValidator = StandardCodeValidator(CodeValidationConf.google(routes.Social.googleCallback(), conf.googleConf, okClient))
-  val facebookValidator = new FacebookCodeValidator(routes.Social.facebookCallback(), conf.facebookConf, okClient)
-  val twitterValidator = new TwitterValidator(routes.Social.twitterCallback(), conf.twitterConf, okClient)
+  val handler = BasicAuthHandler(routes.PicsController.list())
+  val microsoftValidator = StandardCodeValidator(CodeValidationConf.microsoft(routes.Social.microsoftCallback(), handler, conf.microsoftConf, okClient))
+  val gitHubValidator = new GitHubCodeValidator(routes.Social.githubCallback(), handler, conf.githubConf, okClient)
+  val googleValidator = StandardCodeValidator(CodeValidationConf.google(routes.Social.googleCallback(), handler, conf.googleConf, okClient))
+  val facebookValidator = new FacebookCodeValidator(routes.Social.facebookCallback(), handler, conf.facebookConf, okClient)
+  val twitterValidator = new TwitterValidator(routes.Social.twitterCallback(), handler, conf.twitterConf, okClient)
 
   def microsoft = start(microsoftValidator)
 

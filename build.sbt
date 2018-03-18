@@ -23,7 +23,7 @@ lazy val cross = crossProject.in(file("shared"))
 lazy val crossJvm = cross.jvm
 lazy val crossJs = cross.js
 
-val utilPlayVersion = "4.6.2"
+val utilPlayVersion = "4.7.0"
 
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
@@ -52,8 +52,7 @@ val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
     "com.zaxxer" % "HikariCP" % "2.7.8",
     "com.nimbusds" % "nimbus-jose-jwt" % "5.7",
     "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8",
-    "com.malliina" %% "logstreams-client" % "0.0.9",
-    "com.malliina" %% "okclient" % "1.4.0"
+    "com.malliina" %% "logstreams-client" % "0.0.9"
   ),
   pipelineStages := Seq(digest, gzip),
   // pipelineStages in Assets := Seq(digest, gzip)

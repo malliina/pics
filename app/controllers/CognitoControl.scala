@@ -6,7 +6,7 @@ import java.security.SecureRandom
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.http.{AsyncHttp, FullUrl}
 import com.malliina.oauth.GoogleOAuth
-import com.malliina.play.auth.{CognitoIdentityConf, CognitoTokens, CognitoValidator}
+import com.malliina.play.auth.{CognitoIdentityConf, CognitoIdentityConfs, CognitoTokens, CognitoValidator, CognitoValidators}
 import com.malliina.play.http.FullUrls
 import com.malliina.play.json.JsonMessages
 import controllers.CognitoControl.log
@@ -20,7 +20,7 @@ object CognitoControl {
   private val log = Logger(getClass)
 
   def pics(actions: ActionBuilder[Request, AnyContent]) =
-    new CognitoControl(CognitoIdentityConf.pics, actions)
+    new CognitoControl(CognitoIdentityConfs.pics, actions)
 
   def randomState() = new BigInteger(130, new SecureRandom()).toString(32)
 }
@@ -74,7 +74,7 @@ class CognitoControl(conf: CognitoIdentityConf, actions: ActionBuilder[Request, 
               BadRequest(JsonMessages.failure(msg))
             },
             tokens => {
-              CognitoValidator.picsId.validate(tokens.idToken).fold(
+              CognitoValidators.picsId.validate(tokens.idToken).fold(
                 err => {
                   log.error(s"${err.message} $err")
                   JWTAuth.failJwt(err)
