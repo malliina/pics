@@ -5,13 +5,12 @@ import java.time.Instant
 import java.util.Base64
 
 import com.malliina.http.AsyncHttp.ContentTypeHeaderName
-import com.malliina.http.{AsyncHttp, FullUrl}
+import com.malliina.http.{AsyncHttp, FullUrl, OkClient}
 import com.malliina.play.auth.TwitterValidator._
 import com.malliina.play.http.FullUrls
 import controllers.CognitoControl
+import okhttp3.Request
 import org.apache.commons.codec.digest.HmacUtils
-import org.apache.http.client.methods.HttpGet
-import play.api.http.HeaderNames
 import play.api.http.HeaderNames.AUTHORIZATION
 import play.api.mvc.Results.Redirect
 import play.api.mvc.{Call, RequestHeader, Result}
@@ -54,9 +53,10 @@ object TwitterValidator {
   }
 }
 
-class TwitterValidator(redirCall: Call, conf: AuthConf, http: AsyncHttp)
+class TwitterValidator(redirCall: Call, conf: AuthConf, http: OkClient)
   extends AuthValidator {
 
+  val brandName = "Twitter"
   val requestTokenUrl = FullUrl.https("api.twitter.com", "/oauth/request_token")
   val accessTokenUrl = FullUrl.https("api.twitter.com", "/oauth/access_token")
   val userInfoUrl = FullUrl.https("api.twitter.com", "/1.1/account/verify_credentials.json")
@@ -98,7 +98,7 @@ class TwitterValidator(redirCall: Call, conf: AuthConf, http: AsyncHttp)
   private def fetchRequestToken(redirUrl: FullUrl) = {
     val encodable = Encodable(buildNonce, Map("oauth_callback" -> redirUrl.url))
     val authHeaderValue = encodable.signed("POST", requestTokenUrl, None)
-    http.postEmpty(requestTokenUrl.url, headers = Map(AUTHORIZATION -> authHeaderValue)).map { r =>
+    http.postForm(requestTokenUrl, form = Map.empty, headers = Map(AUTHORIZATION -> authHeaderValue)).map { r =>
       TwitterTokens.fromString(r.asString)
     }
   }
@@ -106,13 +106,13 @@ class TwitterValidator(redirCall: Call, conf: AuthConf, http: AsyncHttp)
   private def fetchAccessToken(requestToken: RequestToken, verifier: String) = {
     val encodable = paramsStringWith(requestToken, buildNonce)
     val authHeaderValue = encodable.signed("POST", accessTokenUrl, None)
-    http.postEmpty(
-      accessTokenUrl.url,
+    http.postForm(
+      accessTokenUrl,
+      form = Map(OauthVerifierKey -> verifier),
       headers = Map(
-        HeaderNames.AUTHORIZATION -> authHeaderValue,
+        AUTHORIZATION -> authHeaderValue,
         ContentTypeHeaderName -> AsyncHttp.WwwFormUrlEncoded
-      ),
-      params = Map(OauthVerifierKey -> verifier)
+      )
     ).map { res => TwitterAccess.fromString(res.asString) }
   }
 
@@ -126,9 +126,9 @@ class TwitterValidator(redirCall: Call, conf: AuthConf, http: AsyncHttp)
     val authHeaderValue = encodable.signed("GET", userInfoUrl, Option(access.oauthTokenSecret))
     val queryString = queryParams.map { case (k, v) => s"$k=$v" }.mkString("&")
     val reqUrl = userInfoUrl.append(s"?$queryString")
-    val req = new HttpGet(reqUrl.url)
-    req.addHeader(HeaderNames.AUTHORIZATION, authHeaderValue)
-    readAs[TwitterUser](http.execute(req))
+
+    val req = new Request.Builder().url(reqUrl.url).addHeader(AUTHORIZATION, authHeaderValue).get.build()
+    http.execute(req).map(_.parse[TwitterUser])
   }
 
   private def buildNonce =

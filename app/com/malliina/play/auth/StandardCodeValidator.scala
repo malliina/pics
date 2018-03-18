@@ -1,33 +1,36 @@
 package com.malliina.play.auth
 
-import com.malliina.http.{AsyncHttp, FullUrl, OkClient}
+import com.malliina.http.OkClient
 import com.malliina.play.auth.CodeValidator._
+import com.malliina.play.auth.StandardCodeValidator.log
 import com.malliina.play.http.FullUrls
 import com.malliina.play.json.JsonMessages
 import com.malliina.play.models.Email
 import controllers.CognitoControl
 import play.api.Logger
-import play.api.libs.json.Reads
 import play.api.mvc.Results.{BadGateway, Redirect}
 import play.api.mvc.{Call, RequestHeader, Result}
 
 import scala.concurrent.Future
 
-case class CodeValidationConf(redirCall: Call,
+case class CodeValidationConf(brandName: String,
+                              redirCall: Call,
                               conf: AuthConf,
                               client: KeyClient,
                               extraStartParams: Map[String, String] = Map.empty,
                               extraValidateParams: Map[String, String] = Map.empty)
 
 object CodeValidationConf {
-  def google(redirCall: Call, conf: AuthConf, http: AsyncHttp) = CodeValidationConf(
+  def google(redirCall: Call, conf: AuthConf, http: OkClient) = CodeValidationConf(
+    "Google",
     redirCall,
     conf,
     KeyClient.google(conf.clientId, http),
     Map(LoginHint -> "sub")
   )
 
-  def microsoft(redirCall: Call, conf: AuthConf, http: AsyncHttp) = CodeValidationConf(
+  def microsoft(redirCall: Call, conf: AuthConf, http: OkClient) = CodeValidationConf(
+    "Microsoft",
     redirCall,
     conf,
     KeyClient.microsoft(conf.clientId, http),
@@ -44,7 +47,7 @@ object StandardCodeValidator {
 
 class StandardCodeValidator(codeConf: CodeValidationConf)
   extends CodeValidator {
-
+  val brandName = codeConf.brandName
   val conf = codeConf.conf
   val redirCall = codeConf.redirCall
   val client = codeConf.client
@@ -67,8 +70,8 @@ class StandardCodeValidator(codeConf: CodeValidationConf)
     val url = oauthConf.authorizationEndpoint.append(s"?${stringify(encodedParams)}")
     Redirect(url.url).withSession(State -> state, Nonce -> nonce)
   }.onFail { err =>
-    StandardCodeValidator.log.error(err.message)
-    BadGateway(JsonMessages.failure(err.message))
+    log.error(s"HTTP error. $err")
+    BadGateway(JsonMessages.failure("HTTP error."))
   }
 
   override def validate(code: Code, req: RequestHeader): Future[Either[AuthError, Email]] = {
@@ -94,6 +97,6 @@ class StandardCodeValidator(codeConf: CodeValidationConf)
       else Left(InvalidClaims(idToken, "Nonce mismatch."))
     }
 
-  def fetchConf(): Future[Either[JsonError, AuthEndpoints]] =
+  def fetchConf(): Future[Either[OkError, AuthEndpoints]] =
     getJson[AuthEndpoints](client.knownUrl)
 }

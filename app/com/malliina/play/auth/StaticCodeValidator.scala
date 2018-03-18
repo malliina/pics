@@ -37,7 +37,7 @@ object StaticCodeValidator {
 
 }
 
-abstract class StaticCodeValidator(val staticConf: StaticConf) extends CodeValidator {
+abstract class StaticCodeValidator(val brandName: String, val staticConf: StaticConf) extends CodeValidator {
   override def start(req: RequestHeader): Future[Result] = {
     val state = randomState()
     val params = Map(

@@ -12,12 +12,13 @@ import play.api.Logger
 case class Code(code: String)
 
 object StaticTokenValidator {
+  private val log = Logger(getClass)
   def read[T](token: TokenValue, f: => T, onMissing: => String): Either[JWTError, T] =
     try {
       Option(f).toRight(MissingData(token, onMissing))
     } catch {
       case pe: ParseException =>
-        Logger(getClass).error("err", pe)
+        log.error(s"Parse error for token '$token'.", pe)
         Left(ParseError(token, pe))
     }
 }

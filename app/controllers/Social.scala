@@ -24,12 +24,12 @@ object Social {
 }
 
 class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
-  val httpClient = new AsyncHttp()
-  val microsoftValidator = StandardCodeValidator(CodeValidationConf.microsoft(routes.Social.microsoftCallback(), conf.microsoftConf, httpClient))
-  val gitHubValidator = new GitHubCodeValidator(routes.Social.githubCallback(), conf.githubConf, httpClient)
-  val googleValidator = StandardCodeValidator(CodeValidationConf.google(routes.Social.googleCallback(), conf.googleConf, httpClient))
-  val facebookValidator = new FacebookCodeValidator(routes.Social.facebookCallback(), conf.facebookConf, httpClient)
-  val twitterValidator = new TwitterValidator(routes.Social.twitterCallback(), conf.twitterConf, httpClient)
+  val okClient = OkClient.default
+  val microsoftValidator = StandardCodeValidator(CodeValidationConf.microsoft(routes.Social.microsoftCallback(), conf.microsoftConf, okClient))
+  val gitHubValidator = new GitHubCodeValidator(routes.Social.githubCallback(), conf.githubConf, okClient)
+  val googleValidator = StandardCodeValidator(CodeValidationConf.google(routes.Social.googleCallback(), conf.googleConf, okClient))
+  val facebookValidator = new FacebookCodeValidator(routes.Social.facebookCallback(), conf.facebookConf, okClient)
+  val twitterValidator = new TwitterValidator(routes.Social.twitterCallback(), conf.twitterConf, okClient)
 
   def microsoft = start(microsoftValidator)
 

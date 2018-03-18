@@ -1,7 +1,7 @@
 package com.malliina.play.auth
 
 import com.malliina.concurrent.ExecutionContexts
-import com.malliina.http.{AsyncHttp, FullUrl, WebResponse}
+import com.malliina.http.{FullUrl, OkClient, WebResponse}
 import com.malliina.play.auth.CodeValidator._
 import com.malliina.play.http.FullUrls
 import com.malliina.play.models.Email
@@ -37,7 +37,7 @@ object CodeValidator {
 }
 
 trait CodeValidator extends AuthValidator {
-  def http: AsyncHttp
+  def http: OkClient
 
   def conf: AuthConf
 
@@ -80,12 +80,12 @@ trait CodeValidator extends AuthValidator {
   }
 
   def postForm[T: Reads](url: FullUrl, params: Map[String, String]) =
-    readAs[T](http.postForm(url.url, params))
+    http.postFormAs[T](url, params).map(_.left.map(e => OkError(e)))
 
   def postEmpty[T: Reads](url: FullUrl,
-                          headers: Map[String, String] = Map.empty,
-                          params: Map[String, String] = Map.empty) =
-    readAs[T](http.postEmpty(url.url, headers, params))
+                          headers: Map[String, String],
+                          params: Map[String, String]) =
+    http.postFormAs[T](url, params, headers).map(_.left.map(e => OkError(e)))
 
-  def getJson[T: Reads](url: FullUrl) = readAs[T](http.get(url.url))
+  def getJson[T: Reads](url: FullUrl) = http.getJson[T](url).map(_.left.map(e => OkError(e)))
 }
