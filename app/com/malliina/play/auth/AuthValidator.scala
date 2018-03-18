@@ -24,6 +24,7 @@ object AuthValidator {
 
 trait AuthValidator {
   implicit val ec = ExecutionContexts.cached
+  val sessionKey = "username"
 
   /** The initial result that initiates sign-in.
     */
@@ -41,7 +42,7 @@ trait AuthValidator {
       },
       email => {
         log.info(s"Logging '$email' in through OAuth code flow.")
-        Redirect(routes.PicsController.list()).withSession("username" -> email.email)
+        Redirect(routes.PicsController.list()).withSession(sessionKey -> email.email)
       }
     )
 

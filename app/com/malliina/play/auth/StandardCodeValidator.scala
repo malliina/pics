@@ -1,12 +1,13 @@
 package com.malliina.play.auth
 
-import com.malliina.http.AsyncHttp
+import com.malliina.http.{AsyncHttp, FullUrl, OkClient}
 import com.malliina.play.auth.CodeValidator._
 import com.malliina.play.http.FullUrls
 import com.malliina.play.json.JsonMessages
 import com.malliina.play.models.Email
 import controllers.CognitoControl
 import play.api.Logger
+import play.api.libs.json.Reads
 import play.api.mvc.Results.{BadGateway, Redirect}
 import play.api.mvc.{Call, RequestHeader, Result}
 
@@ -75,7 +76,7 @@ class StandardCodeValidator(codeConf: CodeValidationConf)
       Map(GrantType -> AuthorizationCode) ++
       codeConf.extraValidateParams
     fetchConf().flatMapRight { oauthConf =>
-      readAs[SimpleTokens](http.postForm(oauthConf.tokenEndpoint.url, params)).flatMapRight { tokens =>
+      postForm[SimpleTokens](oauthConf.tokenEndpoint, params).flatMapRight { tokens =>
         client.validate(tokens.idToken).map { result =>
           for {
             verified <- result
@@ -94,5 +95,5 @@ class StandardCodeValidator(codeConf: CodeValidationConf)
     }
 
   def fetchConf(): Future[Either[JsonError, AuthEndpoints]] =
-    readAs[AuthEndpoints](http.get(client.knownUrl.url))
+    getJson[AuthEndpoints](client.knownUrl)
 }

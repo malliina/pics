@@ -1,7 +1,7 @@
 package com.malliina.play.auth
 
 import com.malliina.concurrent.ExecutionContexts
-import com.malliina.http.WebResponse
+import com.malliina.http.{AsyncHttp, FullUrl, WebResponse}
 import com.malliina.play.auth.CodeValidator._
 import com.malliina.play.http.FullUrls
 import com.malliina.play.models.Email
@@ -37,6 +37,8 @@ object CodeValidator {
 }
 
 trait CodeValidator extends AuthValidator {
+  def http: AsyncHttp
+
   def conf: AuthConf
 
   def redirCall: Call
@@ -62,13 +64,13 @@ trait CodeValidator extends AuthValidator {
 
   protected def urlEncode(s: String) = AuthValidator.urlEncode(s)
 
-  def randomState() = CognitoControl.randomState()
+  protected def randomState() = CognitoControl.randomState()
 
   protected def redirUrl(call: Call, rh: RequestHeader) = urlEncode(FullUrls(call, rh).url)
 
   /** Not encoded.
     */
-  def validationParams(code: Code, req: RequestHeader) = {
+  protected def validationParams(code: Code, req: RequestHeader) = {
     Map(
       ClientId -> conf.clientId,
       ClientSecret -> conf.clientSecret,
@@ -76,5 +78,14 @@ trait CodeValidator extends AuthValidator {
       CodeKey -> code.code
     )
   }
-}
 
+  def postForm[T: Reads](url: FullUrl, params: Map[String, String]) =
+    readAs[T](http.postForm(url.url, params))
+
+  def postEmpty[T: Reads](url: FullUrl,
+                          headers: Map[String, String] = Map.empty,
+                          params: Map[String, String] = Map.empty) =
+    readAs[T](http.postEmpty(url.url, headers, params))
+
+  def getJson[T: Reads](url: FullUrl) = readAs[T](http.get(url.url))
+}
