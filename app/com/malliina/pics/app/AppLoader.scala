@@ -13,7 +13,10 @@ import play.api.cache.Cached
 import play.api.cache.ehcache.EhCacheComponents
 import play.api.http.HttpConfiguration
 import play.api.routing.Router
-import play.api.{BuiltInComponentsFromContext, Logger, Mode, NoHttpFiltersComponents}
+import play.api.{BuiltInComponentsFromContext, Logger, Mode}
+import play.filters.HttpFiltersComponents
+import play.filters.headers.SecurityHeadersConfig
+import play.filters.hosts.AllowedHostsConfig
 import router.Routes
 
 import scala.concurrent.Future
@@ -31,7 +34,7 @@ class AppComponents(context: Context, creds: GoogleOAuthCredentials, socialConf:
 
 abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials, socialConf: SocialConf)
   extends BuiltInComponentsFromContext(context)
-    with NoHttpFiltersComponents
+    with HttpFiltersComponents
     with EhCacheComponents
     with AssetsComponents {
 
@@ -41,6 +44,17 @@ abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials, s
 
   private val log = Logger(getClass)
 
+  val allowedCsp = Seq(
+    "maxcdn.bootstrapcdn.com",
+    "code.jquery.com",
+    "cdnjs.cloudflare.com",
+    "fonts.gstatic.com"
+  )
+  val allowedEntry = allowedCsp.mkString(" ")
+
+  val csp = s"default-src 'self' 'unsafe-inline' $allowedEntry; connect-src *; img-src 'self' data:;"
+  override lazy val securityHeadersConfig = SecurityHeadersConfig(contentSecurityPolicy = Option(csp))
+  override lazy val allowedHostsConfig = AllowedHostsConfig(Seq("localhost", "pics.malliina.com", "images.malliina.com"))
   val defaultHttpConf = HttpConfiguration.fromConfiguration(configuration, environment)
   override lazy val httpConfiguration = defaultHttpConf.copy(session = defaultHttpConf.session.copy(domain = Option(".malliina.com")))
   val mode = environment.mode
