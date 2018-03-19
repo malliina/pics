@@ -48,7 +48,9 @@ abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials, s
     "maxcdn.bootstrapcdn.com",
     "code.jquery.com",
     "cdnjs.cloudflare.com",
-    "fonts.gstatic.com"
+    "fonts.gstatic.com",
+    "use.fontawesome.com",
+    "fonts.googleapis.com"
   )
   val allowedEntry = allowedCsp.mkString(" ")
 
