@@ -173,6 +173,7 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
         meta(charset := "utf-8"),
         titleTag(conf.title),
         deviceWidthViewport,
+        link(rel := "shortcut icon", `type` := "image/png", href := at("img/pics-favicon.png")),
         cssLinkHashed("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css", "sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"),
         cssLink("https://use.fontawesome.com/releases/v5.0.6/css/all.css"),
         cssLink("https://fonts.googleapis.com/css?family=Roboto:400,500"),

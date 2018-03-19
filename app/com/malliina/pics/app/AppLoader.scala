@@ -11,6 +11,7 @@ import controllers._
 import play.api.ApplicationLoader.Context
 import play.api.cache.Cached
 import play.api.cache.ehcache.EhCacheComponents
+import play.api.http.HttpConfiguration
 import play.api.routing.Router
 import play.api.{BuiltInComponentsFromContext, Logger, Mode, NoHttpFiltersComponents}
 import router.Routes
@@ -39,6 +40,9 @@ abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials, s
   def buildPics(): MultiSizeHandler
 
   private val log = Logger(getClass)
+
+  val defaultHttpConf = HttpConfiguration.fromConfiguration(configuration, environment)
+  override lazy val httpConfiguration = defaultHttpConf.copy(session = defaultHttpConf.session.copy(domain = Option(".malliina.com")))
   val mode = environment.mode
   val html = PicsHtml.build(mode == Mode.Prod)
   val db: PicsDatabase =
