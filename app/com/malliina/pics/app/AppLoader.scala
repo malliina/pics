@@ -57,6 +57,10 @@ abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials, s
   override lazy val allowedHostsConfig = AllowedHostsConfig(Seq("localhost", "pics.malliina.com", "images.malliina.com"))
   val defaultHttpConf = HttpConfiguration.fromConfiguration(configuration, environment)
   override lazy val httpConfiguration = defaultHttpConf.copy(session = defaultHttpConf.session.copy(domain = Option(".malliina.com")))
+  // TODO reinstate the CSRF filter after native app compatibility (REST API) is resolved
+  //  override def httpFilters = Seq(csrfFilter, securityHeadersFilter, allowedHostsFilter)
+  override def httpFilters = Seq(securityHeadersFilter, allowedHostsFilter)
+
   val mode = environment.mode
   val html = PicsHtml.build(mode == Mode.Prod)
   val db: PicsDatabase =
