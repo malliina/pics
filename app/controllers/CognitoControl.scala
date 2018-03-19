@@ -44,11 +44,11 @@ class CognitoControl(conf: CognitoIdentityConf, actions: ActionBuilder[Request, 
   def redirUrl(rh: RequestHeader) = FullUrls(routes.CognitoControl.cognitoCallback(), rh)
 
   def signOut = actions { req =>
-    Redirect(conf.logoutUrl(FullUrls(routes.CognitoControl.signOutCallback(), req)).url)
+    Redirect(conf.logoutUrl(FullUrls(routes.CognitoControl.signOutCallback(), req)).url).withNewSession
   }
 
   def signOutCallback = actions { _ =>
-    Redirect(routes.PicsController.list()).flashing("message" -> "You have now logged out.").withNewSession
+    Redirect(routes.PicsController.list()).flashing("message" -> "You have now logged out.")
   }
 
   /** Called by Cognito when the authentication flow is complete.
