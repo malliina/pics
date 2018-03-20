@@ -15,6 +15,7 @@ import play.api.http.HttpConfiguration
 import play.api.routing.Router
 import play.api.{BuiltInComponentsFromContext, Logger, Mode}
 import play.filters.HttpFiltersComponents
+import play.filters.csrf.CSRFConfig
 import play.filters.headers.SecurityHeadersConfig
 import play.filters.hosts.AllowedHostsConfig
 import router.Routes
@@ -59,9 +60,12 @@ abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials, s
   override lazy val allowedHostsConfig = AllowedHostsConfig(Seq("localhost", "pics.malliina.com", "images.malliina.com"))
   val defaultHttpConf = HttpConfiguration.fromConfiguration(configuration, environment)
   override lazy val httpConfiguration = defaultHttpConf.copy(session = defaultHttpConf.session.copy(domain = Option(".malliina.com")))
-  // TODO reinstate the CSRF filter after native app compatibility (REST API) is resolved
-  //  override def httpFilters = Seq(csrfFilter, securityHeadersFilter, allowedHostsFilter)
-  override def httpFilters = Seq(securityHeadersFilter, allowedHostsFilter)
+  override lazy val csrfConfig = CSRFConfig(
+    headerName = "Csrf-Token",
+    shouldProtect = rh => !rh.headers.get("Csrf-Token").contains("nocheck")
+  )
+
+  override def httpFilters = Seq(csrfFilter, securityHeadersFilter, allowedHostsFilter)
 
   val mode = environment.mode
   val html = PicsHtml.build(mode == Mode.Prod)
