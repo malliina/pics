@@ -71,10 +71,10 @@ class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends DataSource 
 object BucketFiles {
   private val log = Logger(getClass)
 
-  val Original = BucketFiles.forBucket(BucketName("malliina-pics"))
   val Small = BucketFiles.forBucket(BucketName("malliina-pics-small"))
   val Medium = BucketFiles.forBucket(BucketName("malliina-pics-medium"))
   val Large = BucketFiles.forBucket(BucketName("malliina-pics-large"))
+  val Original = BucketFiles.forBucket(BucketName("malliina-pics"))
 
   def forBucket(bucket: BucketName) = forS3(Regions.EU_WEST_1, bucket)
 

@@ -1,18 +1,12 @@
 package com.malliina.pics
 
-import java.nio.file.Path
-
 import akka.stream.Materializer
 import com.malliina.concurrent.ExecutionContexts.cached
-import com.malliina.pics.MultiSizeHandler.log
-import com.sksamuel.scrimage.{Image, ImageParseException}
-import play.api.Logger
+import com.sksamuel.scrimage.Image
 
 import scala.concurrent.Future
 
 object MultiSizeHandler {
-  private val log = Logger(getClass)
-
   def cached(name: String, origin: BucketFiles, mat: Materializer) =
     FileCachingPics(FilePics.named(name, mat), origin)
 
@@ -42,19 +36,6 @@ class MultiSizeHandler(val smalls: ImageHandler,
       paths.headOption
         .map(Future.successful)
         .getOrElse(Future.failed(new Exception("No image handlers.")))
-    }
-  }
-
-  /** Might fail with Exception, ImageParseException, ...
-    *
-    * @param original orig image
-    * @param key desired key
-    * @return
-    */
-  override def handle(original: Path, key: Key): Future[Path] = {
-    log.info(s"Handling '$key'...")
-    Future(Image.fromPath(original)).flatMap { image =>
-      handleImage(image, key)
     }
   }
 

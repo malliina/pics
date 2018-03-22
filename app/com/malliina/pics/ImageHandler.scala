@@ -21,11 +21,6 @@ class ImageHandler(prefix: String, resizer: ImageResizer, val storage: DataSourc
 
   def createTempFile = Files.createTempFile(prefix, null)
 
-  def handle(original: Path, key: Key): Future[Path] =
-    Future(Image.fromPath(original)).flatMap { image =>
-      handleImage(image, key)
-    }
-
   def handleImage(image: Image, key: Key): Future[Path] = {
     log.info(s"Handling $prefix of '$key'...")
     val dest = createTempFile
@@ -39,9 +34,17 @@ class ImageHandler(prefix: String, resizer: ImageResizer, val storage: DataSourc
   override def remove(key: Key): Future[PicResult] = storage.remove(key)
 }
 
-
 trait ImageHandlerLike {
-  def handle(original: Path, key: Key): Future[Path]
+  /** Might fail with Exception, ImageParseException, ...
+    *
+    * @param original orig image
+    * @param key      desired key
+    * @return
+    */
+  def handle(original: Path, key: Key): Future[Path] =
+    Future(Image.fromPath(original)).flatMap { image =>
+      handleImage(image, key)
+    }
 
   def handleImage(image: Image, key: Key): Future[Path]
 

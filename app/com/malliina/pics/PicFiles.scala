@@ -6,7 +6,6 @@ import akka.stream.IOResult
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.malliina.concurrent.ExecutionContexts.cached
-import com.malliina.play.models.Username
 import com.malliina.storage.{StorageLong, StorageSize}
 
 import scala.concurrent.Future

@@ -66,7 +66,7 @@ class CognitoControl(conf: CognitoIdentityConf, actions: ActionBuilder[Request, 
     val isStateOk = requestState.exists(rs => sessionState.contains(rs))
     if (isStateOk) {
       req.getQueryString(GoogleOAuth.Code).map { code =>
-        httpClient.postForm(conf.tokensUrl.url, conf.tokenParameters(code, redirUrl(req))).map { res =>
+        httpClient.postForm(conf.tokensUrl, conf.tokenParameters(code, redirUrl(req))).map { res =>
           res.parse[CognitoTokens].fold(
             jsonErrors => {
               val msg = "Tokens response failed JSON validation."
