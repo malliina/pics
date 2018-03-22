@@ -1,6 +1,7 @@
 package controllers
 
 import com.malliina.pics.PicOwner
+import com.malliina.pics.app.BaseComponents
 import play.api.http.Writeable
 import play.api.mvc.Request
 import play.api.test.FakeRequest
@@ -69,7 +70,8 @@ class PicsTests extends TestAppSuite {
 
   def makeEmptyPost(uri: String) = makeRequest(buildPostRequest(uri))
 
-  def buildPostRequest(uri: String) = FakeRequest(POST, uri).withHeaders("Csrf-Token" -> "nocheck")
+  def buildPostRequest(uri: String) = FakeRequest(POST, uri)
+    .withHeaders(BaseComponents.CsrfTokenKey -> BaseComponents.CsrfTokenNoCheck)
 
   def makeGet(uri: String) = makeRequest(FakeRequest(GET, uri))
 

@@ -2,6 +2,7 @@ package com.malliina.pics.app
 
 import com.malliina.oauth.{GoogleOAuthCredentials, GoogleOAuthReader}
 import com.malliina.pics._
+import com.malliina.pics.app.BaseComponents.CsrfTokenKey
 import com.malliina.pics.auth.{PicsAuth, PicsAuthLike, PicsAuthenticator}
 import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.html.PicsHtml
@@ -33,6 +34,11 @@ class AppComponents(context: Context, creds: GoogleOAuthCredentials, socialConf:
   override def buildPics() = MultiSizeHandler.default(materializer)
 }
 
+object BaseComponents {
+  val CsrfTokenKey = "Csrf-Token"
+  val CsrfTokenNoCheck = "nocheck"
+}
+
 abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials, socialConf: SocialConf)
   extends BuiltInComponentsFromContext(context)
     with HttpFiltersComponents
@@ -44,6 +50,7 @@ abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials, s
   def buildPics(): MultiSizeHandler
 
   private val log = Logger(getClass)
+  val mode = environment.mode
 
   val allowedCsp = Seq(
     "maxcdn.bootstrapcdn.com",
@@ -58,16 +65,18 @@ abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials, s
   val csp = s"default-src 'self' 'unsafe-inline' $allowedEntry; connect-src *; img-src 'self' data:;"
   override lazy val securityHeadersConfig = SecurityHeadersConfig(contentSecurityPolicy = Option(csp))
   override lazy val allowedHostsConfig = AllowedHostsConfig(Seq("localhost", "pics.malliina.com", "images.malliina.com"))
+
   val defaultHttpConf = HttpConfiguration.fromConfiguration(configuration, environment)
-  override lazy val httpConfiguration = defaultHttpConf.copy(session = defaultHttpConf.session.copy(domain = Option(".malliina.com")))
+  override lazy val httpConfiguration =
+    if (mode == Mode.Prod) defaultHttpConf.copy(session = defaultHttpConf.session.copy(domain = Option(".malliina.com")))
+    else defaultHttpConf
   override lazy val csrfConfig = CSRFConfig(
-    headerName = "Csrf-Token",
-    shouldProtect = rh => !rh.headers.get("Csrf-Token").contains("nocheck")
+    headerName = CsrfTokenKey,
+    shouldProtect = rh => !rh.headers.get(CsrfTokenKey).contains("nocheck")
   )
 
   override def httpFilters = Seq(csrfFilter, securityHeadersFilter, allowedHostsFilter)
 
-  val mode = environment.mode
   val html = PicsHtml.build(mode == Mode.Prod)
   val db: PicsDatabase =
     if (mode == Mode.Prod) PicsDatabase.prod()

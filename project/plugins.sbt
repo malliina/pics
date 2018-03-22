@@ -19,5 +19,12 @@ Seq(
   "com.vmunier" % "sbt-web-scalajs" % "1.0.6"
 ) map addSbtPlugin
 
+dependencyOverrides ++= Seq(
+  "org.scala-js" % "sbt-scalajs" % "0.6.22",
+  "org.webjars" % "webjars-locator-core" % "0.33",
+  "org.codehaus.plexus" % "plexus-utils" % "3.0.17",
+  "com.google.guava" % "guava" % "23.0"
+)
+
 def ivyRepo(name: String, urlString: String) =
   Resolver.url(name, url(urlString))(Resolver.ivyStylePatterns)
