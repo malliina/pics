@@ -30,7 +30,10 @@ val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 val commonSettings = Seq(
   organization := "com.malliina",
   scalaVersion := "2.12.4",
-  resolvers += "Sonatype releases" at "https://oss.sonatype.org/content/repositories/releases/",
+  resolvers ++= Seq(
+    "Sonatype releases" at "https://oss.sonatype.org/content/repositories/releases/",
+    Resolver.bintrayRepo("malliina", "maven")
+  ),
   libraryDependencies ++= Seq(
     "com.lihaoyi" %%% "scalatags" % "0.6.7",
     "com.typesafe.play" %%% "play-json" % "2.6.9",
