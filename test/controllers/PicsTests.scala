@@ -65,9 +65,11 @@ class PicsTests extends TestAppSuite {
 
   def testAuthQuery(user: String) = s"?${TestAuthenticator.TestQuery}=$user"
 
-  def makePost[B: Writeable](uri: String, body: B) = makeRequest(FakeRequest(POST, uri).withBody(body))
+  def makePost[B: Writeable](uri: String, body: B) = makeRequest(buildPostRequest(uri).withBody(body))
 
-  def makeEmptyPost(uri: String) = makeRequest(FakeRequest(POST, uri))
+  def makeEmptyPost(uri: String) = makeRequest(buildPostRequest(uri))
+
+  def buildPostRequest(uri: String) = FakeRequest(POST, uri).withHeaders("Csrf-Token" -> "nocheck")
 
   def makeGet(uri: String) = makeRequest(FakeRequest(GET, uri))
 
