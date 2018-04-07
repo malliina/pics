@@ -17,8 +17,7 @@ object PicService {
     new PicService(PicsMetaDatabase(db), handler)
 }
 
-class PicService(val metaDatabase: PicsMetaDatabase,
-                 val handler: MultiSizeHandler) {
+class PicService(val metaDatabase: PicsMetaDatabase, val handler: MultiSizeHandler) {
   /** Resizes the image in `tempFile`, uploads it to S3 and saves image metadata in the database.
     *
     * Fails with Exception, ImageParseException, ...

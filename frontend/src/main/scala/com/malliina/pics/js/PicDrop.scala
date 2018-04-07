@@ -1,5 +1,6 @@
 package com.malliina.pics.js
 
+import com.malliina.pics.CSRFConf.{CsrfHeaderName, CsrfTokenNoCheck}
 import org.scalajs.dom
 import org.scalajs.dom.raw._
 import scalatags.JsDom.all._
@@ -31,6 +32,7 @@ class PicDrop {
       val xhr = new XMLHttpRequest
       xhr.open("POST", "/pics")
       xhr.setRequestHeader("X-Name", file.name)
+      xhr.setRequestHeader(CsrfHeaderName, CsrfTokenNoCheck)
       xhr.onload = (e: Event) => {
         val loc = xhr.getResponseHeader("Location")
         val key = xhr.getResponseHeader("X-Key")
@@ -40,7 +42,7 @@ class PicDrop {
         }
       }
       xhr.upload.onprogress = (e: ProgressEvent) => {
-        if(e.lengthComputable) {
+        if (e.lengthComputable) {
           val complete = e.loaded / e.total * 100
           progress.value = complete
         }

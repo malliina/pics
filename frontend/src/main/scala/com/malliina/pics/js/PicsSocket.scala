@@ -1,9 +1,10 @@
 package com.malliina.pics.js
 
 import com.malliina.html.Tags
+import com.malliina.pics.CSRFConf.{CsrfCookieName, CsrfTokenName}
 import com.malliina.pics._
 import org.scalajs.dom
-import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
+import org.scalajs.dom.raw.{HTMLElement, HTMLFormElement, HTMLInputElement}
 import org.scalajs.dom.{Element, Event, Node}
 import org.scalajs.jquery.jQuery
 import play.api.libs.json.{JsError, JsValue}
@@ -29,6 +30,7 @@ class PicsSocket extends BaseSocket("/sockets") {
   object jsHtml extends HtmlBuilder(new Tags(scalatags.JsDom))
 
   installCopyListeners(document.body)
+  installCsrf(document.body)
 
   val popovers = jQuery("[data-toggle='popover']").asInstanceOf[Popovers]
   popovers.popover()
@@ -53,6 +55,26 @@ class PicsSocket extends BaseSocket("/sockets") {
       copyToClipboard(url)
     })
 
+  def installCsrf(parent: Element): Unit =
+    parent.getElementsByTagName("form").foreach { node =>
+      node.addEventListener("submit", (e: Event) => {
+        readCookie(CsrfCookieName).map { tokenValue =>
+          e.target.asInstanceOf[HTMLFormElement].appendChild(jsHtml.csrfInput(CsrfTokenName, tokenValue).render)
+        }.getOrElse {
+          log.info("CSRF token not found.")
+        }
+      })
+    }
+
+  def readCookie(key: String) = {
+    cookiesMap(document.cookie).get(key)
+  }
+
+  def cookiesMap(in: String) =
+    in.split(";").toList.map(_.trim.split("=", 2).toList).collect {
+      case key :: value :: Nil => key -> value
+    }.toMap
+
   override def handlePayload(payload: JsValue): Unit = {
     val result = (payload \ PicsJson.EventKey).validate[String].flatMap {
       case ClientPics.Added =>
@@ -70,7 +92,7 @@ class PicsSocket extends BaseSocket("/sockets") {
   def prepend(pic: BaseMeta) =
     elemById(jsHtml.galleryId).map { gallery =>
       val newElem = jsHtml.thumbnail(pic, visible = false, readOnly = isReadOnly).render
-      installCopyListeners(newElem)
+      installListeners(newElem)
       gallery.insertBefore(newElem, gallery.firstChild)
       // enables the transition
       setTimeout(0.1.seconds) {
@@ -78,7 +100,13 @@ class PicsSocket extends BaseSocket("/sockets") {
       }
     }.getOrElse {
       fill(jsHtml.picsId, jsHtml.gallery(Seq(pic), readOnly = isReadOnly))
+      elemById(jsHtml.galleryId).foreach(installListeners)
     }
+
+  def installListeners(elem: Element) = {
+    installCopyListeners(elem)
+    installCsrf(elem)
+  }
 
   import jsHtml.tags.impl.all._
 

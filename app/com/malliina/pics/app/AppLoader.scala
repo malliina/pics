@@ -1,8 +1,8 @@
 package com.malliina.pics.app
 
 import com.malliina.oauth.{GoogleOAuthCredentials, GoogleOAuthReader}
+import com.malliina.pics.CSRFConf.{CsrfCookieName, CsrfHeaderName, CsrfTokenName, CsrfTokenNoCheck}
 import com.malliina.pics._
-import com.malliina.pics.app.BaseComponents.CsrfTokenKey
 import com.malliina.pics.auth.{PicsAuth, PicsAuthLike, PicsAuthenticator}
 import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.html.PicsHtml
@@ -32,11 +32,6 @@ class AppComponents(context: Context, creds: GoogleOAuthCredentials, socialConf:
   override def buildAuthenticator() = PicsAuthenticator(JWTAuth.default, htmlAuth)
 
   override def buildPics() = MultiSizeHandler.default(materializer)
-}
-
-object BaseComponents {
-  val CsrfTokenKey = "Csrf-Token"
-  val CsrfTokenNoCheck = "nocheck"
 }
 
 abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials, socialConf: SocialConf)
@@ -71,8 +66,10 @@ abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials, s
     if (mode == Mode.Prod) defaultHttpConf.copy(session = defaultHttpConf.session.copy(domain = Option(".malliina.com")))
     else defaultHttpConf
   override lazy val csrfConfig = CSRFConfig(
-    headerName = CsrfTokenKey,
-    shouldProtect = rh => !rh.headers.get(CsrfTokenKey).contains("nocheck")
+    tokenName = CsrfTokenName,
+    cookieName = Option(CsrfCookieName),
+    headerName = CsrfHeaderName,
+    shouldProtect = rh => !rh.headers.get(CsrfHeaderName).contains(CsrfTokenNoCheck)
   )
 
   override def httpFilters = Seq(csrfFilter, securityHeadersFilter, allowedHostsFilter)

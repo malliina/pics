@@ -17,7 +17,7 @@ class Syncer {
     val user = Admin.AdminUser
     from.load(0, maxItems).flatMap { keys =>
       log.info(s"Syncing ${keys.length} keys...")
-      Future.traverse(keys)(key => to.putMeta(key.withUser(user)))
+      Future.traverse(keys)(key => to.putMetaIfNotExists(key.withUser(user)))
         .map(_.sum)
     }
   }

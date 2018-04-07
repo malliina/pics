@@ -40,7 +40,7 @@ class PicsMetaDatabase(val db: PicsDatabase) extends MetaSource {
     }
   }
 
-  def putMeta(meta: KeyMeta): Future[Int] = {
+  def putMetaIfNotExists(meta: KeyMeta): Future[Int] = {
     val action = pics.filter(_.key === meta.key).exists.result.flatMap { exists =>
       if (exists) DBIO.successful(0)
       else pics += meta

@@ -9,6 +9,7 @@ import com.malliina.play.tags.Tags._
 import controllers.routes
 import play.api.http.MimeTypes
 import play.api.mvc.Call
+import play.filters.csrf.CSRF
 import scalatags.Text
 import scalatags.Text.GenericAttr
 import scalatags.Text.all._
@@ -60,6 +61,7 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
         renderFeedback(feedback),
         fullRow(
           postableForm(reverse.sync().toString, `class` := "drop-row form-inline")(
+            CSRF.getToken(user.rh).fold(empty)(token => csrfInput(token.name, token.value)),
             submitButton(`class` := btn.info)("Sync")
           )
         ),

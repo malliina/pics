@@ -77,6 +77,9 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
     }
   }
 
+  def csrfInput(inputName: String, inputValue: String) =
+    input(`type` := "hidden", name := inputName, value := inputValue)
+
   def thumb(pic: BaseMeta, visible: Boolean, more: Modifier*) = {
     figure(
       `class` := names("figure thumbnail img-thumbnail", if (visible) "" else "invisible"),
