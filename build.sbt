@@ -29,7 +29,7 @@ val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
 val commonSettings = Seq(
   organization := "com.malliina",
-  scalaVersion := "2.12.4",
+  scalaVersion := "2.12.5",
   resolvers ++= Seq(
     "Sonatype releases" at "https://oss.sonatype.org/content/repositories/releases/",
     Resolver.bintrayRepo("malliina", "maven")

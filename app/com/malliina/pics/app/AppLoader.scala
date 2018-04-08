@@ -71,9 +71,6 @@ abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials, s
     headerName = CsrfHeaderName,
     shouldProtect = rh => !rh.headers.get(CsrfHeaderName).contains(CsrfTokenNoCheck)
   )
-
-  override def httpFilters = Seq(csrfFilter, securityHeadersFilter, allowedHostsFilter)
-
   val html = PicsHtml.build(mode == Mode.Prod)
   val db: PicsDatabase =
     if (mode == Mode.Prod) PicsDatabase.prod()
