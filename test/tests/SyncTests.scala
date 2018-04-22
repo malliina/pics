@@ -6,7 +6,7 @@ import org.scalatest.FunSuite
 
 class SyncTests extends FunSuite {
   ignore("can sync") {
-    val db = PicsDatabase.prod()
+    val db = PicsDatabase.mariaFromEnvOrFail()
     db.init()
     val pics = PicsMetaDatabase(db)
     await(Syncer.sync(BucketFiles.Original, pics))

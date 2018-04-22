@@ -9,7 +9,7 @@ import com.malliina.pics.{Key, KeyMeta, PicOwner}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import javax.sql.DataSource
 import org.h2.jdbcx.JdbcConnectionPool
-import play.api.{Logger, Mode}
+import play.api.{Configuration, Logger, Mode}
 import slick.jdbc.{H2Profile, JdbcProfile, MySQLProfile}
 
 import scala.concurrent.ExecutionContext
@@ -19,8 +19,8 @@ object PicsDatabase {
   val H2UrlSettings = "h2.url.settings"
   val TimestampSqlType = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
 
-  def forMode(mode: Mode) = {
-    if (mode == Mode.Prod) prod()
+  def forMode(mode: Mode, conf: Configuration) = {
+    if (mode == Mode.Prod) prod(conf)
     else if (mode == Mode.Dev) dev()
     else inMemory()
   }
@@ -36,8 +36,9 @@ object PicsDatabase {
       .resolve("picsdb")
     file(path)
   }
-  
-  def prod() = PicsDatabase.mariaFromEnvOrFail()
+
+  def prod(conf: Configuration) =
+    maria(Conf.fromConf(conf).fold(err => throw new Exception(err), identity))
 
   /**
     * @param path path to database file

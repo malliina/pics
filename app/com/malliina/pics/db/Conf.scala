@@ -1,5 +1,7 @@
 package com.malliina.pics.db
 
+import play.api.Configuration
+
 case class Conf(url: String, user: String, pass: String, driver: String)
 
 object Conf {
@@ -9,14 +11,20 @@ object Conf {
   val DriverKey = "db_driver"
   val DefaultDriver = "org.mariadb.jdbc.Driver"
 
-  def read(key: String) = sys.env.get(key).orElse(sys.props.get(key))
-    .toRight(s"Key missing: '$key'. Set it as an environment variable or system property.")
-
   def fromEnvOrFail() = fromEnv().fold(err => throw new Exception(err), identity)
 
-  def fromEnv() = for {
-    url <- read(UrlKey)
-    user <- read(UserKey)
-    pass <- read(PassKey)
-  } yield Conf(url, user, pass, read(DriverKey).getOrElse(DefaultDriver))
+  def fromConf(conf: Configuration) = from(key => conf.getOptional[String](key))
+
+  def fromEnv() = from(key => sys.env.get(key).orElse(sys.props.get(key)))
+
+  def from(readKey: String => Option[String]) = {
+    def read(key: String) = readKey(key)
+      .toRight(s"Key missing: '$key'.")
+
+    for {
+      url <- read(UrlKey)
+      user <- read(UserKey)
+      pass <- read(PassKey)
+    } yield Conf(url, user, pass, read(DriverKey).getOrElse(DefaultDriver))
+  }
 }
