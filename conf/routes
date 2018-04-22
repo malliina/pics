@@ -9,17 +9,10 @@ POST          /pics/*key/delete                   controllers.PicsController.rem
 DELETE        /pics/*key                          controllers.PicsController.deleteKey(key: com.malliina.pics.Key)
 POST          /pics/delete                        controllers.PicsController.delete
 POST          /sync                               controllers.PicsController.sync
-GET           /logout                             controllers.Admin.logout
 GET           /sockets                            controllers.Sockets.listen
 GET           /assets/*file                       controllers.PicsAssets.versioned(path = "/public", file: Asset)
-GET           /oauth                              controllers.Admin.initiate
-GET           /oauthcb                            controllers.Admin.redirResponse
-GET           /eject                              controllers.Admin.ejectUser
-GET           /login                              controllers.PicsController.signInSingle
 GET           /sign-in                            controllers.PicsController.signIn
 POST          /sign-in                            controllers.PicsController.postSignIn
-#GET           /sign-in/google                     controllers.CognitoControl.google
-#GET           /sign-in/facebook                   controllers.CognitoControl.facebook
 GET           /sign-in/amazon                     controllers.CognitoControl.amazon
 GET           /sign-in/twitter                    controllers.Social.twitter
 GET           /sign-in/github                     controllers.Social.github

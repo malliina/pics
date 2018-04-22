@@ -29,7 +29,7 @@ class AppComponents(context: Context, creds: GoogleOAuthCredentials, socialConf:
   extends BaseComponents(context, creds, socialConf) {
   override lazy val httpErrorHandler = PicsErrorHandler
 
-  override def buildAuthenticator() = PicsAuthenticator(JWTAuth.default, htmlAuth)
+  override def buildAuthenticator() = PicsAuthenticator(JWTAuth.default, PicsAuth.social)
 
   override def buildPics() = MultiSizeHandler.default(materializer)
 }
@@ -72,17 +72,14 @@ abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials, s
     shouldProtect = rh => !rh.headers.get(CsrfHeaderName).contains(CsrfTokenNoCheck)
   )
   val html = PicsHtml.build(mode == Mode.Prod)
-  val db: PicsDatabase =
-    if (mode == Mode.Prod) PicsDatabase.prod()
-    else if (mode == Mode.Dev) PicsDatabase.dev()
-    else PicsDatabase.inMemory()
+  val db: PicsDatabase = PicsDatabase.forMode(mode)
   db.init()
   val service = PicService(db, buildPics())
   log.info(s"Using pics dir '${FilePics.picsDir}'.")
   val cache = new Cached(defaultCacheApi)
   override lazy val httpErrorHandler = PicsErrorHandler
-  val admin = new Admin(html, creds, defaultActionBuilder)
-  val htmlAuth = PicsAuth.oauth(admin)
+//  val admin = new Admin(html, creds, defaultActionBuilder)
+//  val htmlAuth = PicsAuth.oauth(admin)
   val authenticator = buildAuthenticator()
   val auth = new PicsAuth(authenticator, materializer, defaultActionBuilder)
   val sockets = Sockets(auth, actorSystem, materializer)
@@ -90,7 +87,7 @@ abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials, s
   val cognitoControl = CognitoControl.pics(defaultActionBuilder)
   val picsAssets = new PicsAssets(assets)
   val social = Social.buildOrFail(defaultActionBuilder, socialConf)
-  override val router: Router = new Routes(httpErrorHandler, pics, admin, sockets, picsAssets, cognitoControl, social)
+  override val router: Router = new Routes(httpErrorHandler, pics, sockets, picsAssets, cognitoControl, social)
 
   applicationLifecycle.addStopHook { () =>
     Future.successful(db.database.close())

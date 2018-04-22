@@ -23,7 +23,7 @@ lazy val cross = crossProject.in(file("shared"))
 lazy val crossJvm = cross.jvm
 lazy val crossJs = cross.js
 
-val utilPlayVersion = "4.9.0"
+val utilPlayVersion = "4.11.1"
 
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
@@ -37,25 +37,25 @@ val commonSettings = Seq(
   libraryDependencies ++= Seq(
     "com.lihaoyi" %%% "scalatags" % "0.6.7",
     "com.typesafe.play" %%% "play-json" % "2.6.9",
-    "com.malliina" %%% "primitives" % "1.4.1",
+    "com.malliina" %%% "primitives" % "1.5.2",
     "com.malliina" %%% "util-html" % utilPlayVersion
   )
 )
 val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
   libraryDependencies ++= Seq(
-    "org.apache.commons" % "commons-text" % "1.2",
-    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.297",
+    "org.apache.commons" % "commons-text" % "1.3",
+    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.313",
     PlayImport.ehcache,
     PlayImport.ws,
     utilPlayDep,
     utilPlayDep % Test classifier "tests",
-    "com.typesafe.slick" %% "slick" % "3.2.1",
-    "com.h2database" % "h2" % "1.4.196",
+    "com.typesafe.slick" %% "slick" % "3.2.3",
+    "com.h2database" % "h2" % "1.4.197",
     "org.mariadb.jdbc" % "mariadb-java-client" % "2.2.3",
-    "com.zaxxer" % "HikariCP" % "2.7.8",
-    "com.nimbusds" % "nimbus-jose-jwt" % "5.7",
+    "com.zaxxer" % "HikariCP" % "3.1.0",
+    "com.nimbusds" % "nimbus-jose-jwt" % "5.9",
     "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8",
-    "com.malliina" %% "logstreams-client" % "0.0.9"
+    "com.malliina" %% "logstreams-client" % "1.0.0"
   ),
   dependencyOverrides ++= Seq(
     "com.typesafe.akka" %% "akka-stream" % "2.5.8",

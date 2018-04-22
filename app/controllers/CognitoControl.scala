@@ -4,9 +4,9 @@ import java.math.BigInteger
 import java.security.SecureRandom
 
 import com.malliina.concurrent.ExecutionContexts.cached
-import com.malliina.http.{AsyncHttp, FullUrl}
-import com.malliina.oauth.GoogleOAuth
-import com.malliina.play.auth.{CognitoIdentityConf, CognitoIdentityConfs, CognitoTokens, CognitoValidator, CognitoValidators}
+import com.malliina.http.{FullUrl, OkClient}
+import com.malliina.play.auth.CodeValidator.{CodeKey, State}
+import com.malliina.play.auth.{CodeValidator, CognitoIdentityConf, CognitoIdentityConfs, CognitoTokens, CognitoValidators}
 import com.malliina.play.http.FullUrls
 import com.malliina.play.json.JsonMessages
 import controllers.CognitoControl.log
@@ -22,12 +22,11 @@ object CognitoControl {
   def pics(actions: ActionBuilder[Request, AnyContent]) =
     new CognitoControl(CognitoIdentityConfs.pics, actions)
 
-  def randomState() = new BigInteger(130, new SecureRandom()).toString(32)
+  def randomState() = CodeValidator.randomState()
 }
 
 class CognitoControl(conf: CognitoIdentityConf, actions: ActionBuilder[Request, AnyContent]) {
-  val httpClient = new AsyncHttp()
-  val State = GoogleOAuth.State
+  val httpClient = OkClient.default
   type AuthState = String
 
   def google = socialLogin((state, redir) => conf.authUrlGoogle(state, redir))
@@ -65,7 +64,7 @@ class CognitoControl(conf: CognitoIdentityConf, actions: ActionBuilder[Request, 
     val sessionState = req.session.get(State)
     val isStateOk = requestState.exists(rs => sessionState.contains(rs))
     if (isStateOk) {
-      req.getQueryString(GoogleOAuth.Code).map { code =>
+      req.getQueryString(CodeKey).map { code =>
         httpClient.postForm(conf.tokensUrl, conf.tokenParameters(code, redirUrl(req))).map { res =>
           res.parse[CognitoTokens].fold(
             jsonErrors => {

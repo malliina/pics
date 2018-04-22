@@ -4,9 +4,7 @@ import akka.stream.Materializer
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.pics.auth.PicsAuth.log
 import com.malliina.pics.{Errors, PicOwner, PicRequest}
-import com.malliina.play.auth.{AuthFailure, UserAuthenticator}
-import com.malliina.play.controllers.{AuthBundle, OAuthControl}
-import controllers.Admin
+import com.malliina.play.controllers.AuthBundle
 import play.api.Logger
 import play.api.libs.streams.Accumulator
 import play.api.mvc._
@@ -16,16 +14,17 @@ import scala.concurrent.Future
 object PicsAuth {
   private val log = Logger(getClass)
 
-  def oauth(oauth: OAuthControl): AuthBundle[PicRequest] = {
-    val sessionAuth = UserAuthenticator.session(oauth.sessionUserKey)
-      .transform((req, user) => Right(PicRequest(PicOwner(user.name), req)))
-    new AuthBundle[PicRequest] {
-      override val authenticator = sessionAuth
+  val SessionKey = "username"
 
-      override def onUnauthorized(failure: AuthFailure) =
-        Results.Redirect(oauth.startOAuth)
-    }
-  }
+  val AdminUser = PicOwner("malliina123@gmail.com")
+
+  def social = oauth(SessionKey)
+
+  def oauth(sessionKey: String): AuthBundle[PicRequest] =
+    AuthBundle.oauth(
+      (req, user) => PicRequest(PicOwner(user.name), req),
+      controllers.routes.PicsController.signIn(),
+      sessionKey)
 }
 
 class PicsAuth(val authenticator: PicsAuthLike,
@@ -48,7 +47,7 @@ class PicsAuth(val authenticator: PicsAuthLike,
     withAuth(rh => authed(rh, u => !u.readOnly), a)
 
   def adminAuthed(a: PicRequest => EssentialAction) =
-    withAuth(rh => authed(rh, _.name == Admin.AdminUser), a)
+    withAuth(rh => authed(rh, _.name == PicsAuth.AdminUser), a)
 
   def withAuth(check: RequestHeader => Future[Either[Result, PicRequest]], a: PicRequest => EssentialAction) =
     EssentialAction { rh =>

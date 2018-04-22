@@ -76,8 +76,6 @@ class PicsController(html: PicsHtml,
 
   def root = Action(Redirect(reverse.list()))
 
-  def signInSingle = Action(Redirect(routes.Admin.initiate()))
-
   def signIn = Action(Ok(html.signIn()))
 
   def postSignIn = Action(parse.form(tokenForm)) { req =>
@@ -98,7 +96,7 @@ class PicsController(html: PicsHtml,
     )
   }
 
-  private def failForm(message: String, rh: RequestHeader) = {
+  private def failForm(message: String, rh: RequestHeader): Result = {
     log.error(s"Form authentication failed from '$rh'.")
     BadRequest(html.signIn(Option(UserFeedback.error(message))))
   }

@@ -9,7 +9,7 @@ import com.malliina.pics.{Key, KeyMeta, PicOwner}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import javax.sql.DataSource
 import org.h2.jdbcx.JdbcConnectionPool
-import play.api.Logger
+import play.api.{Logger, Mode}
 import slick.jdbc.{H2Profile, JdbcProfile, MySQLProfile}
 
 import scala.concurrent.ExecutionContext
@@ -18,6 +18,12 @@ object PicsDatabase {
   private val log = Logger(getClass)
   val H2UrlSettings = "h2.url.settings"
   val TimestampSqlType = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+
+  def forMode(mode: Mode) = {
+    if (mode == Mode.Prod) prod()
+    else if (mode == Mode.Dev) dev()
+    else inMemory()
+  }
 
   def apply(ds: DataSource, profile: JdbcProfile) = new PicsDatabase(ds, profile, ExecutionContexts.cached)
 
@@ -68,28 +74,6 @@ object PicsDatabase {
     log info s"Connecting to '${conf.url}'..."
     apply(new HikariDataSource(hikari), MySQLProfile)
   }
-
-  case class Conf(url: String, user: String, pass: String, driver: String)
-
-  object Conf {
-    val UrlKey = "db_url"
-    val UserKey = "db_user"
-    val PassKey = "db_pass"
-    val DriverKey = "db_driver"
-    val DefaultDriver = "org.mariadb.jdbc.Driver"
-
-    def read(key: String) = sys.env.get(key).orElse(sys.props.get(key))
-      .toRight(s"Key missing: '$key'. Set it as an environment variable or system property.")
-
-    def fromEnvOrFail() = fromEnv().fold(err => throw new Exception(err), identity)
-
-    def fromEnv() = for {
-      url <- read(UrlKey)
-      user <- read(UserKey)
-      pass <- read(PassKey)
-    } yield Conf(url, user, pass, read(DriverKey).getOrElse(DefaultDriver))
-  }
-
 }
 
 class PicsDatabase(ds: DataSource, p: JdbcProfile, val ec: ExecutionContext)

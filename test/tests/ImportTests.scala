@@ -3,15 +3,14 @@ package tests
 import java.nio.file.{Files, Paths}
 import java.text.SimpleDateFormat
 
-import com.malliina.pics.db.PicsDatabase
-import com.malliina.pics.db.PicsDatabase.Conf
+import com.malliina.pics.db.{Conf, PicsDatabase}
 import com.malliina.pics.{Key, PicOwner}
 
 import scala.collection.JavaConverters._
 
 class ImportTests extends BaseSuite {
   ignore("connect") {
-    val conf = PicsDatabase.Conf("jdbc:mysql://todo/pics", "user", "pass", Conf.DefaultDriver)
+    val conf = Conf("jdbc:mysql://todo/pics", "user", "pass", Conf.DefaultDriver)
     val db = PicsDatabase.maria(conf)
     import db.api._
     import db.mappings._
