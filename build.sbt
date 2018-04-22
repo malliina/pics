@@ -23,7 +23,7 @@ lazy val cross = crossProject.in(file("shared"))
 lazy val crossJvm = cross.jvm
 lazy val crossJs = cross.js
 
-val utilPlayVersion = "4.11.1"
+val utilPlayVersion = "4.12.1"
 
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
@@ -66,9 +66,13 @@ val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
   httpPort in Linux := Option("disabled"),
   httpsPort in Linux := Option("8459"),
   maintainer := "Michael Skogberg <malliina123@gmail.com>",
-  javaOptions in Universal += {
+  javaOptions in Universal ++= {
     val linuxName = (name in Linux).value
-    s"-Dgoogle.oauth=/etc/$linuxName/google-oauth.key"
+    Seq(
+      s"-Dgoogle.oauth=/etc/$linuxName/google-oauth.key",
+      s"-Dconfig.file=/etc/$linuxName/production.conf",
+      s"-Dlogger.file=/etc/$linuxName/logback-prod.xml"
+    )
   },
   packageSummary in Linux := "This is the pics summary.",
   rpmVendor := "Skogberg Labs",

@@ -25,7 +25,7 @@ object AuthHtml extends HtmlBuilder(new com.malliina.html.Tags(scalatags.Text)) 
       socialButton("microsoft", routes.Social.microsoft(), "Sign in with Microsoft"),
       socialButton("github", routes.Social.github(), "Sign in with GitHub"),
       socialButton("twitter", routes.Social.twitter(), "Sign in with Twitter"),
-      socialButton("amazon", routes.CognitoControl.amazon(), "Sign in with Amazon")
+      socialButton("amazon", routes.Social.amazon(), "Sign in with Amazon")
     )
     val loginDivider = divClass("login-divider")(
       divClass("line"),

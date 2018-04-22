@@ -23,10 +23,10 @@ import router.Routes
 
 import scala.concurrent.Future
 
-class AppLoader extends DefaultApp(ctx => new AppComponents(ctx, GoogleOAuthReader.load, SocialConf()))
+class AppLoader extends DefaultApp(ctx => new AppComponents(ctx, GoogleOAuthReader.load))
 
-class AppComponents(context: Context, creds: GoogleOAuthCredentials, socialConf: SocialConf)
-  extends BaseComponents(context, creds, socialConf) {
+class AppComponents(context: Context, creds: GoogleOAuthCredentials)
+  extends BaseComponents(context, creds) {
   override lazy val httpErrorHandler = PicsErrorHandler
 
   override def buildAuthenticator() = PicsAuthenticator(JWTAuth.default, PicsAuth.social)
@@ -34,18 +34,21 @@ class AppComponents(context: Context, creds: GoogleOAuthCredentials, socialConf:
   override def buildPics() = MultiSizeHandler.default(materializer)
 }
 
-abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials, socialConf: SocialConf)
+abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials)
   extends BuiltInComponentsFromContext(context)
     with HttpFiltersComponents
     with EhCacheComponents
     with AssetsComponents {
 
+  private val log = Logger(getClass)
+
   def buildAuthenticator(): PicsAuthLike
 
   def buildPics(): MultiSizeHandler
 
-  private val log = Logger(getClass)
   val mode = environment.mode
+
+  lazy val socialConf = SocialConf.forMode(mode, configuration)
 
   val allowedCsp = Seq(
     "maxcdn.bootstrapcdn.com",
@@ -78,16 +81,14 @@ abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials, s
   log.info(s"Using pics dir '${FilePics.picsDir}'.")
   val cache = new Cached(defaultCacheApi)
   override lazy val httpErrorHandler = PicsErrorHandler
-//  val admin = new Admin(html, creds, defaultActionBuilder)
-//  val htmlAuth = PicsAuth.oauth(admin)
   val authenticator = buildAuthenticator()
   val auth = new PicsAuth(authenticator, materializer, defaultActionBuilder)
   val sockets = Sockets(auth, actorSystem, materializer)
   val pics = new PicsController(html, service, sockets, auth, cache, controllerComponents)
   val cognitoControl = CognitoControl.pics(defaultActionBuilder)
   val picsAssets = new PicsAssets(assets)
-  val social = Social.buildOrFail(defaultActionBuilder, socialConf)
-  override val router: Router = new Routes(httpErrorHandler, pics, sockets, picsAssets, cognitoControl, social)
+  lazy val social = Social.buildOrFail(defaultActionBuilder, socialConf)
+  override lazy val router: Router = new Routes(httpErrorHandler, pics, sockets, picsAssets, social, cognitoControl)
 
   applicationLifecycle.addStopHook { () =>
     Future.successful(db.database.close())

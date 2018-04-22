@@ -13,13 +13,13 @@ GET           /sockets                            controllers.Sockets.listen
 GET           /assets/*file                       controllers.PicsAssets.versioned(path = "/public", file: Asset)
 GET           /sign-in                            controllers.PicsController.signIn
 POST          /sign-in                            controllers.PicsController.postSignIn
-GET           /sign-in/amazon                     controllers.CognitoControl.amazon
+GET           /sign-in/amazon                     controllers.Social.amazon
 GET           /sign-in/twitter                    controllers.Social.twitter
 GET           /sign-in/github                     controllers.Social.github
 GET           /sign-in/microsoft                  controllers.Social.microsoft
 GET           /sign-in/google                     controllers.Social.google
 GET           /sign-in/facebook                   controllers.Social.facebook
-GET           /sign-in/callbacks/amazon           controllers.CognitoControl.cognitoCallback
+GET           /sign-in/callbacks/amazon           controllers.Social.amazonCallback
 GET           /sign-in/callbacks/twitter          controllers.Social.twitterCallback
 GET           /sign-in/callbacks/github           controllers.Social.githubCallback
 GET           /sign-in/callbacks/microsoft        controllers.Social.microsoftCallback

@@ -1,12 +1,11 @@
 package controllers
 
-import java.math.BigInteger
-import java.security.SecureRandom
-
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.http.{FullUrl, OkClient}
-import com.malliina.play.auth.CodeValidator.{CodeKey, State}
-import com.malliina.play.auth.{CodeValidator, CognitoIdentityConf, CognitoIdentityConfs, CognitoTokens, CognitoValidators}
+import com.malliina.play.auth.CodeValidator._
+import com.malliina.play.auth.CognitoCodeValidator.IdentityProvider
+import com.malliina.play.auth.StaticCodeValidator.StaticConf
+import com.malliina.play.auth.{AuthError, AuthHandlerBase, Code, CodeValidator, CognitoIdValidator, CognitoIdentityConf, CognitoIdentityConfs, CognitoTokens, CognitoUser, CognitoValidators, StaticCodeValidator}
 import com.malliina.play.http.FullUrls
 import com.malliina.play.json.JsonMessages
 import controllers.CognitoControl.log
@@ -40,7 +39,7 @@ class CognitoControl(conf: CognitoIdentityConf, actions: ActionBuilder[Request, 
     Redirect(authUrl(state, redirUrl(req)).url).withSession(State -> state)
   }
 
-  def redirUrl(rh: RequestHeader) = FullUrls(routes.CognitoControl.cognitoCallback(), rh)
+  def redirUrl(rh: RequestHeader) = FullUrls(routes.Social.amazonCallback(), rh)
 
   def signOut = actions { req =>
     Redirect(conf.logoutUrl(FullUrls(routes.CognitoControl.signOutCallback(), req)).url).withNewSession
@@ -59,7 +58,7 @@ class CognitoControl(conf: CognitoIdentityConf, actions: ActionBuilder[Request, 
     *
     * This callback algorithm works both for Google and (Login with) Amazon.
     */
-  def cognitoCallback = actions.async { req =>
+  def amazonCallback = actions.async { req =>
     val requestState = req.getQueryString(State)
     val sessionState = req.session.get(State)
     val isStateOk = requestState.exists(rs => sessionState.contains(rs))
