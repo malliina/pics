@@ -23,7 +23,7 @@ lazy val cross = crossProject.in(file("shared"))
 lazy val crossJvm = cross.jvm
 lazy val crossJs = cross.js
 
-val utilPlayVersion = "4.12.1"
+val utilPlayVersion = "4.12.2"
 
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
