@@ -46,6 +46,7 @@ class Login extends LoginStrings {
       err => document.getElementById("error").asInstanceOf[HTMLInputElement].value = err,
       token => document.getElementById("token").asInstanceOf[HTMLInputElement].value = token
     )
+    PicsJS.csrf.installTo(loginForm)
     loginForm.submit()
   }
 }

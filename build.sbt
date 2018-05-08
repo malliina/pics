@@ -91,7 +91,7 @@ val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
   )
 )
 
-val frontendSettings = commonSettings ++ Seq(
+lazy val frontendSettings = commonSettings ++ Seq(
   libraryDependencies ++= Seq(
     "org.scala-js" %%% "scalajs-dom" % "0.9.2",
     "org.scalatest" %%% "scalatest" % "3.0.4" % Test,
@@ -100,7 +100,7 @@ val frontendSettings = commonSettings ++ Seq(
   scalaJSUseMainModuleInitializer := true
 )
 
-def scalaJSSettings = Seq(
+lazy val scalaJSSettings = Seq(
   scalaJSProjects := Seq(frontend),
   pipelineStages in Assets := Seq(scalaJSPipeline)
 )
