@@ -3,9 +3,7 @@ package controllers
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.http.{FullUrl, OkClient}
 import com.malliina.play.auth.CodeValidator._
-import com.malliina.play.auth.CognitoCodeValidator.IdentityProvider
-import com.malliina.play.auth.StaticCodeValidator.StaticConf
-import com.malliina.play.auth.{AuthError, AuthHandlerBase, Code, CodeValidator, CognitoIdValidator, CognitoIdentityConf, CognitoIdentityConfs, CognitoTokens, CognitoUser, CognitoValidators, StaticCodeValidator}
+import com.malliina.play.auth.{CodeValidator, CognitoIdentityConf, CognitoIdentityConfs, CognitoTokens, CognitoValidators}
 import com.malliina.play.http.FullUrls
 import com.malliina.play.json.JsonMessages
 import controllers.CognitoControl.log
@@ -21,7 +19,7 @@ object CognitoControl {
   def pics(actions: ActionBuilder[Request, AnyContent]) =
     new CognitoControl(CognitoIdentityConfs.pics, actions)
 
-  def randomState() = CodeValidator.randomState()
+  def randomString() = CodeValidator.randomString()
 }
 
 class CognitoControl(conf: CognitoIdentityConf, actions: ActionBuilder[Request, AnyContent]) {
@@ -35,7 +33,7 @@ class CognitoControl(conf: CognitoIdentityConf, actions: ActionBuilder[Request, 
   def amazon = socialLogin((state, redir) => conf.authUrlAmazon(state, redir))
 
   private def socialLogin(authUrl: (AuthState, FullUrl) => FullUrl) = actions { req =>
-    val state = CognitoControl.randomState()
+    val state = CognitoControl.randomString()
     Redirect(authUrl(state, redirUrl(req)).url).withSession(State -> state)
   }
 

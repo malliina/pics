@@ -76,7 +76,18 @@ class PicsController(html: PicsHtml,
 
   def root = Action(Redirect(reverse.list()))
 
-  def signIn = Action(Ok(html.signIn()))
+  def signIn = Action { req =>
+    import Social._
+    val call = req.cookies.get(ProviderCookie).flatMap(c => AuthProvider.forString(c.value).toOption).map {
+      case Google => routes.Social.google()
+      case Microsoft => routes.Social.microsoft()
+      case Facebook => routes.Social.facebook()
+      case GitHub => routes.Social.github()
+      case Amazon => routes.Social.amazon()
+      case Twitter => routes.Social.twitter()
+    }
+    call.map(c => Redirect(c)).getOrElse(Ok(html.signIn()))
+  }
 
   def postSignIn = Action(parse.form(tokenForm)) { req =>
     req.body.toEither.fold(

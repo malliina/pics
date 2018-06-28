@@ -2,6 +2,7 @@ import com.malliina.sbtplay.PlayProject
 import play.sbt.PlayImport
 import sbt.Keys.scalaVersion
 import com.malliina.sbt.filetree.DirMap
+import sbtcrossproject.CrossPlugin.autoImport.{crossProject => portableProject, CrossType => PortableType}
 
 lazy val root = project.in(file("."))
   .settings(commonSettings: _*)
@@ -17,19 +18,21 @@ lazy val frontend = project.in(file("frontend"))
   .enablePlugins(ScalaJSPlugin)
   .dependsOn(crossJs)
 
-lazy val cross = crossProject.in(file("shared"))
+lazy val cross = portableProject(JSPlatform, JVMPlatform)
+  .crossType(PortableType.Full)
+  .in(file("shared"))
   .settings(commonSettings: _*)
 
 lazy val crossJvm = cross.jvm
 lazy val crossJs = cross.js
 
-val utilPlayVersion = "4.12.2"
+val utilPlayVersion = "4.12.4"
 
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
 val commonSettings = Seq(
   organization := "com.malliina",
-  scalaVersion := "2.12.5",
+  scalaVersion := "2.12.6",
   resolvers ++= Seq(
     "Sonatype releases" at "https://oss.sonatype.org/content/repositories/releases/",
     Resolver.bintrayRepo("malliina", "maven")
@@ -44,16 +47,16 @@ val commonSettings = Seq(
 val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
   libraryDependencies ++= Seq(
     "org.apache.commons" % "commons-text" % "1.3",
-    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.313",
+    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.356",
     PlayImport.ehcache,
     PlayImport.ws,
     utilPlayDep,
     utilPlayDep % Test classifier "tests",
     "com.typesafe.slick" %% "slick" % "3.2.3",
     "com.h2database" % "h2" % "1.4.197",
-    "org.mariadb.jdbc" % "mariadb-java-client" % "2.2.3",
-    "com.zaxxer" % "HikariCP" % "3.1.0",
-    "com.nimbusds" % "nimbus-jose-jwt" % "5.9",
+    "org.mariadb.jdbc" % "mariadb-java-client" % "2.2.5",
+    "com.zaxxer" % "HikariCP" % "3.2.0",
+    "com.nimbusds" % "nimbus-jose-jwt" % "5.12",
     "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8",
     "com.malliina" %% "logstreams-client" % "1.0.0"
   ),

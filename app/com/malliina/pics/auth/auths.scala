@@ -2,10 +2,10 @@ package com.malliina.pics.auth
 
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.pics.{Errors, PicRequest}
-import com.malliina.play.auth.{MissingCredentials, AccessToken}
+import com.malliina.play.auth.{AccessToken, MissingCredentials}
 import com.malliina.play.controllers.AuthBundle
 import com.malliina.play.auth.CognitoUser
-import controllers.{JWTAuth, PicsController}
+import controllers.{JWTAuth, PicsController, Social}
 import play.api.http.{HeaderNames, MediaRange}
 import play.api.mvc.{RequestHeader, Result, Results}
 
@@ -53,8 +53,10 @@ class PicsAuthenticator(jwtAuth: JWTAuth, bundle: AuthBundle[PicRequest]) extend
     bundle.authenticator.authenticate(rh).map { e =>
       e.fold(
         {
-          case MissingCredentials(req) => Right(PicRequest.anon(req))
-          case other => Left(bundle.onUnauthorized(other))
+          case MissingCredentials(req) if !req.cookies.exists(_.name == Social.ProviderCookie) =>
+            Right(PicRequest.anon(req))
+          case other =>
+            Left(bundle.onUnauthorized(other))
         },
         u => Right(u)
       )
