@@ -1,7 +1,7 @@
 package com.malliina.play.auth
 
 import com.malliina.pics.PicOwner
-import com.malliina.play.models.Username
+import com.malliina.values.Username
 
 object JWTUsers {
   def anon = new JWTUser {

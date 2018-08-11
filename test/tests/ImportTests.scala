@@ -11,7 +11,7 @@ import scala.collection.JavaConverters._
 class ImportTests extends BaseSuite {
   ignore("connect") {
     val conf = Conf("jdbc:mysql://todo/pics", "user", "pass", Conf.DefaultDriver)
-    val db = PicsDatabase.maria(conf)
+    val db = PicsDatabase.mysql(conf)
     import db.api._
     import db.mappings._
     val lines = Files.readAllLines(Paths.get(sys.props("user.home")).resolve("files/pics.csv")).asScala.toList

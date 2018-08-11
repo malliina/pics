@@ -7,7 +7,6 @@ import com.malliina.pics._
 import com.malliina.pics.auth.PicsAuth
 import com.malliina.pics.sockets.ClientSockets.Unicast
 import com.malliina.pics.sockets.{ClientSocket, ClientSockets, SocketContext}
-import com.malliina.play.models.Username
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.libs.streams.ActorFlow
 import play.api.mvc.WebSocket

@@ -26,7 +26,7 @@ lazy val cross = portableProject(JSPlatform, JVMPlatform)
 lazy val crossJvm = cross.jvm
 lazy val crossJs = cross.js
 
-val utilPlayVersion = "4.12.4"
+val utilPlayVersion = "4.13.0"
 
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
@@ -40,25 +40,26 @@ val commonSettings = Seq(
   libraryDependencies ++= Seq(
     "com.lihaoyi" %%% "scalatags" % "0.6.7",
     "com.typesafe.play" %%% "play-json" % "2.6.9",
-    "com.malliina" %%% "primitives" % "1.5.2",
+    "com.malliina" %%% "primitives" % "1.6.0",
     "com.malliina" %%% "util-html" % utilPlayVersion
   )
 )
 val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
   libraryDependencies ++= Seq(
-    "org.apache.commons" % "commons-text" % "1.3",
+    "org.apache.commons" % "commons-text" % "1.4",
     "com.amazonaws" % "aws-java-sdk-s3" % "1.11.356",
     PlayImport.ehcache,
     PlayImport.ws,
+    "com.malliina" %% "play-social" % utilPlayVersion,
     utilPlayDep,
     utilPlayDep % Test classifier "tests",
     "com.typesafe.slick" %% "slick" % "3.2.3",
     "com.h2database" % "h2" % "1.4.197",
-    "org.mariadb.jdbc" % "mariadb-java-client" % "2.2.5",
+    "mysql" % "mysql-connector-java" % "5.1.46",
     "com.zaxxer" % "HikariCP" % "3.2.0",
     "com.nimbusds" % "nimbus-jose-jwt" % "5.12",
     "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8",
-    "com.malliina" %% "logstreams-client" % "1.0.0"
+    "com.malliina" %% "logstreams-client" % "1.1.0"
   ),
   dependencyOverrides ++= Seq(
     "com.typesafe.akka" %% "akka-stream" % "2.5.8",
@@ -72,7 +73,6 @@ val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
   javaOptions in Universal ++= {
     val linuxName = (name in Linux).value
     Seq(
-      s"-Dgoogle.oauth=/etc/$linuxName/google-oauth.key",
       s"-Dconfig.file=/etc/$linuxName/production.conf",
       s"-Dlogger.file=/etc/$linuxName/logback-prod.xml"
     )

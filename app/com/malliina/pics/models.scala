@@ -6,7 +6,7 @@ import java.util.Date
 
 import buildinfo.BuildInfo
 import com.malliina.play.http.FullUrls
-import com.malliina.play.models.Username
+import com.malliina.values.Username
 import controllers.routes
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}

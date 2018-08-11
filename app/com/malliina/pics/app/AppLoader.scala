@@ -1,5 +1,7 @@
 package com.malliina.pics.app
 
+import java.nio.file.Paths
+
 import com.malliina.oauth.{GoogleOAuthCredentials, GoogleOAuthReader}
 import com.malliina.pics.CSRFConf.{CsrfCookieName, CsrfHeaderName, CsrfTokenName, CsrfTokenNoCheck}
 import com.malliina.pics._
@@ -7,6 +9,7 @@ import com.malliina.pics.auth.{PicsAuth, PicsAuthLike, PicsAuthenticator}
 import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.html.PicsHtml
 import com.malliina.play.app.DefaultApp
+import com.typesafe.config.ConfigFactory
 import controllers.Social.SocialConf
 import controllers._
 import play.api.ApplicationLoader.Context
@@ -14,7 +17,7 @@ import play.api.cache.Cached
 import play.api.cache.ehcache.EhCacheComponents
 import play.api.http.HttpConfiguration
 import play.api.routing.Router
-import play.api.{BuiltInComponentsFromContext, Logger, Mode}
+import play.api.{BuiltInComponentsFromContext, Configuration, Logger, Mode}
 import play.filters.HttpFiltersComponents
 import play.filters.csrf.CSRFConfig
 import play.filters.headers.SecurityHeadersConfig
@@ -22,6 +25,11 @@ import play.filters.hosts.AllowedHostsConfig
 import router.Routes
 
 import scala.concurrent.Future
+
+object LocalConf {
+  val localConfFile = Paths.get(sys.props("user.home")).resolve(".pics/pics.conf")
+  val localConf = Configuration(ConfigFactory.parseFile(localConfFile.toFile))
+}
 
 class AppLoader extends DefaultApp(ctx => new AppComponents(ctx, GoogleOAuthReader.load))
 
@@ -41,6 +49,7 @@ abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials)
     with AssetsComponents {
 
   private val log = Logger(getClass)
+  override val configuration = context.initialConfiguration ++ LocalConf.localConf
 
   def buildAuthenticator(): PicsAuthLike
 
@@ -48,7 +57,7 @@ abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials)
 
   val mode = environment.mode
 
-  lazy val socialConf = SocialConf.forMode(mode, configuration)
+  lazy val socialConf = SocialConf(configuration)
 
   val allowedCsp = Seq(
     "maxcdn.bootstrapcdn.com",

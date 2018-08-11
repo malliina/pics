@@ -7,7 +7,7 @@ import com.malliina.play.auth._
 import controllers.Social._
 import play.api.mvc.Results.Redirect
 import play.api.mvc._
-import play.api.{Configuration, Mode}
+import play.api.Configuration
 
 import scala.util.Try
 
@@ -25,14 +25,6 @@ object Social {
                         amazonConf: AuthConf = AuthConf("2rnqepv44epargdosba6nlg2t9", "unused"))
 
   object SocialConf {
-
-    def forMode(mode: Mode, c: Configuration): SocialConf = {
-      val reader =
-        if (mode == Mode.Prod) AuthConfReader.conf(c)
-        else AuthConfReader.env
-      read(reader)
-    }
-
     def apply(conf: Configuration): SocialConf =
       Try(read(AuthConfReader.env)).getOrElse(read(AuthConfReader.conf(conf)))
 

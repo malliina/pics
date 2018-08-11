@@ -11,6 +11,7 @@ import javax.sql.DataSource
 import org.h2.jdbcx.JdbcConnectionPool
 import play.api.{Configuration, Logger, Mode}
 import slick.jdbc.{H2Profile, JdbcProfile, MySQLProfile}
+import slick.util.AsyncExecutor
 
 import scala.concurrent.ExecutionContext
 
@@ -18,16 +19,18 @@ object PicsDatabase {
   private val log = Logger(getClass)
   val H2UrlSettings = "h2.url.settings"
   val TimestampSqlType = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+  val MySQLDriver = "com.mysql.jdbc.Driver"
 
-  def forMode(mode: Mode, conf: Configuration) = {
+  def forMode(mode: Mode, conf: Configuration) =
     if (mode == Mode.Prod) prod(conf)
-    else if (mode == Mode.Dev) dev()
+    else if (mode == Mode.Dev) dev(conf)
     else inMemory()
-  }
 
-  def apply(ds: DataSource, profile: JdbcProfile) = new PicsDatabase(ds, profile, ExecutionContexts.cached)
+  def apply(ds: DataSource, profile: JdbcProfile) =
+    new PicsDatabase(ds, profile, ExecutionContexts.cached)
 
-  def dev() = Conf.fromEnv().map(maria).getOrElse(defaultFile())
+  def dev(conf: Configuration): PicsDatabase =
+    Conf.fromConf(conf).map(mysql).getOrElse(defaultFile())
 
   def defaultFile() = {
     val path = sys.props.get("pics.home")
@@ -38,7 +41,7 @@ object PicsDatabase {
   }
 
   def prod(conf: Configuration) =
-    maria(Conf.fromConf(conf).fold(err => throw new Exception(err), identity))
+    mysql(Conf.fromConf(conf).fold(err => throw new Exception(err), identity))
 
   /**
     * @param path path to database file
@@ -50,7 +53,7 @@ object PicsDatabase {
   }
 
   def h2(memOrFile: String): PicsDatabase = {
-    val databaseUrlSettings = sys.props.get(PicsDatabase.H2UrlSettings)
+    val databaseUrlSettings = sys.props.get(H2UrlSettings)
       .map(_.trim)
       .filter(_.nonEmpty)
       .map(ss => s";$ss")
@@ -64,17 +67,25 @@ object PicsDatabase {
   // jdbc:h2:mem:test1;DB_CLOSE_DELAY=-1
   def inMemory() = h2("mem:test")
 
-  def mariaFromEnvOrFail() = maria(Conf.fromEnvOrFail())
+  def mysqlFromEnvOrFail() = mysql(Conf.fromEnvOrFail())
 
-  def maria(conf: Conf): PicsDatabase = {
+  def mysql(conf: Conf): PicsDatabase = {
     val hikari = new HikariConfig()
-    hikari.setDriverClassName("org.mariadb.jdbc.Driver")
+    hikari.setDriverClassName(MySQLDriver)
     hikari.setJdbcUrl(conf.url)
     hikari.setUsername(conf.user)
     hikari.setPassword(conf.pass)
     log info s"Connecting to '${conf.url}'..."
     apply(new HikariDataSource(hikari), MySQLProfile)
   }
+
+  def executor(threads: Int) = AsyncExecutor(
+    name = "AsyncExecutor.pics",
+    minThreads = threads,
+    maxThreads = threads,
+    queueSize = 1000,
+    maxConnections = threads
+  )
 }
 
 class PicsDatabase(ds: DataSource, p: JdbcProfile, val ec: ExecutionContext)
@@ -87,7 +98,13 @@ class PicsDatabase(ds: DataSource, p: JdbcProfile, val ec: ExecutionContext)
 
   val picsTable = TableQuery[PicsTable]
 
-  override val database = Database.forDataSource(ds, None)
+  val dbThreads = 20
+
+  override val database = Database.forDataSource(
+    ds,
+    maxConnections = Option(dbThreads),
+    executor = PicsDatabase.executor(dbThreads)
+  )
 
   override def tableQueries = Seq(picsTable)
 

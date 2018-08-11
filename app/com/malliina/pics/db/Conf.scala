@@ -5,11 +5,11 @@ import play.api.Configuration
 case class Conf(url: String, user: String, pass: String, driver: String)
 
 object Conf {
-  val UrlKey = "db_url"
-  val UserKey = "db_user"
-  val PassKey = "db_pass"
-  val DriverKey = "db_driver"
-  val DefaultDriver = "org.mariadb.jdbc.Driver"
+  val UrlKey = "pics.db.url"
+  val UserKey = "pics.db.user"
+  val PassKey = "pics.db.pass"
+  val DriverKey = "pics.db.driver"
+  val DefaultDriver = PicsDatabase.MySQLDriver
 
   def fromEnvOrFail() = fromEnv().fold(err => throw new Exception(err), identity)
 
