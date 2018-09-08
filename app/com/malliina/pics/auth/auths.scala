@@ -1,6 +1,6 @@
 package com.malliina.pics.auth
 
-import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.{Errors, PicRequest}
 import com.malliina.play.auth.{AccessToken, MissingCredentials}
 import com.malliina.play.controllers.AuthBundle

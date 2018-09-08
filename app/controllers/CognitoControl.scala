@@ -1,6 +1,6 @@
 package controllers
 
-import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.concurrent.Execution.cached
 import com.malliina.http.{FullUrl, OkClient}
 import com.malliina.play.auth.CodeValidator._
 import com.malliina.play.auth.{CodeValidator, CognitoIdentityConf, CognitoIdentityConfs, CognitoTokens, CognitoValidators}

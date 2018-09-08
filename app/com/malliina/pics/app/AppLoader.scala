@@ -2,7 +2,7 @@ package com.malliina.pics.app
 
 import java.nio.file.Paths
 
-import com.malliina.oauth.{GoogleOAuthCredentials, GoogleOAuthReader}
+import com.malliina.oauth.GoogleOAuthCredentials
 import com.malliina.pics.CSRFConf.{CsrfCookieName, CsrfHeaderName, CsrfTokenName, CsrfTokenNoCheck}
 import com.malliina.pics._
 import com.malliina.pics.auth.{PicsAuth, PicsAuthLike, PicsAuthenticator}
@@ -31,9 +31,9 @@ object LocalConf {
   val localConf = Configuration(ConfigFactory.parseFile(localConfFile.toFile))
 }
 
-class AppLoader extends DefaultApp(ctx => new AppComponents(ctx, GoogleOAuthReader.load))
+class AppLoader extends DefaultApp(ctx => new AppComponents(ctx, conf => GoogleOAuthCredentials(conf).fold(err => throw new Exception(err.message), identity)))
 
-class AppComponents(context: Context, creds: GoogleOAuthCredentials)
+class AppComponents(context: Context, creds: Configuration => GoogleOAuthCredentials)
   extends BaseComponents(context, creds) {
   override lazy val httpErrorHandler = PicsErrorHandler
 
@@ -42,7 +42,7 @@ class AppComponents(context: Context, creds: GoogleOAuthCredentials)
   override def buildPics() = MultiSizeHandler.default(materializer)
 }
 
-abstract class BaseComponents(context: Context, creds: GoogleOAuthCredentials)
+abstract class BaseComponents(context: Context, creds: Configuration => GoogleOAuthCredentials)
   extends BuiltInComponentsFromContext(context)
     with HttpFiltersComponents
     with EhCacheComponents

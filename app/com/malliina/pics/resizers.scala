@@ -3,7 +3,7 @@ package com.malliina.pics
 import java.io.{IOException, InputStream}
 import java.nio.file.{Files, Path}
 
-import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.ScrimageResizer.log
 import com.malliina.storage.{StorageLong, StorageSize}
 import com.sksamuel.scrimage.Image

@@ -5,7 +5,7 @@ import java.nio.file.{Files, Path}
 import akka.stream.IOResult
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
-import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.concurrent.Execution.cached
 import com.malliina.storage.{StorageLong, StorageSize}
 
 import scala.concurrent.Future

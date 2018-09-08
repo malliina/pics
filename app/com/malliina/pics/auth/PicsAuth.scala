@@ -1,7 +1,7 @@
 package com.malliina.pics.auth
 
 import akka.stream.Materializer
-import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.auth.PicsAuth.log
 import com.malliina.pics.{Errors, PicOwner, PicRequest}
 import com.malliina.play.controllers.AuthBundle

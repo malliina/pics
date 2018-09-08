@@ -8,7 +8,7 @@ import com.amazonaws.auth.{AWSCredentialsProviderChain, DefaultAWSCredentialsPro
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.model.ObjectListing
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
-import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.BucketFiles.log
 import com.malliina.storage.StorageLong
 import play.api.Logger

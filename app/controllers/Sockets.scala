@@ -2,7 +2,7 @@ package controllers
 
 import akka.actor.ActorSystem
 import akka.stream.Materializer
-import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.concurrent.Execution.cached
 import com.malliina.pics._
 import com.malliina.pics.auth.PicsAuth
 import com.malliina.pics.sockets.ClientSockets.Unicast

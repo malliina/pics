@@ -5,9 +5,9 @@ import java.nio.file.{Files, NoSuchFileException, Path, Paths}
 import akka.stream.scaladsl.{FileIO, Source}
 import akka.stream.{IOResult, Materializer}
 import akka.util.ByteString
-import com.malliina.concurrent.ExecutionContexts.cached
-import com.malliina.file.FileUtilities
+import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.FilePics.log
+import com.malliina.pics.db.PicsDatabase
 import play.api.Logger
 
 import scala.concurrent.Future
@@ -17,7 +17,7 @@ object FilePics {
   private val log = Logger(getClass)
 
   val PicsEnvKey = "pics.dir"
-  val picsDir = sys.env.get(PicsEnvKey).map(Paths.get(_)).getOrElse(FileUtilities.tempDir.resolve("pics"))
+  val picsDir = sys.env.get(PicsEnvKey).map(Paths.get(_)).getOrElse(PicsDatabase.tmpDir.resolve("pics"))
 
   def apply(dir: Path, mat: Materializer): FilePics = new FilePics(dir, mat)
 

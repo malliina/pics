@@ -31,7 +31,7 @@ object TestAuthenticator extends PicsAuthLike {
 }
 
 class TestComps(context: Context, creds: GoogleOAuthCredentials)
-  extends BaseComponents(context, creds) {
+  extends BaseComponents(context, _ => creds) {
   override def buildAuthenticator() = TestAuthenticator
 
   override def buildPics() = MultiSizeHandler.clones(TestHandler)

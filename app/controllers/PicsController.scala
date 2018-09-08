@@ -3,7 +3,7 @@ package controllers
 import java.nio.file.Path
 import java.time.Instant
 
-import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.concurrent.Execution.cached
 import com.malliina.html.UserFeedback
 import com.malliina.pics.LoginStrings.AuthFailed
 import com.malliina.pics._

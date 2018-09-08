@@ -3,8 +3,7 @@ package com.malliina.pics.db
 import java.nio.file.{Files, Path, Paths}
 import java.time.Instant
 
-import com.malliina.concurrent.ExecutionContexts
-import com.malliina.file.FileUtilities
+import com.malliina.concurrent.Execution
 import com.malliina.pics.{Key, KeyMeta, PicOwner}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import javax.sql.DataSource
@@ -20,6 +19,7 @@ object PicsDatabase {
   val H2UrlSettings = "h2.url.settings"
   val TimestampSqlType = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
   val MySQLDriver = "com.mysql.jdbc.Driver"
+  val tmpDir = Paths.get(sys.props("java.io.tmpdir"))
 
   def forMode(mode: Mode, conf: Configuration) =
     if (mode == Mode.Prod) prod(conf)
@@ -27,7 +27,7 @@ object PicsDatabase {
     else inMemory()
 
   def apply(ds: DataSource, profile: JdbcProfile) =
-    new PicsDatabase(ds, profile, ExecutionContexts.cached)
+    new PicsDatabase(ds, profile, Execution.cached)
 
   def dev(conf: Configuration): PicsDatabase =
     Conf.fromConf(conf).map(mysql).getOrElse(defaultFile())
@@ -35,7 +35,7 @@ object PicsDatabase {
   def defaultFile() = {
     val path = sys.props.get("pics.home")
       .map(h => Paths.get(h))
-      .getOrElse(FileUtilities.tempDir)
+      .getOrElse(tmpDir)
       .resolve("picsdb")
     file(path)
   }

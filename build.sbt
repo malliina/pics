@@ -26,7 +26,7 @@ lazy val cross = portableProject(JSPlatform, JVMPlatform)
 lazy val crossJvm = cross.jvm
 lazy val crossJs = cross.js
 
-val utilPlayVersion = "4.13.0"
+val utilPlayVersion = "4.14.0"
 
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
@@ -39,7 +39,7 @@ val commonSettings = Seq(
   ),
   libraryDependencies ++= Seq(
     "com.lihaoyi" %%% "scalatags" % "0.6.7",
-    "com.typesafe.play" %%% "play-json" % "2.6.9",
+    "com.typesafe.play" %%% "play-json" % "2.6.10",
     "com.malliina" %%% "primitives" % "1.6.0",
     "com.malliina" %%% "util-html" % utilPlayVersion
   )
@@ -57,9 +57,9 @@ val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
     "com.h2database" % "h2" % "1.4.197",
     "mysql" % "mysql-connector-java" % "5.1.46",
     "com.zaxxer" % "HikariCP" % "3.2.0",
-    "com.nimbusds" % "nimbus-jose-jwt" % "5.12",
+    "com.nimbusds" % "nimbus-jose-jwt" % "6.0.1",
     "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8",
-    "com.malliina" %% "logstreams-client" % "1.1.0"
+    "com.malliina" %% "logstreams-client" % "1.2.0"
   ),
   dependencyOverrides ++= Seq(
     "com.typesafe.akka" %% "akka-stream" % "2.5.8",
@@ -97,7 +97,7 @@ val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
 lazy val frontendSettings = commonSettings ++ Seq(
   libraryDependencies ++= Seq(
     "org.scala-js" %%% "scalajs-dom" % "0.9.2",
-    "org.scalatest" %%% "scalatest" % "3.0.4" % Test,
+    "org.scalatest" %%% "scalatest" % "3.0.5" % Test,
     "be.doeraene" %%% "scalajs-jquery" % "0.9.2"
   ),
   scalaJSUseMainModuleInitializer := true

@@ -2,7 +2,7 @@ package com.malliina.pics
 
 import java.nio.file.{Files, Path}
 
-import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.PicService.log
 import com.malliina.pics.db.{PicsDatabase, PicsMetaDatabase}
 import org.apache.commons.io.FilenameUtils

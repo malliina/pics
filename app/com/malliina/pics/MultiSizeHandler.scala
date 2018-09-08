@@ -1,7 +1,7 @@
 package com.malliina.pics
 
 import akka.stream.Materializer
-import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.concurrent.Execution.cached
 import com.sksamuel.scrimage.Image
 
 import scala.concurrent.Future

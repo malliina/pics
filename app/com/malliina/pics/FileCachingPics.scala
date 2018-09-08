@@ -2,7 +2,7 @@ package com.malliina.pics
 
 import java.nio.file.Path
 
-import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.concurrent.Execution.cached
 
 import scala.concurrent.Future
 

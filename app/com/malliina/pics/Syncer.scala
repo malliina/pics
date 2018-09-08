@@ -1,6 +1,6 @@
 package com.malliina.pics
 
-import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.Syncer.log
 import com.malliina.pics.auth.PicsAuth
 import com.malliina.pics.db.PicsMetaDatabase
