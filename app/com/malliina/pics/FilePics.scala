@@ -51,7 +51,7 @@ class FilePics(val dir: Path, mat: Materializer) extends DataSource {
       case _: NoSuchFileException =>
         fut(PicNotFound(key))
       case other: Exception =>
-        log.error("Pics operation failed", other)
+        log.error("Pics operation failed.", other)
         Future.failed(other)
     }
 
@@ -66,10 +66,11 @@ class FilePics(val dir: Path, mat: Materializer) extends DataSource {
   def putSource(key: Key, source: Source[ByteString, Future[IOResult]]): Future[Path] = {
     val file = fileAt(key)
     FileIO.toPath(file).runWith(source)(mat).map { res =>
-      log.info(s"Saved ${res.count} bytes to '$file' with outcome ${res.status}")
+      val outcome = if (res.status.isSuccess) "successfully" else "erroneously"
+      log.info(s"Saved ${res.count} bytes to '$file' $outcome.")
       file
     }.recoverWith { case t =>
-      log.error(s"Unable to save key '$key' to file", t)
+      log.error(s"Unable to save key '$key' to file.", t)
       Future.failed(new Exception(s"Unable to save '$key'."))
     }
   }
@@ -77,5 +78,5 @@ class FilePics(val dir: Path, mat: Materializer) extends DataSource {
   private def fileAt(key: Key) = dir resolve key.key
 
   def tryLogged[T](r: => T): Try[Unit] =
-    Try(r).map(_ => ()).recover { case t => log.error("Pics operation failed", t) }
+    Try(r).map(_ => ()).recover { case t => log.error("Pics operation failed.", t) }
 }

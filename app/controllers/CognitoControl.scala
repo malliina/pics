@@ -40,7 +40,9 @@ class CognitoControl(conf: CognitoIdentityConf, actions: ActionBuilder[Request, 
   def redirUrl(rh: RequestHeader) = FullUrls(routes.Social.amazonCallback(), rh)
 
   def signOut = actions { req =>
-    Redirect(conf.logoutUrl(FullUrls(routes.CognitoControl.signOutCallback(), req)).url).withNewSession
+    Redirect(conf.logoutUrl(FullUrls(routes.CognitoControl.signOutCallback(), req)).url)
+      .withNewSession
+      .discardingCookies(DiscardingCookie("last_id"), DiscardingCookie("provider"))
   }
 
   def signOutCallback = actions { _ =>

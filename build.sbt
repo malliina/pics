@@ -32,7 +32,7 @@ val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
 val commonSettings = Seq(
   organization := "com.malliina",
-  scalaVersion := "2.12.6",
+  scalaVersion := "2.12.7",
   resolvers ++= Seq(
     "Sonatype releases" at "https://oss.sonatype.org/content/repositories/releases/",
     Resolver.bintrayRepo("malliina", "maven")
@@ -47,7 +47,7 @@ val commonSettings = Seq(
 val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
   libraryDependencies ++= Seq(
     "org.apache.commons" % "commons-text" % "1.4",
-    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.356",
+    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.421",
     PlayImport.ehcache,
     PlayImport.ws,
     "com.malliina" %% "play-social" % utilPlayVersion,
@@ -57,7 +57,6 @@ val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
     "com.h2database" % "h2" % "1.4.197",
     "mysql" % "mysql-connector-java" % "5.1.46",
     "com.zaxxer" % "HikariCP" % "3.2.0",
-    "com.nimbusds" % "nimbus-jose-jwt" % "6.0.1",
     "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8",
     "com.malliina" %% "logstreams-client" % "1.2.0"
   ),
