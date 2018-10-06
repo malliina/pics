@@ -3,11 +3,12 @@ package controllers
 import com.malliina.concurrent.Execution.cached
 import com.malliina.http.OkClient
 import com.malliina.play.auth.CodeValidator.LoginHint
+import com.malliina.play.auth.CognitoCodeValidator.IdentityProvider
 import com.malliina.play.auth._
 import controllers.Social._
+import play.api.Configuration
 import play.api.mvc.Results.Redirect
 import play.api.mvc._
-import play.api.Configuration
 
 import scala.util.Try
 
@@ -60,7 +61,7 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
   val lastIdKey = BasicAuthHandler.LastIdCookie
   val handler = BasicAuthHandler(routes.PicsController.list(), lastIdKey)
 
-  object cognitoHandler extends AuthHandlerBase[CognitoUser] {
+  object cognitoHandler extends AuthResults[CognitoUser] {
     override def onAuthenticated(user: CognitoUser, req: RequestHeader): Result =
       Redirect(handler.successCall).withSession(handler.sessionKey -> user.username.name)
 
@@ -68,13 +69,15 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
       handler.onUnauthorized(error, req)
   }
 
-  val cognitoConf = CognitoCodeValidator.conf("pics.auth.eu-west-1.amazoncognito.com", conf.amazonConf)
-  val microsoftValidator = StandardCodeValidator(CodeValidationConf.microsoft(routes.Social.microsoftCallback(), handler, conf.microsoftConf, okClient))
-  val gitHubValidator = new GitHubCodeValidator(routes.Social.githubCallback(), handler, conf.githubConf, okClient)
-  val googleValidator = StandardCodeValidator(CodeValidationConf.google(routes.Social.googleCallback(), handler, conf.googleConf, okClient))
-  val facebookValidator = new FacebookCodeValidator(routes.Social.facebookCallback(), handler, conf.facebookConf, okClient)
-  val twitterValidator = new TwitterValidator(routes.Social.twitterCallback(), handler, conf.twitterConf, okClient)
-  val amazonValidator = new CognitoCodeValidator(CognitoCodeValidator.IdentityAmazon, CognitoValidators.picsId, routes.Social.amazonCallback(), cognitoHandler, cognitoConf, okClient)
+  val microsoftValidator = MicrosoftCodeValidator(oauthConf(routes.Social.microsoftCallback(), conf.microsoftConf))
+  val gitHubValidator = GitHubCodeValidator(oauthConf(routes.Social.githubCallback(), conf.githubConf))
+  val googleValidator = GoogleCodeValidator(oauthConf(routes.Social.googleCallback(), conf.googleConf))
+  val facebookValidator = FacebookCodeValidator(oauthConf(routes.Social.facebookCallback(), conf.facebookConf))
+  val twitterValidator = TwitterValidator(oauthConf(routes.Social.twitterCallback(), conf.twitterConf))
+  private val amazonOauth = OAuthConf(routes.Social.amazonCallback(), cognitoHandler, conf.amazonConf, okClient)
+  val amazonValidator = CognitoCodeValidator("pics.auth.eu-west-1.amazoncognito.com", IdentityProvider.LoginWithAmazon, CognitoValidators.picsId, amazonOauth)
+
+  def oauthConf(redirCall: Call, conf: AuthConf) = OAuthConf(redirCall, handler, conf, okClient)
 
   def microsoft = start(microsoftValidator)
 

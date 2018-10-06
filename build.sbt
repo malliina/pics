@@ -26,7 +26,7 @@ lazy val cross = portableProject(JSPlatform, JVMPlatform)
 lazy val crossJvm = cross.jvm
 lazy val crossJs = cross.js
 
-val utilPlayVersion = "4.14.0"
+val utilPlayVersion = "4.15.0"
 
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
