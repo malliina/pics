@@ -100,7 +100,7 @@ class PicsController(html: PicsHtml,
             failForm(LoginStrings.AuthFailed, req)
           },
           user => {
-            Redirect(routes.PicsController.list()).withSession("username" -> user.username.name)
+            Redirect(reverse.list()).withSession("username" -> user.username.name)
           }
         )
       }

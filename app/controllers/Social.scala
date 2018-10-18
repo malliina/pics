@@ -81,7 +81,7 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
 
   def oauthConf(redirCall: Call, conf: AuthConf) = OAuthConf(redirCall, handler, conf, okClient)
 
-  def microsoft = start(microsoftValidator)
+  def microsoft = startHinted(microsoftValidator)
 
   def microsoftCallback = callback(microsoftValidator, Microsoft)
 
@@ -89,10 +89,7 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
 
   def githubCallback = callback(gitHubValidator, GitHub)
 
-  def google = actions.async { req =>
-    val loginHint = req.cookies.get(lastIdKey).map(c => Map(LoginHint -> c.value)).getOrElse(Map.empty)
-    googleValidator.start(req, loginHint)
-  }
+  def google = startHinted(googleValidator)
 
   def googleCallback = callback(googleValidator, Google)
 
@@ -108,8 +105,11 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
 
   def amazonCallback = callback(amazonValidator, Amazon)
 
-  private def start(codeValidator: AuthValidator, params: Map[String, String] = Map.empty) =
-    actions.async { req => codeValidator.start(req, params) }
+  private def start(codeValidator: AuthValidator) =
+    actions.async { req => codeValidator.start(req, Map.empty) }
+
+  private def startHinted(codeValidator: LoginHintSupport) =
+    actions.async { req => codeValidator.startHinted(req, req.cookies.get(lastIdKey).map(_.value)) }
 
   private def callback(codeValidator: AuthValidator, provider: AuthProvider): Action[AnyContent] =
     actions.async { req =>
