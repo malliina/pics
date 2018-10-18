@@ -10,6 +10,7 @@ import play.api.Configuration
 import play.api.mvc.Results.Redirect
 import play.api.mvc._
 
+import scala.concurrent.duration.{Duration, DurationInt}
 import scala.util.Try
 
 object Social {
@@ -60,6 +61,7 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
   val okClient = OkClient.default
   val lastIdKey = BasicAuthHandler.LastIdCookie
   val handler = BasicAuthHandler(routes.PicsController.list(), lastIdKey)
+  val providerCookieDuration: Duration = 3650.days
 
   object cognitoHandler extends AuthResults[CognitoUser] {
     override def onAuthenticated(user: CognitoUser, req: RequestHeader): Result =
@@ -112,7 +114,8 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
   private def callback(codeValidator: AuthValidator, provider: AuthProvider): Action[AnyContent] =
     actions.async { req =>
       codeValidator.validateCallback(req).map { r =>
-        if (r.header.status < 400) r.withCookies(Cookie(ProviderCookie, provider.name))
+        val cookie = Cookie(ProviderCookie, provider.name, Option(providerCookieDuration.toSeconds.toInt))
+        if (r.header.status < 400) r.withCookies(cookie)
         else r
       }
     }

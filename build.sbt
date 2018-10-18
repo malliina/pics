@@ -1,8 +1,8 @@
+import com.malliina.sbt.filetree.DirMap
 import com.malliina.sbtplay.PlayProject
 import play.sbt.PlayImport
 import sbt.Keys.scalaVersion
-import com.malliina.sbt.filetree.DirMap
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject => portableProject, CrossType => PortableType}
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 
 lazy val root = project.in(file("."))
   .settings(commonSettings: _*)
@@ -26,7 +26,7 @@ lazy val cross = portableProject(JSPlatform, JVMPlatform)
 lazy val crossJvm = cross.jvm
 lazy val crossJs = cross.js
 
-val utilPlayVersion = "4.15.0"
+val utilPlayVersion = "4.16.0"
 
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
