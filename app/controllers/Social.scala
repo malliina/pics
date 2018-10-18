@@ -2,7 +2,6 @@ package controllers
 
 import com.malliina.concurrent.Execution.cached
 import com.malliina.http.OkClient
-import com.malliina.play.auth.CodeValidator.LoginHint
 import com.malliina.play.auth.CognitoCodeValidator.IdentityProvider
 import com.malliina.play.auth._
 import controllers.Social._
@@ -59,8 +58,7 @@ object Social {
 
 class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
   val okClient = OkClient.default
-  val lastIdKey = BasicAuthHandler.LastIdCookie
-  val handler = BasicAuthHandler(routes.PicsController.list(), lastIdKey)
+  val handler = BasicAuthHandler(routes.PicsController.list())
   val providerCookieDuration: Duration = 3650.days
 
   object cognitoHandler extends AuthResults[CognitoUser] {
@@ -109,12 +107,12 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
     actions.async { req => codeValidator.start(req, Map.empty) }
 
   private def startHinted(codeValidator: LoginHintSupport) =
-    actions.async { req => codeValidator.startHinted(req, req.cookies.get(lastIdKey).map(_.value)) }
+    actions.async { req => codeValidator.startHinted(req, req.cookies.get(handler.lastIdKey).map(_.value)) }
 
   private def callback(codeValidator: AuthValidator, provider: AuthProvider): Action[AnyContent] =
     actions.async { req =>
       codeValidator.validateCallback(req).map { r =>
-        val cookie = Cookie(ProviderCookie, provider.name, Option(providerCookieDuration.toSeconds.toInt))
+        val cookie = Cookie(ProviderCookie, provider.name, secure = true)
         if (r.header.status < 400) r.withCookies(cookie)
         else r
       }
