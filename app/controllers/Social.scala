@@ -14,6 +14,7 @@ import scala.util.Try
 
 object Social {
   val ProviderCookie = "provider"
+  val providerCookieDuration: Duration = 3650.days
 
   def buildOrFail(actions: ActionBuilder[Request, AnyContent], socialConf: SocialConf) =
     new Social(actions, socialConf)
@@ -59,7 +60,6 @@ object Social {
 class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
   val okClient = OkClient.default
   val handler = BasicAuthHandler(routes.PicsController.list())
-  val providerCookieDuration: Duration = 3650.days
 
   object cognitoHandler extends AuthResults[CognitoUser] {
     override def onAuthenticated(user: CognitoUser, req: RequestHeader): Result =
@@ -112,7 +112,7 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
   private def callback(codeValidator: AuthValidator, provider: AuthProvider): Action[AnyContent] =
     actions.async { req =>
       codeValidator.validateCallback(req).map { r =>
-        val cookie = Cookie(ProviderCookie, provider.name, secure = true)
+        val cookie = Cookie(ProviderCookie, provider.name, maxAge = Option(providerCookieDuration.toSeconds.toInt), secure = true)
         if (r.header.status < 400) r.withCookies(cookie)
         else r
       }

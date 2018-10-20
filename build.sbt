@@ -40,7 +40,7 @@ val commonSettings = Seq(
   libraryDependencies ++= Seq(
     "com.lihaoyi" %%% "scalatags" % "0.6.7",
     "com.typesafe.play" %%% "play-json" % "2.6.10",
-    "com.malliina" %%% "primitives" % "1.6.0",
+    "com.malliina" %%% "primitives" % "1.6.1",
     "com.malliina" %%% "util-html" % utilPlayVersion
   )
 )
@@ -58,7 +58,7 @@ val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
     "mysql" % "mysql-connector-java" % "5.1.46",
     "com.zaxxer" % "HikariCP" % "3.2.0",
     "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8",
-    "com.malliina" %% "logstreams-client" % "1.2.0"
+    "com.malliina" %% "logstreams-client" % "1.3.0"
   ),
   dependencyOverrides ++= Seq(
     "com.typesafe.akka" %% "akka-stream" % "2.5.8",
