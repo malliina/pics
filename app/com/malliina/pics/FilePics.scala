@@ -30,6 +30,7 @@ object FilePics {
 
 class FilePics(val dir: Path, mat: Materializer) extends DataSource {
   Files.createDirectories(dir)
+  log.info(s"Using pics dir '$dir'.")
 
   override def load(from: Int, until: Int): Future[Seq[FlatMeta]] = Future {
     Files.list(dir).iterator().asScala.toList.slice(from, from + until).map { p =>

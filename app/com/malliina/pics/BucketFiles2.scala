@@ -1,6 +1,6 @@
 package com.malliina.pics
 
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 
 import com.malliina.concurrent.Execution
 import com.malliina.pics.db.PicsDatabase
@@ -30,10 +30,11 @@ object BucketFiles2 {
 
 class BucketFiles2(bucket: BucketName, v2: S3AsyncClient, v1: BucketFiles)(implicit ec: ExecutionContext) extends DataSource {
   val downloadsDir = PicsDatabase.tmpDir.resolve("downloads")
+  Files.createDirectories(downloadsDir)
 
   override def get(key: Key): Future[DataResponse] = {
     val random = CodeValidator.randomString().take(8)
-    val dest = downloadsDir.resolve(s"$key-$random.jpeg")
+    val dest = downloadsDir.resolve(s"$random-$key")
     val cf = v2.getObject(GetObjectRequest.builder().bucket(bucket.name).key(key.key).build(), dest)
     val p = Promise[GetObjectResponse]
     cf.whenComplete((r, t) => Option(t).fold(p.success(r))(t => p.failure(t)))

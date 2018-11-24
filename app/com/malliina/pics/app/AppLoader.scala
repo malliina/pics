@@ -87,7 +87,6 @@ abstract class BaseComponents(context: Context, creds: Configuration => GoogleOA
   val db: PicsDatabase = PicsDatabase.forMode(mode, configuration)
   db.init()
   val service = PicService(db, buildPics())
-  log.info(s"Using pics dir '${FilePics.picsDir}'.")
   val cache = new Cached(defaultCacheApi)
   override lazy val httpErrorHandler = PicsErrorHandler
   val authenticator = buildAuthenticator()
