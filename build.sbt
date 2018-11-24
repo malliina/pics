@@ -48,6 +48,7 @@ val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
   libraryDependencies ++= Seq(
     "org.apache.commons" % "commons-text" % "1.4",
     "com.amazonaws" % "aws-java-sdk-s3" % "1.11.421",
+    "software.amazon.awssdk" % "s3" % "2.1.0",
     PlayImport.ehcache,
     PlayImport.ws,
     "com.malliina" %% "play-social" % utilPlayVersion,

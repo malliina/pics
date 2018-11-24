@@ -16,6 +16,29 @@ import play.api.Logger
 import scala.collection.JavaConverters.asScalaBufferConverter
 import scala.concurrent.Future
 
+object BucketFiles {
+  private val log = Logger(getClass)
+
+  val Small = BucketFiles.forBucket(BucketName("malliina-pics-small"))
+  val Medium = BucketFiles.forBucket(BucketName("malliina-pics-medium"))
+  val Large = BucketFiles.forBucket(BucketName("malliina-pics-large"))
+  val Original = BucketFiles.forBucket(BucketName("malliina-pics"))
+
+  def forBucket(bucket: BucketName) = forS3(Regions.EU_WEST_1, bucket)
+
+  def forS3(region: Regions, bucket: BucketName): BucketFiles = {
+    val bucketName = bucket.name
+    val credentialsChain = new AWSCredentialsProviderChain(
+      new ProfileCredentialsProvider("pimp"),
+      DefaultAWSCredentialsProviderChain.getInstance()
+    )
+    val aws = AmazonS3ClientBuilder.standard().withRegion(region).withCredentials(credentialsChain).build()
+    if (!aws.doesBucketExistV2(bucketName))
+      aws.createBucket(bucketName)
+    new BucketFiles(aws, bucket)
+  }
+}
+
 class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends DataSource {
   val bucketName: String = bucket.name
 
@@ -38,56 +61,27 @@ class BucketFiles(val aws: AmazonS3, val bucket: BucketName) extends DataSource 
   override def contains(key: Key): Future[Boolean] =
     Future(aws.doesObjectExist(bucketName, key.key))
 
-  override def get(key: Key): Future[DataResponse] =
-    getStream(key)
+  override def get(key: Key): Future[DataResponse] = getStream(key)
 
-  def getStream(key: Key): Future[DataStream] = {
+  def getStream(key: Key): Future[DataStream] = Future {
     val obj = aws.getObject(bucketName, key.key)
     val meta = obj.getObjectMetadata
-    Future {
-      DataStream(
-        StreamConverters.fromInputStream(() => obj.getObjectContent),
-        Option(meta.getContentLength).map(_.bytes),
-        Option(meta.getContentType).map(ContentType.apply)
-      )
-    }
+    DataStream(
+      StreamConverters.fromInputStream(() => obj.getObjectContent),
+      Option(meta.getContentLength).map(_.bytes),
+      Option(meta.getContentType).map(ContentType.apply)
+    )
   }
 
-  override def saveBody(key: Key, file: Path): Future[Unit] = {
-    Future {
-      log.info(s"Saving '$key' to '$bucketName'...")
-      val (_, duration) = Util.timed {
-        aws.putObject(bucketName, key.key, file.toFile)
-      }
-      val size = Files.size(file).bytes
-      log.info(s"Saved '$key' to '$bucketName', size $size in $duration.")
+  override def saveBody(key: Key, file: Path): Future[Unit] = Future {
+    log.info(s"Saving '$key' to '$bucketName'...")
+    val (_, duration) = Util.timed {
+      aws.putObject(bucketName, key.key, file.toFile)
     }
+    val size = Files.size(file).bytes
+    log.info(s"Saved '$key' to '$bucketName', size $size in $duration.")
   }
 
   override def remove(key: Key): Future[PicResult] =
     Future(aws.deleteObject(bucketName, key.key)).map(_ => PicSuccess)
-}
-
-object BucketFiles {
-  private val log = Logger(getClass)
-
-  val Small = BucketFiles.forBucket(BucketName("malliina-pics-small"))
-  val Medium = BucketFiles.forBucket(BucketName("malliina-pics-medium"))
-  val Large = BucketFiles.forBucket(BucketName("malliina-pics-large"))
-  val Original = BucketFiles.forBucket(BucketName("malliina-pics"))
-
-  def forBucket(bucket: BucketName) = forS3(Regions.EU_WEST_1, bucket)
-
-  def forS3(region: Regions, bucket: BucketName): BucketFiles = {
-    val bucketName = bucket.name
-    val credentialsChain = new AWSCredentialsProviderChain(
-      new ProfileCredentialsProvider("pimp"),
-      DefaultAWSCredentialsProviderChain.getInstance()
-    )
-    new DefaultAWSCredentialsProviderChain()
-    val aws = AmazonS3ClientBuilder.standard().withRegion(region).withCredentials(credentialsChain).build()
-    if (!aws.doesBucketExistV2(bucketName))
-      aws.createBucket(bucketName)
-    new BucketFiles(aws, bucket)
-  }
 }

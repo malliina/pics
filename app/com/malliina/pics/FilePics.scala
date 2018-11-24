@@ -10,8 +10,8 @@ import com.malliina.pics.FilePics.log
 import com.malliina.pics.db.PicsDatabase
 import play.api.Logger
 
+import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.concurrent.Future
-import scala.util.Try
 
 object FilePics {
   private val log = Logger(getClass)
@@ -31,23 +31,21 @@ object FilePics {
 class FilePics(val dir: Path, mat: Materializer) extends DataSource {
   Files.createDirectories(dir)
 
-  import scala.collection.JavaConverters._
-
-  override def load(from: Int, until: Int): Future[Seq[FlatMeta]] = fut {
+  override def load(from: Int, until: Int): Future[Seq[FlatMeta]] = Future {
     Files.list(dir).iterator().asScala.toList.slice(from, from + until).map { p =>
       FlatMeta(Key(p.getFileName.toString), Files.getLastModifiedTime(p).toInstant)
     }
   }
 
-  override def contains(key: Key): Future[Boolean] = fut(Files.exists(fileAt(key)))
+  override def contains(key: Key): Future[Boolean] = Future(Files.exists(fileAt(key)))
 
-  override def get(key: Key): Future[DataResponse] = fut(DataFile(fileAt(key)))
+  override def get(key: Key): Future[DataResponse] = Future(DataFile(fileAt(key)))
 
   override def remove(key: Key): Future[PicResult] =
-    try {
+    Future[PicResult] {
       Files.delete(fileAt(key))
-      fut(PicSuccess)
-    } catch {
+      PicSuccess
+    }.recoverWith {
       case _: NoSuchFileException =>
         fut(PicNotFound(key))
       case other: Exception =>
@@ -61,13 +59,20 @@ class FilePics(val dir: Path, mat: Materializer) extends DataSource {
   }
 
   def saveBody(key: Key, file: Path): Future[Unit] =
-    Future.fromTry(tryLogged(Files.copy(file, fileAt(key))))
+    Future {
+      Files.copy(file, fileAt(key))
+      ()
+    }.recoverWith { case t =>
+      log.error("Pics operation failed.", t)
+      Future.failed(t)
+    }
 
   def putSource(key: Key, source: Source[ByteString, Future[IOResult]]): Future[Path] = {
     val file = fileAt(key)
+    log.info(s"Saving '$key' to '$file'...")
     FileIO.toPath(file).runWith(source)(mat).map { res =>
       val outcome = if (res.status.isSuccess) "successfully" else "erroneously"
-      log.info(s"Saved ${res.count} bytes to '$file' $outcome.")
+      log.info(s"Saved '$key' of ${res.count} bytes to '$file' $outcome.")
       file
     }.recoverWith { case t =>
       log.error(s"Unable to save key '$key' to file.", t)
@@ -76,7 +81,4 @@ class FilePics(val dir: Path, mat: Materializer) extends DataSource {
   }
 
   private def fileAt(key: Key) = dir resolve key.key
-
-  def tryLogged[T](r: => T): Try[Unit] =
-    Try(r).map(_ => ()).recover { case t => log.error("Pics operation failed.", t) }
 }
