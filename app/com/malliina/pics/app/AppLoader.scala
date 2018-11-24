@@ -16,8 +16,9 @@ import play.api.ApplicationLoader.Context
 import play.api.cache.Cached
 import play.api.cache.ehcache.EhCacheComponents
 import play.api.http.HttpConfiguration
+import play.api.mvc.EssentialFilter
 import play.api.routing.Router
-import play.api.{BuiltInComponentsFromContext, Configuration, Logger, Mode}
+import play.api.{BuiltInComponentsFromContext, Configuration, Mode}
 import play.filters.HttpFiltersComponents
 import play.filters.csrf.CSRFConfig
 import play.filters.headers.SecurityHeadersConfig
@@ -48,7 +49,6 @@ abstract class BaseComponents(context: Context, creds: Configuration => GoogleOA
     with EhCacheComponents
     with AssetsComponents {
 
-  private val log = Logger(getClass)
   override val configuration = context.initialConfiguration ++ LocalConf.localConf
 
   def buildAuthenticator(): PicsAuthLike
@@ -83,6 +83,7 @@ abstract class BaseComponents(context: Context, creds: Configuration => GoogleOA
     headerName = CsrfHeaderName,
     shouldProtect = rh => !rh.headers.get(CsrfHeaderName).contains(CsrfTokenNoCheck)
   )
+  override def httpFilters: Seq[EssentialFilter] = Seq(csrfFilter, securityHeadersFilter)
   val html = PicsHtml.build(mode == Mode.Prod)
   val db: PicsDatabase = PicsDatabase.forMode(mode, configuration)
   db.init()

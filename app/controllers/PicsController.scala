@@ -217,7 +217,7 @@ class PicsController(html: PicsHtml,
 
   def renderVaried(rh: RequestHeader)(f: PartialFunction[MediaRange, Result]) = render(f)(rh)
 
-  private def picAction(find: Future[Option[DataResponse]], onNotFound: => Result) = {
+  private def picAction(find: Future[Option[DataResponse]], onNotFound: => Result): Action[AnyContent] = {
     val result = find.map { maybe =>
       maybe.map {
         case DataFile(file, _, _) => Ok.sendPath(file)
