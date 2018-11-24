@@ -42,6 +42,8 @@ class BucketFiles2(bucket: BucketName, v2: S3AsyncClient, v1: BucketFiles)(impli
 
   override def load(from: Int, until: Int) = v1.load(from, until)
 
+  def getStream(key: Key): Future[DataStream] = v1.getStream(key)
+
   /** Removes `key`.
     *
     * @param key key to delete
