@@ -7,7 +7,7 @@ import com.sksamuel.scrimage.Image
 import scala.concurrent.Future
 
 object MultiSizeHandler {
-  def cached(name: String, origin: BucketFiles, mat: Materializer) =
+  def cached(name: String, origin: DataSource, mat: Materializer) =
     FileCachingPics(FilePics.named(name, mat), origin)
 
   def default(mat: Materializer): MultiSizeHandler = {
