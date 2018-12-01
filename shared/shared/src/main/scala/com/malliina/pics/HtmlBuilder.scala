@@ -16,6 +16,7 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
   val LoginClass = "login"
   val PicsClass = "pics"
   val Post = "POST"
+  val SignUpClass = "signup"
   val Submit = "submit"
 
   val dataIdAttr = attr("data-id")
@@ -50,7 +51,7 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
       }
     )
 
-  def renderFeedback(feedback: Option[UserFeedback]) =
+  def renderFeedback(feedback: Option[UserFeedback]): Modifier =
     feedback.fold(empty) { fb =>
       if (fb.isError) alertDanger(fb.message)
       else alertSuccess(fb.message)

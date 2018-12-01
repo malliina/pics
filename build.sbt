@@ -39,16 +39,16 @@ val commonSettings = Seq(
   ),
   libraryDependencies ++= Seq(
     "com.lihaoyi" %%% "scalatags" % "0.6.7",
-    "com.typesafe.play" %%% "play-json" % "2.6.10",
-    "com.malliina" %%% "primitives" % "1.6.1",
+    "com.typesafe.play" %%% "play-json" % "2.6.11",
+    "com.malliina" %%% "primitives" % "1.6.3",
     "com.malliina" %%% "util-html" % utilPlayVersion
   )
 )
 val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
   libraryDependencies ++= Seq(
-    "org.apache.commons" % "commons-text" % "1.4",
-    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.421",
-    "software.amazon.awssdk" % "s3" % "2.1.0",
+    "org.apache.commons" % "commons-text" % "1.6",
+    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.461",
+    "software.amazon.awssdk" % "s3" % "2.1.3",
     PlayImport.ehcache,
     PlayImport.ws,
     "com.malliina" %% "play-social" % utilPlayVersion,
@@ -56,7 +56,7 @@ val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
     utilPlayDep % Test classifier "tests",
     "com.typesafe.slick" %% "slick" % "3.2.3",
     "com.h2database" % "h2" % "1.4.197",
-    "mysql" % "mysql-connector-java" % "5.1.46",
+    "mysql" % "mysql-connector-java" % "5.1.47",
     "com.zaxxer" % "HikariCP" % "3.2.0",
     "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8",
     "com.malliina" %% "logstreams-client" % "1.3.0"

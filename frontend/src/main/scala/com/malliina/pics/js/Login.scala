@@ -1,41 +1,36 @@
 package com.malliina.pics.js
 
-import com.malliina.pics.LoginStrings
 import org.scalajs.dom.raw._
 
-class Login extends Frontend with LoginStrings {
+import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+
+class Login(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log) {
   val loginForm = elem[HTMLFormElement](LoginFormId)
   loginForm.onsubmit = (e: Event) => {
     authenticate()
     e.preventDefault()
   }
-
-  val poolData = PoolData("eu-west-1_egi2PEe65", "2rnqepv44epargdosba6nlg2t9")
-  val userPool = CognitoUserPool(poolData)
+  val confirm = Confirm(log)
 
   def authenticate(): Unit = {
-    val email = input(EmailId).value
-    val pass = input(PasswordId).value
-    val authData = AuthenticationData(email, pass)
-    val auth = AuthenticationDetails(authData)
-    val userData = UserData(email, userPool)
-    val cognitoUser = CognitoUser(userData)
-    cognitoUser.authenticateUser(auth, AuthCallback(
-      token => submitToken(Right(token.accessToken.jwtToken)),
-      fail => {
-        println(fail.message)
-        submitToken(Left(AuthFailed))
-      },
-      _ => submitToken(Left(MfaRequired))
-    ))
+    val email = emailIn.value
+    val pass = passIn.value
+    val user = CognitoUser(email, userPool)
+
+    recovered(LoginFeedbackId) {
+      user.authenticate(email, pass).recoverWith {
+        case _: NotConfirmedException =>
+          log.info(s"User not confirmed. Awaiting confirmation...")
+          hide()
+          confirm.show()
+          confirm.confirmed.flatMap { user =>
+            user.authenticate(email, pass)
+          }
+      }.map { success =>
+        submitToken(success.accessToken.jwtToken, loginForm)
+      }
+    }
   }
 
-  def submitToken(tokenOrError: Either[String, String]): Unit = {
-    tokenOrError.fold(
-      err => input(ErrorId).value = err,
-      token => input(TokenId).value = token
-    )
-    PicsJS.csrf.installTo(loginForm)
-    loginForm.submit()
-  }
+  def hide(): Unit = loginForm.setAttribute("hidden", "hidden")
 }

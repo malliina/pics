@@ -7,15 +7,13 @@ trait BaseLogger {
 }
 
 object BaseLogger {
-  val noop: BaseLogger = new BaseLogger {
-    override def error(t: Throwable): Unit = ()
+  val noop: BaseLogger = apply(_ => (), _ => ())
+  val console: BaseLogger = apply(msg => println(msg), t => println(t))
 
-    override def info(message: String): Unit = ()
-  }
+  def apply(onInfo: String => Unit, onError: Throwable => Unit): BaseLogger =
+    new BaseLogger {
+      override def info(message: String): Unit = onInfo(message)
 
-  val console: BaseLogger = new BaseLogger {
-    override def error(t: Throwable): Unit = println(s"Error: ${t.getMessage}")
-
-    override def info(message: String): Unit = println(message)
-  }
+      override def error(t: Throwable): Unit = onError(t)
+    }
 }

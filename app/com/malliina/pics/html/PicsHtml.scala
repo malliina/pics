@@ -55,6 +55,8 @@ object PicsHtml {
 class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(scalatags.Text)) with LoginStrings {
   def signIn(feedback: Option[UserFeedback] = None) = basePage(AuthHtml.signIn(feedback))
 
+  def signUp(feedback: Option[UserFeedback] = None) = basePage(AuthHtml.signUp(feedback))
+
   def drop(created: Option[PicMeta], feedback: Option[UserFeedback], user: PicRequest) = {
     val content =
       divContainer(

@@ -89,15 +89,17 @@ class PicsController(html: PicsHtml,
     call.map(c => Redirect(c)).getOrElse(Ok(html.signIn()))
   }
 
+  def signUp = Action { Ok(html.signUp()) }
+
   def postSignIn = Action(parse.form(tokenForm)) { req =>
     req.body.toEither.fold(
       err => {
-        failForm(err, req)
+        failLogin(err, req)
       },
       token => {
         auth.authenticator.validateToken(token).fold(
           _ => {
-            failForm(LoginStrings.AuthFailed, req)
+            failLogin(LoginStrings.AuthFailed, req)
           },
           user => {
             Redirect(reverse.list()).withSession("username" -> user.username.name)
@@ -107,7 +109,7 @@ class PicsController(html: PicsHtml,
     )
   }
 
-  private def failForm(message: String, rh: RequestHeader): Result = {
+  private def failLogin(message: String, rh: RequestHeader): Result = {
     log.error(s"Form authentication failed from '$rh'.")
     BadRequest(html.signIn(Option(UserFeedback.error(message))))
   }

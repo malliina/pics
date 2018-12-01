@@ -18,7 +18,10 @@ object PicsJS {
       new PicDrop
     }
     if (has(jsHtml.LoginClass)) {
-      new Login
+      new Login()
+    }
+    if (has(jsHtml.SignUpClass)) {
+      new SignUp()
     }
   }
 

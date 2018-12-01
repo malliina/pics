@@ -1,7 +1,9 @@
 package com.malliina.pics.js
 
+import scala.concurrent.{Future, Promise}
 import scala.scalajs.js
 import scala.scalajs.js.Dynamic.literal
+import scala.scalajs.js.JSConverters.JSRichGenTraversableOnce
 import scala.scalajs.js.annotation.JSGlobal
 
 @js.native
@@ -40,13 +42,45 @@ object PoolData {
 }
 
 @js.native
+trait CognitoUserResult extends js.Object {
+  def username: String = js.native
+}
+
+@js.native
+trait SignUpResult extends js.Object {
+  def user: CognitoUserResult = js.native
+
+  def userConfirmed: Boolean = js.native
+
+  def userSub: String = js.native
+}
+
+@js.native
 @JSGlobal("AmazonCognitoIdentity.CognitoUserPool")
 class CognitoUserPool(options: PoolData) extends js.Object {
-
+  def signUp(username: String,
+             password: String,
+             attributes: js.Array[CognitoUserAttribute],
+             validationData: js.Any,
+             callback: js.Function2[CognitoAuthFailure, SignUpResult, _]): Unit = js.native
 }
 
 object CognitoUserPool {
   def apply(options: PoolData) = new CognitoUserPool(options)
+
+  implicit class PoolOps(pool: CognitoUserPool) {
+    def signUpEmail(email: String, password: String): Future[SignUpResult] = {
+      val attr = CognitoUserAttribute(UserAttribute("email", email))
+      val p = Promise[SignUpResult]()
+      pool.signUp(email, password, List(attr).toJSArray, null, (err, data) => {
+        //        println(s"${JSON.stringify(err)} ${JSON.stringify(data)}")
+        Option(err).foreach { e => p.failure(CognitoException(e)) }
+        Option(data).foreach { result => p.success(result) }
+      })
+      p.future
+    }
+  }
+
 }
 
 @js.native
@@ -82,17 +116,64 @@ class AuthenticationDetails(options: AuthenticationData) extends js.Object {
 object AuthenticationDetails {
   def apply(options: AuthenticationData): AuthenticationDetails =
     new AuthenticationDetails(options)
+
+  def apply(user: String, pass: String): AuthenticationDetails =
+    apply(AuthenticationData(user, pass))
 }
 
 @js.native
 @JSGlobal("AmazonCognitoIdentity.CognitoUser")
 class CognitoUser(options: UserData) extends js.Object {
   def authenticateUser(creds: AuthenticationDetails, callback: AuthCallback): Unit = js.native
+
+  def confirmRegistration(confirmationCode: String,
+                          forceAliasCreation: Boolean,
+                          callback: js.Function2[CognitoAuthFailure, String, _]): Unit = js.native
+
+  def resendConfirmationCode(callback: js.Function2[CognitoAuthFailure, String, _]): Unit = js.native
 }
 
 object CognitoUser {
   def apply(options: UserData): CognitoUser =
     new CognitoUser(options)
+
+  def apply(user: String, pool: CognitoUserPool): CognitoUser =
+    apply(UserData(user, pool))
+
+  implicit class CognitoUserOps(val self: CognitoUser) extends AnyVal {
+    def authenticate(user: String, pass: String): Future[CognitoAuthSuccess] = {
+      val p = Promise[CognitoAuthSuccess]()
+      self.authenticateUser(AuthenticationDetails(user, pass), AuthCallback(
+        success => p.success(success),
+        fail => p.failure(CognitoException(fail)),
+        _ => p.tryFailure(new MfaRequiredException)
+      ))
+      p.future
+    }
+
+    def confirm(code: String): Future[Unit] = {
+      val p = Promise[Unit]()
+      self.confirmRegistration(code, forceAliasCreation = true, (err, success) => {
+        Option(err).foreach { err => p.failure(CognitoException(err)) }
+        Option(success).foreach { _ => p.success(()) }
+      })
+      p.future
+    }
+
+    def resend(): Future[Unit] = {
+      val p = Promise[Unit]()
+      self.resendConfirmationCode((err, success) => {
+        Option(err).foreach { err =>
+          // The API returns an error object on success with message "200"...
+          if (err.message == "200") p.trySuccess(())
+          else p.failure(CognitoException(err))
+        }
+        Option(success).foreach { _ => p.success(()) }
+      })
+      p.future
+    }
+  }
+
 }
 
 @js.native
