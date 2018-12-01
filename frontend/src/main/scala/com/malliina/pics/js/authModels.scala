@@ -52,15 +52,6 @@ object IdentityCredentials {
 }
 
 @js.native
-trait CognitoAuthFailure extends js.Object {
-  def code: String = js.native
-
-  def name: String = js.native
-
-  def message: String = js.native
-}
-
-@js.native
 trait AccessPayload extends js.Object {
   def username: String = js.native
 
@@ -88,68 +79,9 @@ trait RefreshToken extends js.Object {
 }
 
 @js.native
-trait CognitoAuthSuccess extends js.Object {
-  def accessToken: AccessToken = js.native
-
-  def idToken: IdToken = js.native
-
-  def refreshToken: RefreshToken = js.native
-}
-
-@js.native
 @JSGlobal
 object JSON extends js.Object {
   def parse(text: String): js.Any = js.native
 
   def stringify(value: js.Any): String = js.native
-}
-
-@js.native
-trait PoolData extends js.Object {
-  def UserPoolId: String = js.native
-
-  def ClientId: String = js.native
-}
-
-object PoolData {
-  def apply(userPoolId: String, clientId: String) =
-    literal(UserPoolId = userPoolId, ClientId = clientId)
-}
-
-@js.native
-trait AuthenticationData extends js.Object {
-  def Username: String = js.native
-
-  def Password: String = js.native
-}
-
-object AuthenticationData {
-  def apply(username: String, password: String) =
-    literal(Username = username, Password = password)
-}
-
-@js.native
-trait UserData extends js.Object {
-  def Username: String = js.native
-
-  def Pool: js.Dynamic = js.native
-}
-
-object UserData {
-  def apply(username: String, pool: js.Dynamic) =
-    literal(Username = username, Pool = pool)
-}
-
-@js.native
-trait AuthCallback extends js.Object {
-  def onSuccess: js.Function1[CognitoAuthSuccess, Unit] = js.native
-
-  def onFailure: js.Function1[CognitoAuthFailure, Unit] = js.native
-
-  def mfaRequired: js.Function1[js.Any, Unit] = js.native
-}
-
-object AuthCallback {
-  def apply(onToken: CognitoAuthSuccess => Unit, onFailure: CognitoAuthFailure => Unit, onMfa: js.Any => Unit) =
-    literal(onSuccess = onToken, onFailure = onFailure, mfaRequired = onMfa)
 }
