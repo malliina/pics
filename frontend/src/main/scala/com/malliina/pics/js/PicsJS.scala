@@ -5,17 +5,19 @@ import com.malliina.pics.HtmlBuilder
 import org.scalajs.dom
 
 object PicsJS {
+
   object jsHtml extends HtmlBuilder(new Tags(scalatags.JsDom))
+
   val csrf = CSRFUtils()
 
   def main(args: Array[String]): Unit = {
-    if (has("pics")) {
+    if (has(jsHtml.PicsClass)) {
       new PicsSocket
     }
-    if (has("drop")) {
+    if (has(jsHtml.DropClass)) {
       new PicDrop
     }
-    if (has("login")) {
+    if (has(jsHtml.LoginClass)) {
       new Login
     }
   }

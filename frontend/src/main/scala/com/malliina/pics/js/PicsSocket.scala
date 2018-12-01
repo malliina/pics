@@ -80,7 +80,7 @@ class PicsSocket extends BaseSocket("/sockets") {
       elemById(jsHtml.galleryId).foreach(installListeners)
     }
 
-  def installListeners(elem: Element) = {
+  def installListeners(elem: Element): Unit = {
     installCopyListeners(elem)
     PicsJS.csrf.installCsrf(elem)
   }

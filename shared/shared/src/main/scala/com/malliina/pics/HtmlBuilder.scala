@@ -11,7 +11,10 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
   import tags._
   import tags.impl.all._
 
+  val DropClass = "drop"
   val FormRole = "form"
+  val LoginClass = "login"
+  val PicsClass = "pics"
   val Post = "POST"
   val Submit = "submit"
 

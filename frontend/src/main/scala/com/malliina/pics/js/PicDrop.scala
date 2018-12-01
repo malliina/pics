@@ -1,14 +1,12 @@
 package com.malliina.pics.js
 
 import com.malliina.pics.CSRFConf.{CsrfHeaderName, CsrfTokenNoCheck}
-import org.scalajs.dom
 import org.scalajs.dom.raw._
 import scalatags.JsDom.all._
 
-class PicDrop {
-  val document = dom.document
-  val dropZone = document.getElementById("drop-zone").asInstanceOf[HTMLElement]
-  val progress = document.getElementById("progress").asInstanceOf[HTMLProgressElement]
+class PicDrop extends Frontend {
+  val dropZone = elem[HTMLElement]("drop-zone")
+  val progress = elem[HTMLProgressElement]("progress")
 
   dropZone.ondrop = (e: DragEvent) => {
     e.preventDefault()

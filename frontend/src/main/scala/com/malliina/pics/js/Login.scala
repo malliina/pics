@@ -1,12 +1,10 @@
 package com.malliina.pics.js
 
 import com.malliina.pics.LoginStrings
-import org.scalajs.dom
 import org.scalajs.dom.raw._
 
-class Login extends LoginStrings {
-  val document = dom.document
-  val loginForm = document.getElementById(LoginFormId).asInstanceOf[HTMLFormElement]
+class Login extends Frontend with LoginStrings {
+  val loginForm = elem[HTMLFormElement](LoginFormId)
   loginForm.onsubmit = (e: Event) => {
     authenticate()
     e.preventDefault()
@@ -16,8 +14,8 @@ class Login extends LoginStrings {
   val userPool = CognitoUserPool(poolData)
 
   def authenticate(): Unit = {
-    val email = document.getElementById(EmailId).asInstanceOf[HTMLInputElement].value
-    val pass = document.getElementById(PasswordId).asInstanceOf[HTMLInputElement].value
+    val email = input(EmailId).value
+    val pass = input(PasswordId).value
     val authData = AuthenticationData(email, pass)
     val auth = AuthenticationDetails(authData)
     val userData = UserData(email, userPool)
@@ -30,13 +28,12 @@ class Login extends LoginStrings {
       },
       _ => submitToken(Left(MfaRequired))
     ))
-
   }
 
   def submitToken(tokenOrError: Either[String, String]): Unit = {
     tokenOrError.fold(
-      err => document.getElementById("error").asInstanceOf[HTMLInputElement].value = err,
-      token => document.getElementById("token").asInstanceOf[HTMLInputElement].value = token
+      err => input(ErrorId).value = err,
+      token => input(TokenId).value = token
     )
     PicsJS.csrf.installTo(loginForm)
     loginForm.submit()

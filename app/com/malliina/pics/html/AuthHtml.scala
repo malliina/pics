@@ -32,8 +32,8 @@ object AuthHtml extends HtmlBuilder(new com.malliina.html.Tags(scalatags.Text)) 
       divClass("text")("or")
     )
     val loginForm = form(id := LoginFormId, `class` := col.md.twelve, method := Post, novalidate)(
-      input(`type` := "hidden", name := "token", id := "token"),
-      input(`type` := "hidden", name := "error", id := "error"),
+      input(`type` := "hidden", name := "token", id := TokenId),
+      input(`type` := "hidden", name := "error", id := ErrorId),
       divClass(FormGroup)(
         labeledInput("Email address", EmailId, "email", Option("me@example.com"))
       ),
@@ -50,7 +50,7 @@ object AuthHtml extends HtmlBuilder(new com.malliina.html.Tags(scalatags.Text)) 
 
     PageConf(
       "Pics - Login",
-      bodyClass = "login",
+      bodyClass = LoginClass,
       inner = modifier(
         emptyNavbar,
         divClass("container")(

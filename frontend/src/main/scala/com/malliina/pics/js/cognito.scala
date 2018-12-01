@@ -5,6 +5,29 @@ import scala.scalajs.js.Dynamic.literal
 import scala.scalajs.js.annotation.JSGlobal
 
 @js.native
+trait UserAttribute extends js.Object {
+  def Name: String = js.native
+
+  def Value: String = js.native
+}
+
+object UserAttribute {
+  def apply(name: String, value: String): UserAttribute =
+    literal(Name = name, Value = value).asInstanceOf[UserAttribute]
+}
+
+@js.native
+@JSGlobal("AmazonCognitoIdentity.CognitoUserAttribute")
+class CognitoUserAttribute(attribute: UserAttribute) extends js.Object {
+
+}
+
+object CognitoUserAttribute {
+  def apply(attribute: UserAttribute): CognitoUserAttribute =
+    new CognitoUserAttribute(attribute)
+}
+
+@js.native
 trait PoolData extends js.Object {
   def UserPoolId: String = js.native
 

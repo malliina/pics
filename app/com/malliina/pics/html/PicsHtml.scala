@@ -87,13 +87,13 @@ class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(sc
           Seq[Modifier]("Saved ", a(href := key.url)(key.key.key))
         }
       )
-    val conf = PageConf("Pics - Drop", bodyClass = "drop", inner = content)
+    val conf = PageConf("Pics - Drop", bodyClass = DropClass, inner = content)
     baseIndex("drop", if (user.readOnly) None else Option(user.name), conf)
   }
 
   def pics(urls: Seq[PicMeta], feedback: Option[UserFeedback], user: PicRequest) = {
     val content = Seq(divClass("pics")(renderFeedback(feedback)), picsContent(urls, user.readOnly))
-    val conf = PageConf("Pics", bodyClass = "pics", inner = content)
+    val conf = PageConf("Pics", bodyClass = PicsClass, inner = content)
     baseIndex("pics", if (user.readOnly) None else Option(user.name), conf)
   }
 

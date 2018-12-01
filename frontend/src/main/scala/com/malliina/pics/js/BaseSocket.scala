@@ -71,7 +71,7 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
     FullUrl(wsProto, location.host, "")
   }
 
-  def setFeedback(feedback: String) = {
+  def setFeedback(feedback: String): Unit = {
     log.info(feedback)
     //    statusElem.innerHTML = feedback
   }
