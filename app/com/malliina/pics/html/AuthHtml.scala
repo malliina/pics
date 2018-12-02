@@ -38,6 +38,7 @@ object AuthHtml extends BaseHtml {
             loginDivider,
             row(loginForm(feedback)),
             row(confirmForm),
+            row(mfaForm),
             row(forgotForm),
             row(resetForm)
           )
@@ -160,6 +161,18 @@ object AuthHtml extends BaseHtml {
         submitButton(`class` := btn.primary, "Confirm")
       ),
       divClass(FormGroup, id := ConfirmFeedbackId)
+    )
+
+  def mfaForm =
+    form(id := MfaFormId, `class` := col.md.twelve, method := Post, novalidate, hidden)(
+      input(`type` := "hidden", name := TokenKey, id := MfaTokenId),
+      divClass(FormGroup)(
+        labeledInput("Code", MfaCodeId, "number", Option("123456"))
+      ),
+      divClass(s"$FormGroup d-flex")(
+        submitButton(`class` := btn.primary, "Submit")
+      ),
+      divClass(FormGroup, id := MfaFeedbackId)
     )
 
   def socialButton(provider: String, linkTo: Call, linkText: String) =

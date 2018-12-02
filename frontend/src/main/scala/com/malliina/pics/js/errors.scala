@@ -21,6 +21,9 @@ object CognitoException {
   def apply(error: js.Error): CognitoException = new CognitoException(error.message)
 }
 
+class TotpRequiredException
+  extends CognitoException("TOTP required.")
+
 class MfaRequiredException
   extends CognitoException("MFA required.")
 

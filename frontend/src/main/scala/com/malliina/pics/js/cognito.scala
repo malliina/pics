@@ -139,6 +139,8 @@ object MfaSettings {
 @js.native
 @JSGlobal("AmazonCognitoIdentity.CognitoUser")
 class CognitoUser(options: UserData) extends js.Object {
+  def username: String = js.native
+
   def authenticateUser(creds: AuthenticationDetails, callback: AuthCallback): Unit = js.native
 
   def confirmRegistration(confirmationCode: String,
@@ -161,7 +163,13 @@ class CognitoUser(options: UserData) extends js.Object {
 
   def associateSoftwareToken(callback: TOTPCallback): Unit = js.native
 
-  def verifySoftwareToken(totpCode: String, friendlyDeviceName: String, callback: AuthCallback): Unit = js.native
+  def verifySoftwareToken(totpCode: String, friendlyDeviceName: String, callback: SessionCallback): Unit = js.native
+
+  def sendMFACode(code: String, callback: SessionCallback, mfaType: String): Unit = js.native
+
+  def globalSignOut(callback: SimpleCallback): Unit = js.native
+
+  def signOut(): Unit = js.native
 }
 
 object CognitoUser {
@@ -177,7 +185,9 @@ object CognitoUser {
       self.authenticateUser(AuthenticationDetails(user, pass), AuthCallback(
         success => p.success(success),
         fail => p.failure(CognitoException(fail)),
-        _ => p.tryFailure(new MfaRequiredException)
+        _ => p.tryFailure(new MfaRequiredException),
+        _ => p.tryFailure(new TotpRequiredException),
+        (_, _) => ()
       ))
       p.future
     }
@@ -227,21 +237,30 @@ object CognitoUser {
       self.deleteUser((err, success) => complete(p, err, success))
     }
 
-    def associateTotp(): Future[String] = {
-      val p = Promise[String]()
-      self.associateSoftwareToken(TOTPCallback(s => p.success(s), f => p.failure(CognitoException(f))))
-      p.future
+    def associateTotp(): Future[String] = withFuture[String] { p =>
+      self.associateSoftwareToken(TOTPCallback(
+        s => p.success(s),
+        f => p.failure(CognitoException(f))
+      ))
     }
 
-    def verifyTotp(code: String, friendlyName: String): Future[CognitoSession] = {
-      val p = Promise[CognitoSession]()
-      self.verifySoftwareToken(code, friendlyName, AuthCallback(
-        success => p.success(success),
-        fail => p.failure(CognitoException(fail)),
-        _ => p.tryFailure(new MfaRequiredException)
-      ))
-      p.future
-    }
+    def verifyTotp(code: String, friendlyName: String): Future[CognitoSession] =
+      withFuture[CognitoSession] { p =>
+        self.verifySoftwareToken(code, friendlyName, SessionCallback(
+          success => p.success(success),
+          fail => p.failure(CognitoException(fail))
+        ))
+      }
+
+    def sendMFA(code: String): Future[CognitoSession] =
+      withFuture[CognitoSession] { p =>
+        self.sendMFACode(code, SessionCallback(
+          success => p.success(success),
+          fail => p.failure(CognitoException(fail))
+        ), "SOFTWARE_TOKEN_MFA")
+      }
+
+    def globalLogout(): Future[Unit] = promised(cb => self.globalSignOut(cb))
 
     private def withFuture[T](run: Promise[T] => Unit): Future[T] = {
       val p = Promise[T]()
@@ -301,13 +320,41 @@ trait AuthCallback extends js.Object {
   def onFailure: js.Function1[CognitoAuthFailure, Unit] = js.native
 
   def mfaRequired: js.Function1[js.Any, Unit] = js.native
+
+  def totpRequired: js.Function1[js.Any, Unit] = js.native
+
+  def selectMFAType: js.Function2[String, js.Any, Unit] = js.native
+
+  def mfaSetup: js.Function2[String, js.Any, Unit] = js.native
 }
 
 object AuthCallback {
   def apply(onToken: CognitoSession => Unit,
             onFailure: CognitoAuthFailure => Unit,
-            onMfa: js.Any => Unit): AuthCallback =
-    literal(onSuccess = onToken, onFailure = onFailure, mfaRequired = onMfa).asInstanceOf[AuthCallback]
+            onMfa: js.Any => Unit,
+            onTotp: js.Any => Unit,
+            mfaSetup: (String, js.Any) => Unit): AuthCallback =
+    literal(
+      onSuccess = onToken,
+      onFailure = onFailure,
+      mfaRequired = onMfa,
+      totpRequired = onTotp,
+      mfaSetup = mfaSetup).asInstanceOf[AuthCallback]
+}
+
+@js.native
+trait SessionCallback extends js.Object {
+  def onSuccess: js.Function1[CognitoSession, Unit] = js.native
+
+  def onFailure: js.Function1[CognitoAuthFailure, Unit] = js.native
+}
+
+object SessionCallback {
+  def apply(onToken: CognitoSession => Unit,
+            onFailure: CognitoAuthFailure => Unit): SessionCallback =
+    literal(
+      onSuccess = onToken,
+      onFailure = onFailure).asInstanceOf[SessionCallback]
 }
 
 @js.native

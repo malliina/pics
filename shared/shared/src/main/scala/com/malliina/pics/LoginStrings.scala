@@ -22,6 +22,11 @@ trait LoginStrings {
   val LoginFormId = "login-form"
   val LoginTokenId = "token-login"
 
+  val MfaCodeId = "mfa-code"
+  val MfaFeedbackId = "mfa-feedback"
+  val MfaFormId = "mfa-form"
+  val MfaTokenId = "mfa-token"
+
   val EmailId = "email"
   val ErrorId = "error"
   val MfaRequired = "MFA required."
