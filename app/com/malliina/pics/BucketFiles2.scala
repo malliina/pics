@@ -53,10 +53,12 @@ class BucketFiles2(bucket: BucketName, v2: S3AsyncClient, v1: BucketFiles)(impli
 
   override def saveBody(key: Key, file: Path) = v1.saveBody(key, file)
 
+  // The AWS docs suggest it should fail with a NoSuchKeyException if the key doesn't exist, but it fails with
+  // CompletionException: S3Exception: null (Service: S3, Status Code: 404, Request ID: null)
   override def contains(key: Key): Future[Boolean] =
     v2.headObject(HeadObjectRequest.builder().bucket(bucket.name).key(key.key).build()).future
       .map { _ => true }
-      .recover { case _: NoSuchKeyException => false }
+      .recover { case _ => false }
 
   private def asFuture[T](cf: CompletableFuture[T]): Future[T] = {
     val p = Promise[T]
