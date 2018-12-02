@@ -8,7 +8,7 @@ import com.malliina.play.http.HttpConstants
 import com.malliina.values.Email
 import controllers.Social.{log, _}
 import play.api.http.HeaderNames.CACHE_CONTROL
-import play.api.mvc.Results.Redirect
+import play.api.mvc.Results.{Redirect, Unauthorized}
 import play.api.mvc._
 import play.api.{Configuration, Logger}
 
@@ -82,10 +82,14 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
 
     override def onUnauthorized(error: AuthError, req: RequestHeader): Result = {
       log.warn(s"Authentication failed. ${error.message}")
-      Redirect(routes.PicsController.signIn())
-        .discardingCookies(DiscardingCookie(ProviderCookie), DiscardingCookie(lastIdKey))
-        .withNewSession
-        .withHeaders(CACHE_CONTROL -> HttpConstants.NoCacheRevalidate)
+      if (error.message == "State mismatch.") {
+        Unauthorized.withHeaders(CACHE_CONTROL -> HttpConstants.NoCacheRevalidate)
+      } else {
+        Redirect(routes.PicsController.signIn())
+          .discardingCookies(DiscardingCookie(ProviderCookie), DiscardingCookie(lastIdKey))
+          .withNewSession
+          .withHeaders(CACHE_CONTROL -> HttpConstants.NoCacheRevalidate)
+      }
     }
   }
 
