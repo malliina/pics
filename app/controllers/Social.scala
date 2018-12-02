@@ -75,7 +75,7 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
       log.info(s"Logging in '$email' through OAuth code flow.")
       Redirect(successCall)
         .withSession(sessionKey -> email.email)
-        .withCookies(Cookie(lastIdKey, email.email, Option(3650.days.toSeconds.toInt)))
+        .withCookies(Cookie(lastIdKey, email.email, Option(providerCookieDuration.toSeconds.toInt)))
         .discardingCookies(DiscardingCookie(PromptCookie))
         .withHeaders(CACHE_CONTROL -> HttpConstants.NoCacheRevalidate)
     }
@@ -151,7 +151,7 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
   private def callback(codeValidator: AuthValidator, provider: AuthProvider): Action[AnyContent] =
     actions.async { req =>
       codeValidator.validateCallback(req).map { r =>
-        val cookie = Cookie(ProviderCookie, provider.name, maxAge = Option(providerCookieDuration.toSeconds.toInt), secure = true)
+        val cookie = Cookie(ProviderCookie, provider.name, maxAge = Option(providerCookieDuration.toSeconds.toInt))
         if (r.header.status < 400) r.withCookies(cookie)
         else r
       }
