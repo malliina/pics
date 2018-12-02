@@ -78,7 +78,8 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
 
     override def onUnauthorized(error: AuthError, req: RequestHeader): Result = {
       log.warn(s"Authentication failed. ${error.message}")
-      Redirect(routes.PicsController.list())
+      Redirect(routes.PicsController.signIn())
+        .discardingCookies(DiscardingCookie(ProviderCookie), DiscardingCookie(lastIdKey))
         .withNewSession
         .withHeaders(CACHE_CONTROL -> HttpConstants.NoCacheRevalidate)
     }
