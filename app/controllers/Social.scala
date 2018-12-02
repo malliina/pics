@@ -18,8 +18,11 @@ import scala.util.Try
 object Social {
   private val log = Logger(getClass)
 
+  val PromptCookie = "prompt"
+  val PromptKey = "prompt"
   val ProviderCookie = "provider"
   val providerCookieDuration: Duration = 3650.days
+  val SelectAccount = "select_account"
 
   def buildOrFail(actions: ActionBuilder[Request, AnyContent], socialConf: SocialConf) =
     new Social(actions, socialConf)
@@ -73,6 +76,7 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
       Redirect(successCall)
         .withSession(sessionKey -> email.email)
         .withCookies(Cookie(lastIdKey, email.email, Option(3650.days.toSeconds.toInt)))
+        .discardingCookies(DiscardingCookie(PromptCookie))
         .withHeaders(CACHE_CONTROL -> HttpConstants.NoCacheRevalidate)
     }
 
@@ -132,11 +136,16 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
 
   private def startHinted(codeValidator: LoginHintSupport) =
     actions.async { req =>
-      val maybeEmail = req.cookies.get(lastIdKey).map(_.value)
+      val promptCookie = req.cookies.get(PromptCookie)
+      val extra = promptCookie.map(c => Map(PromptKey -> c.value)).getOrElse(Map.empty)
+      val maybeEmail = req.cookies.get(lastIdKey).map(_.value).filter(_ => extra.isEmpty)
       maybeEmail.foreach { hint =>
         log.info(s"Starting OAuth flow with login hint '$hint'.")
       }
-      codeValidator.startHinted(req, maybeEmail)
+      promptCookie.foreach { c =>
+        log.info(s"Starting OAuth flow with prompt '${c.value}'.")
+      }
+      codeValidator.startHinted(req, maybeEmail, extra)
     }
 
   private def callback(codeValidator: AuthValidator, provider: AuthProvider): Action[AnyContent] =

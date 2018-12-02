@@ -43,6 +43,7 @@ class CognitoControl(conf: CognitoIdentityConf, actions: ActionBuilder[Request, 
     Redirect(conf.logoutUrl(FullUrls(routes.CognitoControl.signOutCallback(), req)).url)
       .withNewSession
       .discardingCookies(DiscardingCookie(BasicAuthHandler.LastIdCookie), DiscardingCookie(Social.ProviderCookie))
+      .withCookies(Cookie(Social.PromptCookie, Social.SelectAccount))
   }
 
   def signOutCallback = actions { _ =>
