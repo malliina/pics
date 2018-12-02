@@ -15,33 +15,29 @@ class SignUp(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log) {
 
   def signUp(): Unit = {
     val email = emailIn.value
-    recovered(SignUpFeedbackId) {
-      userPool.signUpEmail(email, passIn.value).map { res =>
-        if (res.userConfirmed) {
-          // Logs in
-          log.info(s"User '$email' already confirmed.")
-          login(CognitoUser(email, userPool))
-        } else {
-          log.info(s"User '$email' is not confirmed, awaiting confirmation code...")
-          // Shows confirm
-          hide()
-          confirm.show()
-          confirm.confirmed.map { user =>
-            login(user)
-          }
+    userPool.signUpEmail(email, passIn.value).map { res =>
+      if (res.userConfirmed) {
+        // Logs in
+        log.info(s"User '$email' already confirmed.")
+        login(CognitoUser(email, userPool))
+      } else {
+        log.info(s"User '$email' is not confirmed, awaiting confirmation code...")
+        // Shows confirm
+        hide()
+        confirm.show()
+        confirm.confirmed.map { user =>
+          login(user)
         }
       }
-    }
+    }.feedbackTo(SignUpFeedbackId)
   }
 
   def hide(): Unit = signupForm.setAttribute("hidden", "hidden")
 
   def login(user: CognitoUser): Unit =
-    recovered(SignUpFeedbackId) {
-      user.authenticate(emailIn.value, passIn.value).map { success =>
-        submitToken(success.accessToken.jwtToken, LoginTokenId, signupForm)
-      }
-    }
+    user.authenticate(emailIn.value, passIn.value).map { success =>
+      submitToken(success.accessToken.jwtToken, LoginTokenId, signupForm)
+    }.feedbackTo(SignUpFeedbackId)
 }
 
 object Confirm {
@@ -67,22 +63,18 @@ class Confirm(log: BaseLogger) extends AuthFrontend(log) {
     val username = emailIn.value
     val user = CognitoUser(username, userPool)
     val code = input(CodeId).value
-    recovered(ConfirmFeedbackId) {
-      user.confirm(code).map { _ =>
-        log.info(s"Confirmed user '$username'.")
-        success.trySuccess(user)
-      }
-    }
+    user.confirm(code).map { _ =>
+      log.info(s"Confirmed user '$username'.")
+      success.trySuccess(user)
+    }.feedbackTo(ConfirmFeedbackId)
   }
 
   def resend(): Future[Unit] = {
     val username = emailIn.value
     val user = CognitoUser(username, userPool)
     log.info(s"Resending confirmation code...")
-    recovered(ConfirmFeedbackId) {
-      user.resend().map { _ =>
-        log.info(s"Confirmation code resent for '$username'.")
-      }
-    }
+    user.resend().map { _ =>
+      log.info(s"Confirmation code resent for '$username'.")
+    }.feedbackTo(ConfirmFeedbackId)
   }
 }

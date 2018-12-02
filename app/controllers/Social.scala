@@ -4,15 +4,20 @@ import com.malliina.concurrent.Execution.cached
 import com.malliina.http.OkClient
 import com.malliina.play.auth.CognitoCodeValidator.IdentityProvider
 import com.malliina.play.auth._
-import controllers.Social._
-import play.api.Configuration
+import com.malliina.play.http.HttpConstants
+import com.malliina.values.Email
+import controllers.Social.{log, _}
+import play.api.http.HeaderNames.CACHE_CONTROL
 import play.api.mvc.Results.Redirect
 import play.api.mvc._
+import play.api.{Configuration, Logger}
 
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.util.Try
 
 object Social {
+  private val log = Logger(getClass)
+
   val ProviderCookie = "provider"
   val providerCookieDuration: Duration = 3650.days
 
@@ -59,11 +64,29 @@ object Social {
 
 class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
   val okClient = OkClient.default
-  val handler = BasicAuthHandler(routes.PicsController.list())
+  val successCall = routes.PicsController.list()
+  val sessionKey = BasicAuthHandler.DefaultSessionKey
+  val lastIdKey = BasicAuthHandler.LastIdCookie
+  val handler = new AuthHandler {
+    override def onAuthenticated(email: Email, req: RequestHeader): Result = {
+      log.info(s"Logging in '$email' through OAuth code flow.")
+      Redirect(successCall)
+        .withSession(sessionKey -> email.email)
+        .withCookies(Cookie(lastIdKey, email.email, Option(3650.days.toSeconds.toInt)))
+        .withHeaders(CACHE_CONTROL -> HttpConstants.NoCacheRevalidate)
+    }
+
+    override def onUnauthorized(error: AuthError, req: RequestHeader): Result = {
+      log.warn(s"Authentication failed. ${error.message}")
+      Redirect(routes.PicsController.list())
+        .withNewSession
+        .withHeaders(CACHE_CONTROL -> HttpConstants.NoCacheRevalidate)
+    }
+  }
 
   object cognitoHandler extends AuthResults[CognitoUser] {
     override def onAuthenticated(user: CognitoUser, req: RequestHeader): Result =
-      Redirect(handler.successCall).withSession(handler.sessionKey -> user.username.name)
+      Redirect(successCall).withSession(sessionKey -> user.username.name)
 
     override def onUnauthorized(error: AuthError, req: RequestHeader): Result =
       handler.onUnauthorized(error, req)
@@ -107,7 +130,13 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
     actions.async { req => codeValidator.start(req, Map.empty) }
 
   private def startHinted(codeValidator: LoginHintSupport) =
-    actions.async { req => codeValidator.startHinted(req, req.cookies.get(handler.lastIdKey).map(_.value)) }
+    actions.async { req =>
+      val maybeEmail = req.cookies.get(lastIdKey).map(_.value)
+      maybeEmail.foreach { hint =>
+        log.info(s"Starting OAuth flow with login hint '$hint'.")
+      }
+      codeValidator.startHinted(req, maybeEmail)
+    }
 
   private def callback(codeValidator: AuthValidator, provider: AuthProvider): Action[AnyContent] =
     actions.async { req =>

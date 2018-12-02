@@ -155,6 +155,8 @@ class CognitoUser(options: UserData) extends js.Object {
 
   def setUserMfaPreference(sms: MfaSettings, totp: MfaSettings, callback: js.Function2[js.Error, String, _]): Unit = js.native
 
+  def enableMFA(callback: js.Function2[js.Error, String, _]): Unit = js.native
+
   def disableMFA(callback: js.Function2[js.Error, String, _]): Unit = js.native
 
   def deleteUser(callback: js.Function2[js.Error, String, _]): Unit = js.native
@@ -235,6 +237,10 @@ object CognitoUser {
 
     def delete(): Future[String] = withFuture[String] { p =>
       self.deleteUser((err, success) => complete(p, err, success))
+    }
+
+    def enableSms(): Future[String] = withFuture[String] { p =>
+      self.enableMFA((err, success) => complete(p, err, success))
     }
 
     def associateTotp(): Future[String] = withFuture[String] { p =>

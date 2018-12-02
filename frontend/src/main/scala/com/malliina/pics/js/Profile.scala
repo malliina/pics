@@ -53,7 +53,7 @@ class Profile(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log) {
             user.verifyTotp(code, "TOTP Device").map { _ =>
               log.info("TOTP verified.")
               elem[HTMLElement](TotpFeedbackId).appendChild(alertSuccess(s"MFA enabled.").render)
-            }
+            }.feedbackTo(TotpFeedbackId)
             e.preventDefault()
           }
         }.recover {

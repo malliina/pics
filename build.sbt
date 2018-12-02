@@ -26,7 +26,7 @@ lazy val cross = portableProject(JSPlatform, JVMPlatform)
 lazy val crossJvm = cross.jvm
 lazy val crossJs = cross.js
 
-val utilPlayVersion = "4.16.1"
+val utilPlayVersion = "4.17.0"
 
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
@@ -40,7 +40,7 @@ val commonSettings = Seq(
   libraryDependencies ++= Seq(
     "com.lihaoyi" %%% "scalatags" % "0.6.7",
     "com.typesafe.play" %%% "play-json" % "2.6.11",
-    "com.malliina" %%% "primitives" % "1.6.3",
+    "com.malliina" %%% "primitives" % "1.7.1",
     "com.malliina" %%% "util-html" % utilPlayVersion
   )
 )

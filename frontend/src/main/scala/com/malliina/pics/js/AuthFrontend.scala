@@ -19,7 +19,7 @@ class AuthFrontend(log: BaseLogger) extends Frontend with LoginStrings {
 
   def alertSuccess(msg: String) = PicsJS.jsHtml.alertSuccess(msg)
 
-  def recovered[T](id: String)(code: Future[T]): Future[T] = code.recoverWith {
+  private def recovered[T](id: String)(code: Future[T]): Future[T] = code.recoverWith {
     case e: CognitoException =>
       log.error(e)
       elem[HTMLElement](id).appendChild(alertDanger(e.friendlyMessage).render)
@@ -30,5 +30,9 @@ class AuthFrontend(log: BaseLogger) extends Frontend with LoginStrings {
     input(inputId).value = token
     PicsJS.csrf.installTo(to)
     to.submit()
+  }
+
+  implicit class FutureOps[T](val f: Future[T]) {
+    def feedbackTo(id: String): Future[T] = recovered(id)(f)
   }
 }
