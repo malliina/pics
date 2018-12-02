@@ -82,14 +82,10 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
 
     override def onUnauthorized(error: AuthError, req: RequestHeader): Result = {
       log.warn(s"Authentication failed. ${error.message}")
-      if (error.message == "State mismatch.") {
-        Unauthorized.withHeaders(CACHE_CONTROL -> HttpConstants.NoCacheRevalidate)
-      } else {
-        Redirect(routes.PicsController.signIn())
-          .discardingCookies(DiscardingCookie(ProviderCookie), DiscardingCookie(lastIdKey))
-          .withNewSession
-          .withHeaders(CACHE_CONTROL -> HttpConstants.NoCacheRevalidate)
-      }
+      Redirect(routes.PicsController.signIn())
+        .discardingCookies(DiscardingCookie(ProviderCookie), DiscardingCookie(lastIdKey))
+        .withNewSession
+        .withHeaders(CACHE_CONTROL -> HttpConstants.NoCacheRevalidate)
     }
   }
 
