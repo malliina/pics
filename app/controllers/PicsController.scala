@@ -59,7 +59,7 @@ class PicsController(html: PicsHtml,
   val placeHolderResource = "400x300.png"
   val deleteForm: Form[Key] = Form(mapping(KeyKey -> nonEmptyText)(Key.apply)(Key.unapply))
   val tokenForm: Form[TokenForm] = Form(mapping(
-    "token" -> optional(nonEmptyText),
+    LoginStrings.TokenKey -> optional(nonEmptyText),
     "error" -> optional(nonEmptyText)
   )(TokenForm.apply)(TokenForm.unapply))
   val reverse = routes.PicsController
@@ -136,6 +136,8 @@ class PicsController(html: PicsHtml,
     val feedback = UserFeedbacks.flashed(user.rh.flash)
     fut(Ok(html.drop(created, feedback, user)))
   }
+
+  def profile = Action(Ok(html.profile))
 
   def sync = auth.adminAction { _ =>
     Syncer.sync(sources.originals.storage, metaDatabase).map { count =>

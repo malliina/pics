@@ -39,7 +39,7 @@ class SignUp(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log) {
   def login(user: CognitoUser): Unit =
     recovered(SignUpFeedbackId) {
       user.authenticate(emailIn.value, passIn.value).map { success =>
-        submitToken(success.accessToken.jwtToken, signupForm)
+        submitToken(success.accessToken.jwtToken, LoginTokenId, signupForm)
       }
     }
 }

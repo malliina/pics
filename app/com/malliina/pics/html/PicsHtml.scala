@@ -52,10 +52,12 @@ object PicsHtml {
     form(role := FormRole, action := onAction, method := Post, more)
 }
 
-class PicsHtml(jsName: String) extends HtmlBuilder(new com.malliina.html.Tags(scalatags.Text)) with LoginStrings {
+class PicsHtml(jsName: String) extends BaseHtml {
   def signIn(feedback: Option[UserFeedback] = None) = basePage(AuthHtml.signIn(feedback))
 
   def signUp(feedback: Option[UserFeedback] = None) = basePage(AuthHtml.signUp(feedback))
+
+  def profile = basePage(AuthHtml.profile)
 
   def drop(created: Option[PicMeta], feedback: Option[UserFeedback], user: PicRequest) = {
     val content =

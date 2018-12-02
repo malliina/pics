@@ -23,6 +23,9 @@ object PicsJS {
     if (has(jsHtml.SignUpClass)) {
       new SignUp()
     }
+    if(has(jsHtml.ProfileClass)) {
+      new Profile()
+    }
   }
 
   def has(feature: String) = dom.document.body.classList.contains(feature)

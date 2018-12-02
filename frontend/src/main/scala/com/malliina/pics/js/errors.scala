@@ -1,5 +1,7 @@
 package com.malliina.pics.js
 
+import scala.scalajs.js
+
 class CognitoException(val friendlyMessage: String)
   extends Exception(friendlyMessage)
 
@@ -15,6 +17,8 @@ object CognitoException {
     case "UnknownError" => new AuthException("An error occurred.", failure)
     case _ => new AuthException("Authentication failed.", failure)
   }
+
+  def apply(error: js.Error): CognitoException = new CognitoException(error.message)
 }
 
 class MfaRequiredException

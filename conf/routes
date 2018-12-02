@@ -1,5 +1,6 @@
 GET           /                                   controllers.PicsController.root
 GET           /drop                               controllers.PicsController.drop
+GET           /profile                            controllers.PicsController.profile
 GET           /ping                               controllers.PicsController.ping
 GET           /version                            controllers.PicsController.version
 GET           /pics                               controllers.PicsController.list

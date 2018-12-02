@@ -16,6 +16,7 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
   val LoginClass = "login"
   val PicsClass = "pics"
   val Post = "POST"
+  val ProfileClass = "profile"
   val SignUpClass = "signup"
   val Submit = "submit"
 

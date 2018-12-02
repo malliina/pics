@@ -10,6 +10,11 @@ trait LoginStrings {
   val ConfirmFormId = "confirm-form"
   val ConfirmTokenId = "confirm-token"
 
+  val ForgotFeedbackId = "forgot-feedback"
+  val ForgotFormId = "forgot-form"
+  val ForgotEmailId = "forgot-email"
+  val ForgotPasswordLinkId = "forgot-password-link"
+
   val GoogleSignInCallback = "onGoogleSignIn"
   val GoogleSignOutId = "signOutButton"
 
@@ -22,8 +27,20 @@ trait LoginStrings {
   val MfaRequired = "MFA required."
   val PasswordId = "password"
 
+  val ProfileContainerId = "profile-container"
+  val QrCode = "qrcode"
+
   val ResendId = "resend"
+
+  val ResetCodeId = "reset-code"
+  val ResetEmailId = "reset-email"
+  val ResetFormId = "reset-form"
+  val ResetNewPasswordId = "reset-new-password"
+  val ResetFeedbackId = "reset-feedback"
+  val ResetTokenId = "reset-token"
 
   val SignUpFeedbackId = "signup-feedback"
   val SignUpFormId = "signup-form"
+
+  val TokenKey = "token"
 }
