@@ -7,7 +7,7 @@ import scala.concurrent.Future
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 class AuthFrontend(log: BaseLogger) extends Frontend with LoginStrings {
-  val poolData = PoolData("eu-west-1_egi2PEe65", "2rnqepv44epargdosba6nlg2t9")
+  val poolData = PoolData.build("eu-west-1_egi2PEe65", "2rnqepv44epargdosba6nlg2t9")
   val userPool = CognitoUserPool(poolData)
   val Hidden = "hidden"
 

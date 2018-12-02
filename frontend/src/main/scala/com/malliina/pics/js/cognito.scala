@@ -37,7 +37,7 @@ trait PoolData extends js.Object {
 }
 
 object PoolData {
-  def apply(userPoolId: String, clientId: String): PoolData =
+  def build(userPoolId: String, clientId: String): PoolData =
     literal(UserPoolId = userPoolId, ClientId = clientId).asInstanceOf[PoolData]
 }
 
