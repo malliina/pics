@@ -16,7 +16,6 @@ import play.api.ApplicationLoader.Context
 import play.api.cache.Cached
 import play.api.cache.ehcache.EhCacheComponents
 import play.api.http.HttpConfiguration
-import play.api.mvc.EssentialFilter
 import play.api.routing.Router
 import play.api.{BuiltInComponentsFromContext, Configuration, Mode}
 import play.filters.HttpFiltersComponents
@@ -48,7 +47,6 @@ abstract class BaseComponents(context: Context, creds: Configuration => GoogleOA
     with HttpFiltersComponents
     with EhCacheComponents
     with AssetsComponents {
-
   override val configuration = context.initialConfiguration ++ LocalConf.localConf
 
   def buildAuthenticator(): PicsAuthLike

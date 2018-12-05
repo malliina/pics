@@ -5,6 +5,7 @@ import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.auth.PicsAuth.log
 import com.malliina.pics.{Errors, PicOwner, PicRequest}
 import com.malliina.play.controllers.AuthBundle
+import controllers.Social
 import play.api.Logger
 import play.api.libs.streams.Accumulator
 import play.api.mvc._
@@ -14,17 +15,16 @@ import scala.concurrent.Future
 object PicsAuth {
   private val log = Logger(getClass)
 
-  val SessionKey = "username"
-
   val AdminUser = PicOwner("malliina123@gmail.com")
 
-  def social = oauth(SessionKey)
+  def social = oauth(Social.SessionKey)
 
   def oauth(sessionKey: String): AuthBundle[PicRequest] =
     AuthBundle.oauth(
       (req, user) => PicRequest(PicOwner(user.name), req),
       controllers.routes.PicsController.signIn(),
-      sessionKey)
+      sessionKey
+    )
 }
 
 class PicsAuth(val authenticator: PicsAuthLike,

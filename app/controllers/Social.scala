@@ -6,9 +6,9 @@ import com.malliina.play.auth.CognitoCodeValidator.IdentityProvider
 import com.malliina.play.auth._
 import com.malliina.play.http.HttpConstants
 import com.malliina.values.Email
-import controllers.Social.{log, _}
+import controllers.Social._
 import play.api.http.HeaderNames.CACHE_CONTROL
-import play.api.mvc.Results.{Redirect, Unauthorized}
+import play.api.mvc.Results.Redirect
 import play.api.mvc._
 import play.api.{Configuration, Logger}
 
@@ -18,11 +18,14 @@ import scala.util.Try
 object Social {
   private val log = Logger(getClass)
 
-  val PromptCookie = "prompt"
+  val PromptCookie = "picsPrompt"
   val PromptKey = "prompt"
-  val ProviderCookie = "provider"
-  val providerCookieDuration: Duration = 3650.days
+  val ProviderCookie = "picsProvider"
+  val LoginCookieDuration: Duration = 3650.days
   val SelectAccount = "select_account"
+
+  val SessionKey = "picsUser"
+  val LastIdCookie = "picsLastId"
 
   def buildOrFail(actions: ActionBuilder[Request, AnyContent], socialConf: SocialConf) =
     new Social(actions, socialConf)
@@ -68,14 +71,12 @@ object Social {
 class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
   val okClient = OkClient.default
   val successCall = routes.PicsController.list()
-  val sessionKey = BasicAuthHandler.DefaultSessionKey
-  val lastIdKey = BasicAuthHandler.LastIdCookie
-  val handler = new AuthHandler {
+  val handler: AuthHandler = new AuthHandler {
     override def onAuthenticated(email: Email, req: RequestHeader): Result = {
       log.info(s"Logging in '$email' through OAuth code flow.")
       Redirect(successCall)
-        .withSession(sessionKey -> email.email)
-        .withCookies(Cookie(lastIdKey, email.email, Option(providerCookieDuration.toSeconds.toInt)))
+        .withSession(SessionKey -> email.email)
+        .withCookies(Cookie(LastIdCookie, email.email, Option(LoginCookieDuration.toSeconds.toInt)))
         .discardingCookies(DiscardingCookie(PromptCookie))
         .withHeaders(CACHE_CONTROL -> HttpConstants.NoCacheRevalidate)
     }
@@ -83,7 +84,7 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
     override def onUnauthorized(error: AuthError, req: RequestHeader): Result = {
       log.warn(s"Authentication failed. ${error.message}")
       Redirect(routes.PicsController.signIn())
-        .discardingCookies(DiscardingCookie(ProviderCookie), DiscardingCookie(lastIdKey))
+        .discardingCookies(DiscardingCookie(ProviderCookie), DiscardingCookie(LastIdCookie))
         .withNewSession
         .withHeaders(CACHE_CONTROL -> HttpConstants.NoCacheRevalidate)
     }
@@ -91,7 +92,7 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
 
   object cognitoHandler extends AuthResults[CognitoUser] {
     override def onAuthenticated(user: CognitoUser, req: RequestHeader): Result =
-      Redirect(successCall).withSession(sessionKey -> user.username.name)
+      Redirect(successCall).withSession(SessionKey -> user.username.name)
 
     override def onUnauthorized(error: AuthError, req: RequestHeader): Result =
       handler.onUnauthorized(error, req)
@@ -138,7 +139,7 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
     actions.async { req =>
       val promptCookie = req.cookies.get(PromptCookie)
       val extra = promptCookie.map(c => Map(PromptKey -> c.value)).getOrElse(Map.empty)
-      val maybeEmail = req.cookies.get(lastIdKey).map(_.value).filter(_ => extra.isEmpty)
+      val maybeEmail = req.cookies.get(LastIdCookie).map(_.value).filter(_ => extra.isEmpty)
       maybeEmail.foreach { hint =>
         log.info(s"Starting OAuth flow with login hint '$hint'.")
       }
@@ -151,7 +152,7 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
   private def callback(codeValidator: AuthValidator, provider: AuthProvider): Action[AnyContent] =
     actions.async { req =>
       codeValidator.validateCallback(req).map { r =>
-        val cookie = Cookie(ProviderCookie, provider.name, maxAge = Option(providerCookieDuration.toSeconds.toInt))
+        val cookie = Cookie(ProviderCookie, provider.name, maxAge = Option(LoginCookieDuration.toSeconds.toInt))
         if (r.header.status < 400) r.withCookies(cookie)
         else r
       }

@@ -3,7 +3,7 @@ package controllers
 import com.malliina.concurrent.Execution.cached
 import com.malliina.http.{FullUrl, OkClient}
 import com.malliina.play.auth.CodeValidator._
-import com.malliina.play.auth.{BasicAuthHandler, CodeValidator, CognitoIdentityConf, CognitoIdentityConfs, CognitoTokens, CognitoValidators}
+import com.malliina.play.auth.{CodeValidator, CognitoIdentityConf, CognitoIdentityConfs, CognitoTokens, CognitoValidators}
 import com.malliina.play.http.FullUrls
 import com.malliina.play.json.JsonMessages
 import controllers.CognitoControl.log
@@ -42,7 +42,7 @@ class CognitoControl(conf: CognitoIdentityConf, actions: ActionBuilder[Request, 
   def signOut = actions { req =>
     Redirect(conf.logoutUrl(FullUrls(routes.CognitoControl.signOutCallback(), req)).url)
       .withNewSession
-      .discardingCookies(DiscardingCookie(BasicAuthHandler.LastIdCookie), DiscardingCookie(Social.ProviderCookie))
+      .discardingCookies(DiscardingCookie(Social.LastIdCookie), DiscardingCookie(Social.ProviderCookie))
       .withCookies(Cookie(Social.PromptCookie, Social.SelectAccount))
   }
 
