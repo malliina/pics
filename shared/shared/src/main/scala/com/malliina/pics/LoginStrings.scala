@@ -28,7 +28,6 @@ trait LoginStrings {
   val MfaTokenId = "mfa-token"
 
   val EmailId = "email"
-  val ErrorId = "error"
   val MfaRequired = "MFA required."
   val PasswordId = "password"
 

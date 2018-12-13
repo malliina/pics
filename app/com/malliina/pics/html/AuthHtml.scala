@@ -8,18 +8,19 @@ import play.api.mvc.Call
 import scalatags.Text.all._
 
 object AuthHtml extends BaseHtml {
+  val reverseSocial = routes.Social
 
   import tags._
 
   def signIn(feedback: Option[UserFeedback] = None): PageConf = {
     val heading = fullRow(h1("Sign in"))
     val socials = rowColumn(s"${col.md.twelve} social-container")(
-      socialButton("google", routes.Social.google(), "Sign in with Google"),
-      socialButton("facebook", routes.Social.facebook(), "Sign in with Facebook"),
-      socialButton("microsoft", routes.Social.microsoft(), "Sign in with Microsoft"),
-      socialButton("github", routes.Social.github(), "Sign in with GitHub"),
-      socialButton("twitter", routes.Social.twitter(), "Sign in with Twitter"),
-      socialButton("amazon", routes.Social.amazon(), "Sign in with Amazon")
+      socialButton("google", reverseSocial.google(), "Sign in with Google"),
+      socialButton("facebook", reverseSocial.facebook(), "Sign in with Facebook"),
+      socialButton("microsoft", reverseSocial.microsoft(), "Sign in with Microsoft"),
+      socialButton("github", reverseSocial.github(), "Sign in with GitHub"),
+      socialButton("twitter", reverseSocial.twitter(), "Sign in with Twitter"),
+      socialButton("amazon", reverseSocial.amazon(), "Sign in with Amazon")
     )
     val loginDivider = divClass("login-divider")(
       divClass("line"),
@@ -85,7 +86,6 @@ object AuthHtml extends BaseHtml {
   def loginForm(feedback: Option[UserFeedback] = None) =
     form(id := LoginFormId, `class` := col.md.twelve, method := Post, novalidate)(
       input(`type` := "hidden", name := TokenKey, id := LoginTokenId),
-      input(`type` := "hidden", name := "error", id := ErrorId),
       divClass(FormGroup)(
         labeledInput("Email address", EmailId, "email", Option("me@example.com"))
       ),

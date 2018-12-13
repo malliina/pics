@@ -1,10 +1,11 @@
 package com.malliina.pics.js
 
 import com.malliina.pics.CSRFConf.{CsrfHeaderName, CsrfTokenNoCheck}
+import com.malliina.pics.PicsStrings
 import org.scalajs.dom.raw._
 import scalatags.JsDom.all._
 
-class PicDrop extends Frontend {
+class PicDrop extends Frontend with PicsStrings {
   val dropZone = elem[HTMLElement]("drop-zone")
   val progress = elem[HTMLProgressElement]("progress")
 
@@ -29,11 +30,11 @@ class PicDrop extends Frontend {
       val file = files(0)
       val xhr = new XMLHttpRequest
       xhr.open("POST", "/pics")
-      xhr.setRequestHeader("X-Name", file.name)
+      xhr.setRequestHeader(XName, file.name)
       xhr.setRequestHeader(CsrfHeaderName, CsrfTokenNoCheck)
       xhr.onload = (e: Event) => {
         val loc = xhr.getResponseHeader("Location")
-        val key = xhr.getResponseHeader("X-Key")
+        val key = xhr.getResponseHeader(XKey)
         if (loc != null && key != null) {
           val feedback = div(`class` := "lead alert alert-success", role := "alert")("Saved ", a(href := loc)(key))
           document.getElementById("feedback").appendChild(feedback.render)

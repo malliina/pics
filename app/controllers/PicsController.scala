@@ -34,11 +34,8 @@ object PicsController {
   val HtmlAccept = Accepting(MimeTypes.HTML)
 
   val CreatedKey = "created"
-  val KeyKey = "key"
   val Message = "message"
   val Reason = "reason"
-  val XKey = "X-Key"
-  val XName = "X-Name"
   val XClientPic = "X-Client-Pic"
 }
 
@@ -47,22 +44,13 @@ class PicsController(html: PicsHtml,
                      picSink: PicSink,
                      auth: PicsAuth,
                      cache: Cached,
-                     comps: ControllerComponents) extends AbstractController(comps) {
-
-  case class TokenForm(token: Option[String], error: Option[String]) {
-    def toEither =
-      error.map(e => Left(e))
-        .orElse(token.map(t => Right(AccessToken(t))))
-        .getOrElse(Left(AuthFailed))
-  }
+                     comps: ControllerComponents) extends AbstractController(comps) with PicsStrings {
 
   val placeHolderResource = "400x300.png"
-  val deleteForm: Form[Key] = Form(mapping(KeyKey -> nonEmptyText)(Key.apply)(Key.unapply))
-  val tokenForm: Form[TokenForm] = Form(mapping(
-    LoginStrings.TokenKey -> optional(nonEmptyText),
-    "error" -> optional(nonEmptyText)
-  )(TokenForm.apply)(TokenForm.unapply))
+  val deleteForm: Form[Key] = Form(mapping(PicsHtml.KeyKey -> nonEmptyText)(Key.apply)(Key.unapply))
+  val tokenForm: Form[AccessToken] = Form(mapping(LoginStrings.TokenKey -> nonEmptyText)(AccessToken.apply)(AccessToken.unapply))
   val reverse = routes.PicsController
+  val reverseSocial = routes.Social
   val metaDatabase = pics.metaDatabase
   val sources = pics.handler
 
@@ -79,12 +67,12 @@ class PicsController(html: PicsHtml,
   def signIn = Action { req =>
     import Social._
     val call = req.cookies.get(ProviderCookie).flatMap(c => AuthProvider.forString(c.value).toOption).map {
-      case Google => routes.Social.google()
-      case Microsoft => routes.Social.microsoft()
-      case Facebook => routes.Social.facebook()
-      case GitHub => routes.Social.github()
-      case Amazon => routes.Social.amazon()
-      case Twitter => routes.Social.twitter()
+      case Google => reverseSocial.google()
+      case Microsoft => reverseSocial.microsoft()
+      case Facebook => reverseSocial.facebook()
+      case GitHub => reverseSocial.github()
+      case Amazon => reverseSocial.amazon()
+      case Twitter => reverseSocial.twitter()
     }
     call.map(c => Redirect(c)).getOrElse(Ok(html.signIn()))
   }
@@ -92,19 +80,13 @@ class PicsController(html: PicsHtml,
   def signUp = Action { Ok(html.signUp()) }
 
   def postSignIn = Action(parse.form(tokenForm)) { req =>
-    req.body.toEither.fold(
-      err => {
-        failLogin(err, req)
+    val token = req.body
+    auth.authenticator.validateToken(token).fold(
+      _ => {
+        failLogin(LoginStrings.AuthFailed, req)
       },
-      token => {
-        auth.authenticator.validateToken(token).fold(
-          _ => {
-            failLogin(LoginStrings.AuthFailed, req)
-          },
-          user => {
-            Redirect(reverse.list()).withSession("username" -> user.username.name)
-          }
-        )
+      user => {
+        Redirect(reverse.list()).withSession("username" -> user.username.name)
       }
     )
   }

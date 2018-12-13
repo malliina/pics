@@ -17,14 +17,10 @@ import scalatags.Text.all._
 import scala.language.implicitConversions
 
 object PicsHtml {
-  def build(isProd: Boolean): PicsHtml = {
-    val jsName = if (isProd) "frontend-opt.js" else "frontend-fastopt.js"
-    new PicsHtml(jsName)
-  }
-
   val CopyButton = "copy-button"
   val True = "true"
   val False = "false"
+  val KeyKey = "key"
   val dataIdAttr = attr("data-id")
   val dataContentAttr = attr("data-content")
   val defer = attr("defer").empty
@@ -33,6 +29,11 @@ object PicsHtml {
   val reverse = routes.PicsController
   implicit val urlAttr = new GenericAttr[FullUrl]
   implicit val callAttr = new GenericAttr[Call]
+
+  def build(isProd: Boolean): PicsHtml = {
+    val jsName = if (isProd) "frontend-opt.js" else "frontend-fastopt.js"
+    new PicsHtml(jsName)
+  }
 
   implicit def urlWriter(url: FullUrl): Text.StringFrag =
     stringFrag(url.url)
@@ -75,7 +76,7 @@ class PicsHtml(jsName: String) extends BaseHtml {
               divClass("input-group-prepend")(
                 spanClass("input-group-text")("pics/")
               ),
-              input(`type` := "text", `class` := FormControl, name := "key", placeholder := "key"),
+              input(`type` := "text", `class` := FormControl, name := KeyKey, placeholder := "key"),
               divClass("input-group-append")(
                 submitButton(`class` := btnOutline.danger)("Delete")
               )
