@@ -228,6 +228,7 @@ class PicsController(html: PicsHtml,
     pics.save(tempFile, by, rh.headers.get(XName)).map { meta =>
       val clientPic = rh.headers.get(XClientPic).map(Key.apply).getOrElse(meta.key)
       val picMeta = PicMetas(meta, rh)
+      // TODO Use akka-streams
       picSink.onPic(picMeta.withClient(clientPic), by)
       log info s"Saved '${picMeta.key}' with URL '${picMeta.url}'."
       Accepted(PicResponse(picMeta)).withHeaders(
