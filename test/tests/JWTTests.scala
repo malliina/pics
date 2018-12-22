@@ -1,6 +1,6 @@
 package tests
 
-import com.malliina.play.auth.{AccessToken, Expired, LiberalValidator, LiberalValidators}
+import com.malliina.play.auth.{AccessToken, Expired, LiberalValidators}
 import com.nimbusds.jwt.JWTClaimsSet
 import org.scalatest.FunSuite
 

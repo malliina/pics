@@ -24,7 +24,6 @@ case class ResizeException(ipe: ImageParseException)
 
 case class SingleError(message: String, key: String)
 
-
 object SingleError {
   implicit val json = Json.format[SingleError]
 

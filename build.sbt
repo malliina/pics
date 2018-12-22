@@ -26,13 +26,13 @@ lazy val cross = portableProject(JSPlatform, JVMPlatform)
 lazy val crossJvm = cross.jvm
 lazy val crossJs = cross.js
 
-val utilPlayVersion = "4.17.0"
+val utilPlayVersion = "4.18.1"
 
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
 val commonSettings = Seq(
   organization := "com.malliina",
-  scalaVersion := "2.12.7",
+  scalaVersion := "2.12.8",
   resolvers ++= Seq(
     "Sonatype releases" at "https://oss.sonatype.org/content/repositories/releases/",
     Resolver.bintrayRepo("malliina", "maven")
@@ -60,10 +60,6 @@ val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
     "com.zaxxer" % "HikariCP" % "3.2.0",
     "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8",
     "com.malliina" %% "logstreams-client" % "1.3.0"
-  ),
-  dependencyOverrides ++= Seq(
-    "com.typesafe.akka" %% "akka-stream" % "2.5.8",
-    "com.typesafe.akka" %% "akka-actor" % "2.5.8"
   ),
   pipelineStages := Seq(digest, gzip),
   // pipelineStages in Assets := Seq(digest, gzip)
