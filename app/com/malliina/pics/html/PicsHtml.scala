@@ -33,7 +33,6 @@ object PicsHtml {
   def build(isProd: Boolean): PicsHtml = {
     val name = "frontend"
     val opt = if (isProd) "opt" else "fastopt"
-    Seq(s"$name-$opt-library.js", s"$name-$opt-loader.js", s"$name-$opt.js")
     new PicsHtml(Seq(s"$name-$opt-library.js", s"$name-$opt-loader.js", s"$name-$opt.js"))
   }
 
