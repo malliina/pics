@@ -29,14 +29,14 @@ class PicsSocket extends BaseSocket("/sockets") {
   installCopyListeners(document.body)
   PicsJS.csrf.installCsrf(document.body)
 
-  val popovers = jQuery("[data-toggle='popover']").asInstanceOf[Popovers]
+  val popovers = MyJQuery("[data-toggle='popover']").asInstanceOf[Popovers]
   popovers.popover()
 
   // hides popovers on outside click
   document.body.addEventListener("click", (e: Event) => {
     val isPopover = e.target.isInstanceOf[HTMLElement] && Option(e.target.asInstanceOf[HTMLElement].getAttribute("data-original-title")).isDefined
     if (!isPopover) {
-      jQuery("[data-original-title]").asInstanceOf[Popovers].popover("hide")
+      MyJQuery("[data-original-title]").asInstanceOf[Popovers].popover("hide")
     }
   })
 

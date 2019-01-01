@@ -31,8 +31,10 @@ object PicsHtml {
   implicit val callAttr: GenericAttr[Call] = new GenericAttr[Call]
 
   def build(isProd: Boolean): PicsHtml = {
-    val jsName = if (isProd) "frontend-opt.js" else "frontend-fastopt.js"
-    new PicsHtml(jsName)
+    val name = "frontend"
+    val opt = if (isProd) "opt" else "fastopt"
+    Seq(s"$name-$opt-library.js", s"$name-$opt-loader.js", s"$name-$opt.js")
+    new PicsHtml(Seq(s"$name-$opt-library.js", s"$name-$opt-loader.js", s"$name-$opt.js"))
   }
 
   implicit def urlWriter(url: FullUrl): Text.StringFrag =
@@ -53,7 +55,7 @@ object PicsHtml {
     form(role := FormRole, action := onAction, method := Post, more)
 }
 
-class PicsHtml(jsName: String) extends BaseHtml {
+class PicsHtml(scripts: Seq[String]) extends BaseHtml {
   def signIn(feedback: Option[UserFeedback] = None) = basePage(AuthHtml.signIn(feedback))
 
   def signUp(feedback: Option[UserFeedback] = None) = basePage(AuthHtml.signUp(feedback))
@@ -181,15 +183,15 @@ class PicsHtml(jsName: String) extends BaseHtml {
         titleTag(conf.title),
         deviceWidthViewport,
         link(rel := "shortcut icon", `type` := "image/png", href := at("img/pics-favicon.png")),
-        cssLinkHashed("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css", "sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"),
+        cssLinkHashed(
+          "https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css",
+          "sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+        ),
         cssLink("https://use.fontawesome.com/releases/v5.0.6/css/all.css"),
         cssLink("https://fonts.googleapis.com/css?family=Roboto:400,500"),
         cssLink(at("css/main.css")),
         conf.extraHeader,
-        jsHashed("https://code.jquery.com/jquery-3.2.1.slim.min.js", "sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"),
-        jsHashed("https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js", "sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"),
-        jsHashed("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js", "sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"),
-        deferredJsPath(jsName),
+        scripts.map { js => deferredJsPath(js) }
       ),
       body(`class` := conf.bodyClass)(
         section(

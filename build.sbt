@@ -4,28 +4,6 @@ import play.sbt.PlayImport
 import sbt.Keys.scalaVersion
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 
-lazy val root = project.in(file("."))
-  .settings(commonSettings: _*)
-  .aggregate(frontend, backend)
-
-lazy val backend = PlayProject.linux("pics")
-  .enablePlugins(FileTreePlugin)
-  .settings(backendSettings: _*)
-  .dependsOn(crossJvm)
-
-lazy val frontend = project.in(file("frontend"))
-  .settings(frontendSettings: _*)
-  .enablePlugins(ScalaJSPlugin)
-  .dependsOn(crossJs)
-
-lazy val cross = portableProject(JSPlatform, JVMPlatform)
-  .crossType(PortableType.Full)
-  .in(file("shared"))
-  .settings(commonSettings: _*)
-
-lazy val crossJvm = cross.jvm
-lazy val crossJs = cross.js
-
 val utilPlayVersion = "4.18.1"
 
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
@@ -44,6 +22,45 @@ val commonSettings = Seq(
     "com.malliina" %%% "util-html" % utilPlayVersion
   )
 )
+
+lazy val root = project.in(file("."))
+  .settings(commonSettings)
+  .aggregate(frontend, backend)
+
+lazy val backend = PlayProject.linux("pics")
+  .enablePlugins(FileTreePlugin, WebScalaJSBundlerPlugin)
+  .settings(backendSettings: _*)
+  .dependsOn(crossJvm)
+
+lazy val frontend = project.in(file("frontend"))
+  .enablePlugins(ScalaJSBundlerPlugin)
+  .dependsOn(crossJs)
+  .settings(commonSettings)
+  .settings(
+    libraryDependencies ++= Seq(
+      "org.scala-js" %%% "scalajs-dom" % "0.9.2",
+      "org.scalatest" %%% "scalatest" % "3.0.5" % Test,
+      "be.doeraene" %%% "scalajs-jquery" % "0.9.2"
+    ),
+    version in webpack := "4.27.1",
+    emitSourceMaps := false,
+    scalaJSUseMainModuleInitializer := true,
+    webpackBundlingMode := BundlingMode.LibraryOnly(),
+    npmDependencies in Compile ++= Seq(
+      "jquery" -> "3.3.1",
+      "popper.js" -> "1.14.6",
+      "bootstrap" -> "4.2.1"
+    )
+  )
+
+lazy val cross = portableProject(JSPlatform, JVMPlatform)
+  .crossType(PortableType.Full)
+  .in(file("shared"))
+  .settings(commonSettings: _*)
+
+lazy val crossJvm = cross.jvm
+lazy val crossJs = cross.js
+
 val backendSettings = commonSettings ++ Seq(
   scalaJSProjects := Seq(frontend),
   pipelineStages in Assets := Seq(scalaJSPipeline),
@@ -90,13 +107,4 @@ val backendSettings = commonSettings ++ Seq(
       mapFunc = "com.malliina.pics.html.PicsHtml.at"
     )
   )
-)
-
-lazy val frontendSettings = commonSettings ++ Seq(
-  libraryDependencies ++= Seq(
-    "org.scala-js" %%% "scalajs-dom" % "0.9.2",
-    "org.scalatest" %%% "scalatest" % "3.0.5" % Test,
-    "be.doeraene" %%% "scalajs-jquery" % "0.9.2"
-  ),
-  scalaJSUseMainModuleInitializer := true
 )

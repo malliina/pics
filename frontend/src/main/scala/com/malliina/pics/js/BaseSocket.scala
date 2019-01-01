@@ -19,7 +19,7 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
   //  val statusElem = dom.document.getElementById("status")
   val socket: dom.WebSocket = openSocket(wsPath)
 
-  def elem(id: String): JQuery = jQuery(s"#$id")
+  def elem(id: String): JQuery = MyJQuery(s"#$id")
 
   def handlePayload(payload: JsValue): Unit = ()
 
