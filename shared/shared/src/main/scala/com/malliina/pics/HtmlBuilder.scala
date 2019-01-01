@@ -32,8 +32,8 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
   val picsId = "pics-container"
   val demoButtonId = "demo-button"
 
-  implicit val urlAttr = genericAttr[FullUrl]
-  implicit val keyAttr = genericAttr[Key]
+  implicit val urlAttr: AttrValue[FullUrl] = genericAttr[FullUrl]
+  implicit val keyAttr: AttrValue[Key] = genericAttr[Key]
 
   implicit def keyFrag(key: Key): Frag = stringFrag(key.key)
 

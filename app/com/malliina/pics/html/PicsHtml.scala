@@ -27,8 +27,8 @@ object PicsHtml {
   val async = attr("async").empty
 
   val reverse = routes.PicsController
-  implicit val urlAttr = new GenericAttr[FullUrl]
-  implicit val callAttr = new GenericAttr[Call]
+  implicit val urlAttr: GenericAttr[FullUrl] = new GenericAttr[FullUrl]
+  implicit val callAttr: GenericAttr[Call] = new GenericAttr[Call]
 
   def build(isProd: Boolean): PicsHtml = {
     val jsName = if (isProd) "frontend-opt.js" else "frontend-fastopt.js"

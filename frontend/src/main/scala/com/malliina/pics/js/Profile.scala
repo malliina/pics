@@ -13,7 +13,6 @@ class Profile(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log) {
 
   import ProfileHtml._
 
-  val html = PicsJS.jsHtml
   val root = elem[HTMLDivElement](ProfileContainerId)
   val user = userPool.currentUser.map { user =>
     user.session().map { _ =>
@@ -65,7 +64,7 @@ class Profile(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log) {
   }
 }
 
-object ProfileHtml extends HtmlBuilder(new Tags(scalatags.JsDom)) {
+object ProfileHtml extends BaseHtml {
 
   import scalatags.JsDom.all._
 

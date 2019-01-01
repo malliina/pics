@@ -1,7 +1,6 @@
 package com.malliina.pics.js
 
 import com.malliina.pics.CSRFConf.{CsrfCookieName, CsrfTokenName}
-import com.malliina.pics.js.PicsJS.jsHtml
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLFormElement
 import org.scalajs.dom.{Element, Event}
@@ -22,7 +21,7 @@ class CSRFUtils(val log: BaseLogger = BaseLogger.console) {
 
   def installTo(form: HTMLFormElement) = {
     readCookie(CsrfCookieName).map { tokenValue =>
-      form.appendChild(jsHtml.csrfInput(CsrfTokenName, tokenValue).render)
+      form.appendChild(BaseHtml.csrfInput(CsrfTokenName, tokenValue).render)
     }.getOrElse {
       log.info("CSRF token not found.")
     }

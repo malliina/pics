@@ -1,30 +1,25 @@
 package com.malliina.pics.js
 
-import com.malliina.html.Tags
-import com.malliina.pics.HtmlBuilder
 import org.scalajs.dom
 
-object PicsJS {
-
-  object jsHtml extends HtmlBuilder(new Tags(scalatags.JsDom))
-
+object PicsJS extends BaseHtml {
   val csrf = CSRFUtils()
 
   def main(args: Array[String]): Unit = {
-    if (has(jsHtml.PicsClass)) {
+    if (has(PicsClass)) {
       new PicsSocket
     }
-    if (has(jsHtml.DropClass)) {
+    if (has(DropClass)) {
       new PicDrop
     }
-    if (has(jsHtml.LoginClass)) {
-      new Login()
+    if (has(LoginClass)) {
+      new Login
     }
-    if (has(jsHtml.SignUpClass)) {
-      new SignUp()
+    if (has(SignUpClass)) {
+      new SignUp
     }
-    if(has(jsHtml.ProfileClass)) {
-      new Profile()
+    if (has(ProfileClass)) {
+      new Profile
     }
   }
 

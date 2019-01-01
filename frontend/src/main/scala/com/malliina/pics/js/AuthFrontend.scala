@@ -15,9 +15,9 @@ class AuthFrontend(log: BaseLogger) extends Frontend with LoginStrings {
 
   def passIn = input(PasswordId)
 
-  def alertDanger(msg: String) = PicsJS.jsHtml.alertDanger(msg)
+  def alertDanger(msg: String) = BaseHtml.alertDanger(msg)
 
-  def alertSuccess(msg: String) = PicsJS.jsHtml.alertSuccess(msg)
+  def alertSuccess(msg: String) = BaseHtml.alertSuccess(msg)
 
   private def recovered[T](id: String)(code: Future[T]): Future[T] = code.recoverWith {
     case e: CognitoException =>

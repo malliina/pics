@@ -1,7 +1,6 @@
 package com.malliina.pics.js
 
 import com.malliina.pics._
-import com.malliina.pics.js.PicsJS.jsHtml
 import org.scalajs.dom
 import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
 import org.scalajs.dom.{Element, Event, Node}
@@ -22,6 +21,7 @@ trait Popovers extends js.Object {
 }
 
 class PicsSocket extends BaseSocket("/sockets") {
+  val jsHtml = BaseHtml
   val document = dom.document
 
   var isReadOnly = false

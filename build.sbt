@@ -39,12 +39,14 @@ val commonSettings = Seq(
   ),
   libraryDependencies ++= Seq(
     "com.lihaoyi" %%% "scalatags" % "0.6.7",
-    "com.typesafe.play" %%% "play-json" % "2.6.11",
+    "com.typesafe.play" %%% "play-json" % "2.6.13",
     "com.malliina" %%% "primitives" % "1.7.1",
     "com.malliina" %%% "util-html" % utilPlayVersion
   )
 )
-val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
+val backendSettings = commonSettings ++ Seq(
+  scalaJSProjects := Seq(frontend),
+  pipelineStages in Assets := Seq(scalaJSPipeline),
   libraryDependencies ++= Seq(
     "org.apache.commons" % "commons-text" % "1.6",
     "com.amazonaws" % "aws-java-sdk-s3" % "1.11.461",
@@ -59,7 +61,7 @@ val backendSettings = commonSettings ++ scalaJSSettings ++ Seq(
     "mysql" % "mysql-connector-java" % "5.1.47",
     "com.zaxxer" % "HikariCP" % "3.2.0",
     "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8",
-    "com.malliina" %% "logstreams-client" % "1.3.0"
+    "com.malliina" %% "logstreams-client" % "1.4.0"
   ),
   pipelineStages := Seq(digest, gzip),
   // pipelineStages in Assets := Seq(digest, gzip)
@@ -97,9 +99,4 @@ lazy val frontendSettings = commonSettings ++ Seq(
     "be.doeraene" %%% "scalajs-jquery" % "0.9.2"
   ),
   scalaJSUseMainModuleInitializer := true
-)
-
-lazy val scalaJSSettings = Seq(
-  scalaJSProjects := Seq(frontend),
-  pipelineStages in Assets := Seq(scalaJSPipeline)
 )
