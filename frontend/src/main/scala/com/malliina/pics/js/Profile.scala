@@ -1,7 +1,6 @@
 package com.malliina.pics.js
 
-import com.malliina.html.Tags
-import com.malliina.pics.{HtmlBuilder, LoginStrings}
+import com.malliina.pics.LoginStrings
 import org.scalajs.dom.raw._
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue

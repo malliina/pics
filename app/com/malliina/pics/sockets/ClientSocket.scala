@@ -23,7 +23,7 @@ class ClientSocket(ctx: SocketContext) extends JsonActor(ctx) {
 
   override def postStop(): Unit = {
     super.postStop()
-    log.info("Stopped client.")
+    log.info(s"Stopped client '${ctx.req.name}'.")
   }
 }
 

@@ -5,7 +5,6 @@ import java.time.Instant
 
 import com.malliina.concurrent.Execution.cached
 import com.malliina.html.UserFeedback
-import com.malliina.pics.LoginStrings.AuthFailed
 import com.malliina.pics._
 import com.malliina.pics.auth.PicsAuth
 import com.malliina.pics.html.PicsHtml
@@ -140,7 +139,7 @@ class PicsController(html: PicsHtml,
 
   def put = auth.authed { (user: PicRequest) =>
     Action(parse.temporaryFile).async { req =>
-      log.info(s"Received file. Resizing and uploading...")
+      log.info(s"Received file from '${user.name}'. Resizing and uploading...")
       saveFile(req.body.path, user)
     }
   }
@@ -190,7 +189,7 @@ class PicsController(html: PicsHtml,
     renderResult(rh)(Ok(Json.toJson(json)), Ok(html))
 
   def renderResult(rh: RequestHeader)(json: => Result, html: => Result): Result = {
-    if (rh.getQueryString("f").contains("json")) {
+    if (rh.getQueryString("f").contains("json") || rh.getQueryString("json").isDefined) {
       json
     } else {
       renderVaried(rh) {
@@ -230,7 +229,7 @@ class PicsController(html: PicsHtml,
       val picMeta = PicMetas(meta, rh)
       // TODO Use akka-streams
       picSink.onPic(picMeta.withClient(clientPic), by)
-      log info s"Saved '${picMeta.key}' with URL '${picMeta.url}'."
+      log info s"Saved '${picMeta.key}' by '${by.name}' with URL '${picMeta.url}'."
       Accepted(PicResponse(picMeta)).withHeaders(
         HeaderNames.LOCATION -> picMeta.url.toString,
         XKey -> meta.key.key,

@@ -13,7 +13,7 @@ class ClientSockets extends Actor {
     case ClientJoined(client) =>
       context.watch(client.out)
       clients += client
-      log.info(s"Client joined. Clients: ${clients.size}.")
+      log.info(s"Client '${client.username}' joined. Clients: ${clients.size}.")
     case ClientLeft(client) =>
       remove(client)
     case Broadcast(msg) =>
