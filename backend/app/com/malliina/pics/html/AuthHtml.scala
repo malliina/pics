@@ -186,9 +186,9 @@ object AuthHtml extends BaseHtml {
   )
 
   def emptyNavbar =
-    nav(`class` := s"${navbar.Navbar} ${navbar.Light} ${navbar.BgLight}")(
+    nav(`class` := s"${navbars.Navbar} ${navbars.Light} ${navbars.BgLight}")(
       divClass(Container)(
-        a(`class` := navbar.Brand, href := reverse.list())("Pics")
+        a(`class` := navbars.Brand, href := reverse.list())("Pics")
       )
     )
 }

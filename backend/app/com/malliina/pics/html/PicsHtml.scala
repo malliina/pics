@@ -146,11 +146,11 @@ class PicsHtml(scripts: Seq[String]) extends BaseHtml {
 
     val navContent = user.map { u =>
       modifier(
-        ulClass(s"${navbar.Nav} $MrAuto")(
+        ulClass(s"${navbars.Nav} $MrAuto")(
           navItem("Pics", "pics", reverse.list(), "picture"),
           navItem("Drop", "drop", reverse.drop(), "upload")
         ),
-        ulClass(s"${navbar.Nav}")(
+        ulClass(s"${navbars.Nav}")(
           li(`class` := s"nav-item $Dropdown")(
             a(href := "#", `class` := s"nav-link $DropdownToggle", dataToggle := Dropdown, role := Button, aria.haspopup := tags.True, aria.expanded := tags.False)(
               iconic("person"), s" ${u.name} ", spanClass(Caret)
@@ -163,8 +163,8 @@ class PicsHtml(scripts: Seq[String]) extends BaseHtml {
       )
     }.getOrElse {
       modifier(
-        ulClass(s"${navbar.Nav} $MrAuto")(),
-        ulClass(navbar.Nav)(
+        ulClass(s"${navbars.Nav} $MrAuto")(),
+        ulClass(navbars.Nav)(
           navItem("Sign In", "signin", reverse.signIn(), "account-login")
         )
       )
@@ -173,7 +173,7 @@ class PicsHtml(scripts: Seq[String]) extends BaseHtml {
   }
 
   def withNavbar(navLinks: Modifier*) =
-    navbar.basic(reverse.list(), "Pics", navLinks, navClass = s"${navbar.Navbar} navbar-expand-sm ${navbar.Light} ${navbar.BgLight}")
+    navbar.basic(reverse.list(), "Pics", navLinks, navClass = s"${navbars.Navbar} navbar-expand-sm ${navbars.Light} ${navbars.BgLight}")
 
   def basePage(conf: PageConf) = TagPage(
     html(lang := En)(
