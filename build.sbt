@@ -6,8 +6,9 @@ import sbtcrossproject.CrossPlugin.autoImport.{
   crossProject => portableProject
 }
 
-val utilPlayVersion = "5.0.0"
+val utilPlayVersion = "5.1.0"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
+val primitivesVersion = "1.9.0"
 
 val commonSettings = Seq(
   organization := "com.malliina",
@@ -19,7 +20,7 @@ val commonSettings = Seq(
   libraryDependencies ++= Seq(
     "com.lihaoyi" %%% "scalatags" % "0.6.7",
     "com.typesafe.play" %%% "play-json" % "2.7.1",
-    "com.malliina" %%% "primitives" % "1.8.1",
+    "com.malliina" %%% "primitives" % primitivesVersion,
     "com.malliina" %%% "util-html" % utilPlayVersion
   )
 )
@@ -40,8 +41,8 @@ val frontend = project
   .settings(
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "0.9.2",
-      "org.scalatest" %%% "scalatest" % "3.0.5" % Test,
-      "be.doeraene" %%% "scalajs-jquery" % "0.9.2"
+      "be.doeraene" %%% "scalajs-jquery" % "0.9.2",
+      "org.scalatest" %%% "scalatest" % "3.0.7" % Test
     ),
     version in webpack := "4.27.1",
     emitSourceMaps := false,
@@ -52,7 +53,12 @@ val frontend = project
       "popper.js" -> "1.14.6",
       "bootstrap" -> "4.2.1"
     ),
-    npmDevDependencies in Compile += "terser" -> "3.14.1"
+    npmDevDependencies in Compile ++= Seq(
+      "terser" -> "3.14.1", 
+      "webpack-merge" -> "4.1.5"
+    ),
+    webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.dev.config.js"),
+    webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.prod.config.js")
   )
 
 val backend = Project("pics", file("backend"))
@@ -69,14 +75,14 @@ val backend = Project("pics", file("backend"))
       PlayImport.ehcache,
       PlayImport.ws,
       "com.malliina" %% "play-social" % utilPlayVersion,
-      utilPlayDep,
-      utilPlayDep % Test classifier "tests",
       "com.typesafe.slick" %% "slick" % "3.2.3",
       "com.h2database" % "h2" % "1.4.197",
       "mysql" % "mysql-connector-java" % "5.1.47",
-      "com.zaxxer" % "HikariCP" % "3.2.0",
+      "com.zaxxer" % "HikariCP" % "3.3.1",
       "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8",
-      "com.malliina" %% "logstreams-client" % "1.4.0"
+      "com.malliina" %% "logstreams-client" % "1.5.0",
+      utilPlayDep,
+      utilPlayDep % Test classifier "tests"
     ),
     pipelineStages := Seq(digest, gzip),
     // pipelineStages in Assets := Seq(digest, gzip)

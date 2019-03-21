@@ -19,7 +19,7 @@ Seq(
   "com.vmunier" % "sbt-web-scalajs" % "1.0.6",
   "org.portable-scala" % "sbt-scalajs-crossproject" % "0.6.0",
   "org.scala-js" % "sbt-scalajs" % "0.6.26",
-  "ch.epfl.scala" % "sbt-web-scalajs-bundler" % "0.14.0",
+  "ch.epfl.scala" % "sbt-web-scalajs-bundler" % "0.14.0"
 ) map addSbtPlugin
 
 def ivyRepo(name: String, urlString: String) =
