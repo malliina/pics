@@ -6,7 +6,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{
   crossProject => portableProject
 }
 
-val utilPlayVersion = "5.1.0"
+val utilPlayVersion = "5.1.1"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 val primitivesVersion = "1.9.0"
 
