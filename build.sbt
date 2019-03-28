@@ -47,14 +47,25 @@ val frontend = project
     version in webpack := "4.27.1",
     emitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
-    webpackBundlingMode := BundlingMode.LibraryOnly(),
+//    webpackBundlingMode := BundlingMode.LibraryOnly(),
     npmDependencies in Compile ++= Seq(
+      "bootstrap" -> "4.2.1",
       "jquery" -> "3.3.1",
-      "popper.js" -> "1.14.6",
-      "bootstrap" -> "4.2.1"
+      "popper.js" -> "1.14.6"
     ),
     npmDevDependencies in Compile ++= Seq(
-      "terser" -> "3.14.1", 
+      "autoprefixer" -> "9.4.3",
+      "cssnano" -> "4.1.8",
+      "css-loader" -> "2.1.0",
+      "file-loader" -> "3.0.1",
+      "less" -> "3.9.0",
+      "less-loader" -> "4.1.0",
+      "mini-css-extract-plugin" -> "0.5.0",
+      "postcss-import" -> "12.0.1",
+      "postcss-loader" -> "3.0.0",
+      "postcss-preset-env" -> "6.5.0",
+      "style-loader" -> "0.23.1",
+      "url-loader" -> "1.1.2",
       "webpack-merge" -> "4.1.5"
     ),
     webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.dev.config.js"),

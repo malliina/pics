@@ -1,0 +1,1 @@
+import './pics.less';

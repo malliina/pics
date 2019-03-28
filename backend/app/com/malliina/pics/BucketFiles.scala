@@ -19,10 +19,10 @@ import scala.concurrent.Future
 object BucketFiles {
   private val log = Logger(getClass)
 
-  val Small = BucketFiles2.forBucket(BucketName("malliina-pics-small"))
-  val Medium = BucketFiles2.forBucket(BucketName("malliina-pics-medium"))
-  val Large = BucketFiles2.forBucket(BucketName("malliina-pics-large"))
-  val Original = BucketFiles2.forBucket(BucketName("malliina-pics"))
+  val Small = AsyncBucket.forBucket(BucketName("malliina-pics-small"))
+  val Medium = AsyncBucket.forBucket(BucketName("malliina-pics-medium"))
+  val Large = AsyncBucket.forBucket(BucketName("malliina-pics-large"))
+  val Original = AsyncBucket.forBucket(BucketName("malliina-pics"))
 
   def forBucket(bucket: BucketName) = forS3(Regions.EU_WEST_1, bucket)
 

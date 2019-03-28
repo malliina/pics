@@ -33,7 +33,8 @@ object PicsHtml {
   def build(isProd: Boolean): PicsHtml = {
     val name = "frontend"
     val opt = if (isProd) "opt" else "fastopt"
-    new PicsHtml(Seq(s"$name-$opt-library.js", s"$name-$opt-loader.js", s"$name-$opt.js"))
+//    new PicsHtml(Seq(s"$name-$opt-library.js", s"$name-$opt-loader.js", s"$name-$opt.js"))
+    new PicsHtml(Seq(s"$name-$opt.js"))
   }
 
   implicit def urlWriter(url: FullUrl): Text.StringFrag =
@@ -46,7 +47,8 @@ object PicsHtml {
 
   def deferredJsPath(path: String) = script(`type` := MimeTypes.JAVASCRIPT, src := at(path), defer)
 
-  def deferredAsyncJs[V: AttrValue](v: V) = script(`type` := MimeTypes.JAVASCRIPT, src := v, defer, async)
+  def deferredAsyncJs[V: AttrValue](v: V) =
+    script(`type` := MimeTypes.JAVASCRIPT, src := v, defer, async)
 
   def at(file: String) = routes.PicsAssets.versioned(file)
 
@@ -72,7 +74,9 @@ class PicsHtml(scripts: Seq[String]) extends BaseHtml {
           )
         ),
         fullRow(
-          postableForm(reverse.delete().toString, `class` := "drop-row form-inline", id := "delete-form")(
+          postableForm(reverse.delete().toString,
+                       `class` := "drop-row form-inline",
+                       id := "delete-form")(
             divClass("input-group")(
               divClass("input-group-prepend")(
                 spanClass("input-group-text")("pics/")
@@ -139,41 +143,57 @@ class PicsHtml(scripts: Seq[String]) extends BaseHtml {
   }
 
   def baseIndex(tabName: String, user: Option[PicOwner], conf: PageConf) = {
-    def navItem(thisTabName: String, tabId: String, url: Call, iconicName: String) = {
+    def navItem(thisTabName: String, tabId: String, url: Call, faName: String) = {
       val itemClass = if (tabId == tabName) "nav-item active" else "nav-item"
-      li(`class` := itemClass)(a(href := url, `class` := "nav-link")(iconic(iconicName), s" $thisTabName"))
+      li(`class` := itemClass)(a(href := url, `class` := "nav-link")(fa(faName), s" $thisTabName"))
     }
 
-    val navContent = user.map { u =>
-      modifier(
-        ulClass(s"${navbars.Nav} $MrAuto")(
-          navItem("Pics", "pics", reverse.list(), "picture"),
-          navItem("Drop", "drop", reverse.drop(), "upload")
-        ),
-        ulClass(s"${navbars.Nav}")(
-          li(`class` := s"nav-item $Dropdown")(
-            a(href := "#", `class` := s"nav-link $DropdownToggle", dataToggle := Dropdown, role := Button, aria.haspopup := tags.True, aria.expanded := tags.False)(
-              iconic("person"), s" ${u.name} ", spanClass(Caret)
-            ),
-            ulClass(DropdownMenu)(
-              li(a(href := routes.CognitoControl.signOut(), `class` := "nav-link")(iconic("account-logout"), " Sign Out"))
+    val navContent = user
+      .map { u =>
+        modifier(
+          ulClass(s"${navbars.Nav} $MrAuto")(
+            navItem("Pics", "pics", reverse.list(), "image"),
+            navItem("Drop", "drop", reverse.drop(), "upload")
+          ),
+          ulClass(s"${navbars.Nav}")(
+            li(`class` := s"nav-item $Dropdown")(
+              a(href := "#",
+                `class` := s"nav-link $DropdownToggle",
+                dataToggle := Dropdown,
+                role := Button,
+                aria.haspopup := tags.True,
+                aria.expanded := tags.False)(
+                fa("user"),
+                s" ${u.name} ",
+                spanClass(Caret)
+              ),
+              ulClass(DropdownMenu)(
+                li(a(href := routes.CognitoControl.signOut(), `class` := "nav-link")(fa("sign-in-alt"),
+                                                                                     " Sign Out"))
+              )
             )
           )
         )
-      )
-    }.getOrElse {
-      modifier(
-        ulClass(s"${navbars.Nav} $MrAuto")(),
-        ulClass(navbars.Nav)(
-          navItem("Sign In", "signin", reverse.signIn(), "account-login")
+      }
+      .getOrElse {
+        modifier(
+          ulClass(s"${navbars.Nav} $MrAuto")(),
+          ulClass(navbars.Nav)(
+            navItem("Sign In", "signin", reverse.signIn(), "sign-out-alt")
+          )
         )
-      )
-    }
+      }
     basePage(conf.copy(inner = modifier(withNavbar(navContent), conf.inner)))
   }
 
+  def fa(faName: String) = i(`class` := s"fa fa-$faName", title := faName, aria.hidden := "true")
+
   def withNavbar(navLinks: Modifier*) =
-    navbar.basic(reverse.list(), "Pics", navLinks, navClass = s"${navbars.Navbar} navbar-expand-sm ${navbars.Light} ${navbars.BgLight}")
+    navbar.basic(reverse.list(),
+                 "Pics",
+                 navLinks,
+                 navClass =
+                   s"${navbars.Navbar} navbar-expand-sm ${navbars.Light} ${navbars.BgLight}")
 
   def basePage(conf: PageConf) = TagPage(
     html(lang := En)(
@@ -186,11 +206,17 @@ class PicsHtml(scripts: Seq[String]) extends BaseHtml {
           "https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css",
           "sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
         ),
-        cssLink("https://use.fontawesome.com/releases/v5.0.6/css/all.css"),
+        cssLinkHashed("https://use.fontawesome.com/releases/v5.8.1/css/all.css",
+                      "sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf"
+        ),
         cssLink("https://fonts.googleapis.com/css?family=Roboto:400,500"),
-        cssLink(at("css/main.css")),
+//        cssLink(at("css/main.css")),
+        cssLink(at("fonts.css")),
+        cssLink(at("styles.css")),
         conf.extraHeader,
-        scripts.map { js => deferredJsPath(js) }
+        scripts.map { js =>
+          deferredJsPath(js)
+        }
       ),
       body(`class` := conf.bodyClass)(
         section(

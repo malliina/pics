@@ -13,8 +13,8 @@ import software.amazon.awssdk.services.s3.model.{GetObjectRequest, HeadObjectReq
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
-object BucketFiles2 {
-  def apply(v1: BucketFiles): BucketFiles2 = {
+object AsyncBucket {
+  def apply(v1: BucketFiles): AsyncBucket = {
     val creds = AwsCredentialsProviderChain.of(
       ProfileCredentialsProvider.create("pimp"),
       DefaultCredentialsProvider.create()
@@ -23,13 +23,13 @@ object BucketFiles2 {
       .region(Region.EU_WEST_1)
       .credentialsProvider(creds)
       .build()
-    new BucketFiles2(v1.bucket, client, v1)(Execution.cached)
+    new AsyncBucket(v1.bucket, client, v1)(Execution.cached)
   }
 
   def forBucket(bucket: BucketName) = apply(BucketFiles.forBucket(bucket))
 }
 
-class BucketFiles2(bucket: BucketName, v2: S3AsyncClient, v1: BucketFiles)(implicit ec: ExecutionContext) extends DataSource {
+class AsyncBucket(bucket: BucketName, v2: S3AsyncClient, v1: BucketFiles)(implicit ec: ExecutionContext) extends DataSource {
   val downloadsDir = PicsDatabase.tmpDir.resolve("downloads")
   Files.createDirectories(downloadsDir)
 

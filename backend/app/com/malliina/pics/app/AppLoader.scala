@@ -68,8 +68,13 @@ abstract class BaseComponents(context: Context, creds: Configuration => GoogleOA
     "fonts.googleapis.com"
   )
   val allowedEntry = allowedCsp.mkString(" ")
-
-  val csp = s"default-src 'self' 'unsafe-inline' 'unsafe-eval' $allowedEntry; connect-src *; img-src 'self' data:;"
+  val csps = Seq(
+    s"default-src 'self' 'unsafe-inline' 'unsafe-eval' $allowedEntry;",
+    "connect-src *;",
+    "img-src 'self' data:;",
+    "font-src 'self' data: fonts.gstatic.com use.fontawesome.com;"
+  )
+  val csp = csps.mkString
   override lazy val securityHeadersConfig = SecurityHeadersConfig(contentSecurityPolicy = Option(csp))
   override lazy val allowedHostsConfig = AllowedHostsConfig(Seq("localhost", "pics.malliina.com", "images.malliina.com"))
 
