@@ -186,7 +186,7 @@ class PicsHtml(scripts: Seq[String]) extends BaseHtml {
     basePage(conf.copy(inner = modifier(withNavbar(navContent), conf.inner)))
   }
 
-  def fa(faName: String) = i(`class` := s"fa fa-$faName", title := faName, aria.hidden := "true")
+  def fa(faName: String) = i(`class` := s"fa fa-$faName", title := faName, aria.hidden := tags.True)
 
   def withNavbar(navLinks: Modifier*) =
     navbar.basic(reverse.list(),
