@@ -20,6 +20,7 @@ import play.api.routing.Router
 import play.api.{BuiltInComponentsFromContext, Configuration, Mode}
 import play.filters.HttpFiltersComponents
 import play.filters.csrf.CSRFConfig
+import play.filters.gzip.GzipFilter
 import play.filters.headers.SecurityHeadersConfig
 import play.filters.hosts.AllowedHostsConfig
 import router.Routes
@@ -50,6 +51,7 @@ abstract class BaseComponents(context: Context, creds: Configuration => GoogleOA
     with EhCacheComponents
     with AssetsComponents {
   override val configuration = context.initialConfiguration ++ LocalConf.localConf
+  override lazy val httpFilters = Seq(new GzipFilter(), csrfFilter, securityHeadersFilter, allowedHostsFilter)
 
   def buildAuthenticator(): PicsAuthLike
 

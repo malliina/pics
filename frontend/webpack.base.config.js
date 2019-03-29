@@ -29,9 +29,6 @@ const WebApp = Merge(ScalaJS, {
       }
     ]
   },
-  output: {
-    filename: '[name].js',
-  },
   plugins: [
     new MiniCssExtractPlugin({filename: '[name].css'})
   ]

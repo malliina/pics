@@ -47,7 +47,7 @@ val frontend = project
     version in webpack := "4.27.1",
     emitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
-//    webpackBundlingMode := BundlingMode.LibraryOnly(),
+    webpackBundlingMode := BundlingMode.LibraryOnly(),
     npmDependencies in Compile ++= Seq(
       "bootstrap" -> "4.2.1",
       "jquery" -> "3.3.1",
@@ -72,7 +72,7 @@ val frontend = project
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.prod.config.js")
   )
 
-val backend = Project("pics", file("backend"))
+val backend = project.in(file("backend"))
   .enablePlugins(FileTreePlugin, WebScalaJSBundlerPlugin, PlayLinuxPlugin)
   .dependsOn(crossJvm)
   .settings(commonSettings)
@@ -124,7 +124,7 @@ val backend = Project("pics", file("backend"))
     )
   )
 
-val root = project
+val pics = project
   .in(file("."))
   .aggregate(frontend, backend)
   .settings(commonSettings)
