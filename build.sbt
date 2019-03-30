@@ -97,6 +97,8 @@ val backend = project.in(file("backend"))
     ),
     pipelineStages := Seq(digest, gzip),
     // pipelineStages in Assets := Seq(digest, gzip)
+    name in Linux := "pics",
+    packageName in Linux := (name in Linux).value,
     httpPort in Linux := Option("disabled"),
     httpsPort in Linux := Option("8459"),
     maintainer := "Michael Skogberg <malliina123@gmail.com>",
