@@ -44,3 +44,7 @@ object Popper extends js.Object
 @js.native
 @JSImport("bootstrap", JSImport.Namespace)
 object Bootstrap extends js.Object
+
+//@js.native
+//@JSImport("bootstrap/dist/css/bootstrap.css", JSImport.Namespace)
+//object BootstrapCSS extends js.Object

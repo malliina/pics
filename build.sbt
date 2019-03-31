@@ -1,6 +1,7 @@
 import com.malliina.sbt.filetree.DirMap
 import play.sbt.PlayImport
 import sbt.Keys.scalaVersion
+import sbt._
 import sbtcrossproject.CrossPlugin.autoImport.{
   CrossType => PortableType,
   crossProject => portableProject
@@ -51,7 +52,8 @@ val frontend = project
     npmDependencies in Compile ++= Seq(
       "bootstrap" -> "4.2.1",
       "jquery" -> "3.3.1",
-      "popper.js" -> "1.14.6"
+      "popper.js" -> "1.14.6",
+      "@fortawesome/fontawesome-free" -> "5.8.1"
     ),
     npmDevDependencies in Compile ++= Seq(
       "autoprefixer" -> "9.4.3",
@@ -72,7 +74,8 @@ val frontend = project
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.prod.config.js")
   )
 
-val backend = project.in(file("backend"))
+val backend = project
+  .in(file("backend"))
   .enablePlugins(FileTreePlugin, WebScalaJSBundlerPlugin, PlayLinuxPlugin)
   .dependsOn(crossJvm)
   .settings(commonSettings)
@@ -123,7 +126,13 @@ val backend = project.in(file("backend"))
         destination = "com.malliina.pics.assets.AppAssets",
         mapFunc = "com.malliina.pics.html.PicsHtml.at"
       )
-    )
+    ),
+    // Exposes as sbt-web assets some files retrieved from the NPM packages of the `client` project
+    npmAssets ++= NpmAssets
+      .ofProject(frontend) { modules =>
+        (modules / "bootstrap").allPaths +++ (modules / "@fortawesome" / "fontawesome-free").allPaths
+      }
+      .value,
   )
 
 val pics = project

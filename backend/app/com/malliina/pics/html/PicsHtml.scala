@@ -201,15 +201,8 @@ class PicsHtml(scripts: Seq[String]) extends BaseHtml {
         titleTag(conf.title),
         deviceWidthViewport,
         link(rel := "shortcut icon", `type` := "image/png", href := at("img/pics-favicon.png")),
-        cssLinkHashed(
-          "https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css",
-          "sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
-        ),
-        cssLinkHashed("https://use.fontawesome.com/releases/v5.8.1/css/all.css",
-                      "sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf"
-        ),
-        cssLink("https://fonts.googleapis.com/css?family=Roboto:400,500"),
-//        cssLink(at("css/main.css")),
+        cssLink(at("bootstrap/dist/css/bootstrap.min.css")),
+        cssLink(at("@fortawesome/fontawesome-free/css/all.min.css")),
         cssLink(at("fonts.css")),
         cssLink(at("styles.css")),
         conf.extraHeader,
