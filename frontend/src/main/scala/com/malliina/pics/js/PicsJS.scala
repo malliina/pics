@@ -8,9 +8,11 @@ import scala.scalajs.js.annotation.JSImport
 
 object PicsJS extends BaseHtml {
   val csrf = CSRFUtils()
-  private val jq = MyJQuery
-  private val p = Popper
-  private val b = Bootstrap
+  MyJQuery
+  Popper
+  Bootstrap
+//  BootstrapCSS
+//  FontAwesomeCSS
 
   def main(args: Array[String]): Unit = {
     if (has(PicsClass)) {
@@ -45,6 +47,10 @@ object Popper extends js.Object
 @JSImport("bootstrap", JSImport.Namespace)
 object Bootstrap extends js.Object
 
+@js.native
+@JSImport("bootstrap/dist/css/bootstrap.min.css", JSImport.Namespace)
+object BootstrapCSS extends js.Object
+
 //@js.native
-//@JSImport("bootstrap/dist/css/bootstrap.css", JSImport.Namespace)
-//object BootstrapCSS extends js.Object
+//@JSImport("@fortawesome/fontawesome-free/css/all.min.css", JSImport.Namespace)
+//object FontAwesomeCSS extends js.Object
