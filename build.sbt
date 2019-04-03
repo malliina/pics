@@ -80,6 +80,7 @@ val backend = project
   .dependsOn(crossJvm)
   .settings(commonSettings)
   .settings(
+    buildInfoPackage := "com.malliina.pics",
     scalaJSProjects := Seq(frontend),
     pipelineStages in Assets := Seq(scalaJSPipeline),
     libraryDependencies ++= Seq(

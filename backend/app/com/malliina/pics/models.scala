@@ -4,7 +4,6 @@ import java.nio.file.Path
 import java.time.Instant
 import java.util.Date
 
-import buildinfo.BuildInfo
 import com.malliina.play.http.FullUrls
 import com.malliina.values.Username
 import controllers.routes
@@ -39,11 +38,8 @@ case object PicSuccess extends PicResult
 sealed trait PicSize
 
 case object Small extends PicSize
-
 case object Medium extends PicSize
-
 case object Large extends PicSize
-
 case object Original extends PicSize
 
 case class PicBundle(small: Path, medium: Path, large: Path, original: Path)

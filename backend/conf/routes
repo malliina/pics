@@ -11,6 +11,7 @@ DELETE        /pics/*key                          controllers.PicsController.del
 POST          /pics/delete                        controllers.PicsController.delete
 POST          /sync                               controllers.PicsController.sync
 GET           /sockets                            controllers.Sockets.listen
+GET           /assets/static/*file                controllers.PicsAssets.static(file: String)
 GET           /assets/*file                       controllers.PicsAssets.versioned(path = "/public", file: Asset)
 GET           /sign-up                            controllers.PicsController.signUp
 GET           /sign-in                            controllers.PicsController.signIn
