@@ -92,7 +92,7 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
       dataIdAttr := pic.key)(
       divClass(names("pic", if (more.nonEmpty) "captioned" else ""))(
         a(href := pic.url)(
-          img(src := pic.small, alt := pic.key, `class` := "thumb")
+          img(data("src") := pic.small, alt := pic.key, `class` := s"thumb ${PicsStrings.Lazy}")
         )
       ),
       more

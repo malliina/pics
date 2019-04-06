@@ -17,6 +17,7 @@ object PicsJS extends BaseHtml {
   def main(args: Array[String]): Unit = {
     if (has(PicsClass)) {
       new PicsSocket
+      LazyLoader()
     }
     if (has(DropClass)) {
       new PicDrop
