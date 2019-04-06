@@ -6,7 +6,7 @@ import com.malliina.http.FullUrl
 import scala.language.implicitConversions
 
 class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, FragT])
-  extends Bootstrap(ts) {
+    extends Bootstrap(ts) {
 
   import tags._
   import tags.impl.all._
@@ -42,13 +42,13 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
   def picsContent(urls: Seq[PicMeta], readOnly: Boolean): Modifier =
     divClass("pics-container", id := picsId)(
       if (urls.isEmpty) noPictures
-      else gallery(urls, readOnly)
+      else gallery(urls, readOnly, lazyLoaded = true)
     )
 
-  def gallery(pics: Seq[BaseMeta], readOnly: Boolean) =
+  def gallery(pics: Seq[BaseMeta], readOnly: Boolean, lazyLoaded: Boolean) =
     divClass("gallery", id := galleryId)(
       pics map { pic =>
-        thumbnail(pic, readOnly)
+        thumbnail(pic, readOnly, visible = true, lazyLoaded = lazyLoaded)
       }
     )
 
@@ -60,9 +60,9 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
 
   def thumbId(key: Key) = s"pic-$key"
 
-  def thumbnail(pic: BaseMeta, readOnly: Boolean, visible: Boolean = true) = {
+  def thumbnail(pic: BaseMeta, readOnly: Boolean, visible: Boolean, lazyLoaded: Boolean) = {
     if (readOnly) {
-      thumb(pic, visible)
+      thumb(pic, visible, lazyLoaded)
     } else {
       val more = figcaption(`class` := "figure-caption caption")(
         div(
@@ -71,28 +71,32 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
           )
         ),
         divClass("pic-link")(a(href := pic.url)(pic.key)),
-        div(a(role := Button,
-          tabindex := 0,
-          `class` := s"${btn.light} ${btn.sm} $CopyButton",
-          dataIdAttr := pic.url.toString(),
-          dataToggle := "popover",
-          dataContentAttr := "Copied!")("Copy"))
+        div(
+          a(
+            role := Button,
+            tabindex := 0,
+            `class` := s"${btn.light} ${btn.sm} $CopyButton",
+            dataIdAttr := pic.url.toString(),
+            dataToggle := "popover",
+            dataContentAttr := "Copied!"
+          )("Copy"))
       )
-      thumb(pic, visible, more)
+      thumb(pic, visible, lazyLoaded, more)
     }
   }
 
   def csrfInput(inputName: String, inputValue: String) =
     input(`type` := "hidden", name := inputName, value := inputValue)
 
-  def thumb(pic: BaseMeta, visible: Boolean, more: Modifier*) = {
-    figure(
-      `class` := names("figure thumbnail img-thumbnail", if (visible) "" else "invisible"),
-      id := thumbId(pic.key),
-      dataIdAttr := pic.key)(
+  def thumb(pic: BaseMeta, visible: Boolean, lazyLoaded: Boolean, more: Modifier*) = {
+    figure(`class` := names("figure thumbnail img-thumbnail", if (visible) "" else "invisible"),
+           id := thumbId(pic.key),
+           dataIdAttr := pic.key)(
       divClass(names("pic", if (more.nonEmpty) "captioned" else ""))(
         a(href := pic.url)(
-          img(data("src") := pic.small, alt := pic.key, `class` := s"thumb ${PicsStrings.Lazy}")
+          img(if (lazyLoaded) data("src") := pic.small else src := pic.small,
+              alt := pic.key,
+              `class` := names("thumb", if (lazyLoaded) PicsStrings.Lazy else PicsStrings.Loaded))
         )
       ),
       more

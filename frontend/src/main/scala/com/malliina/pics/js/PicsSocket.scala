@@ -4,7 +4,6 @@ import com.malliina.pics._
 import org.scalajs.dom
 import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
 import org.scalajs.dom.{Element, Event, Node}
-import org.scalajs.jquery.jQuery
 import play.api.libs.json.{JsError, JsValue}
 
 import scala.concurrent.duration.DurationDouble
@@ -33,12 +32,16 @@ class PicsSocket extends BaseSocket("/sockets") {
   popovers.popover()
 
   // hides popovers on outside click
-  document.body.addEventListener("click", (e: Event) => {
-    val isPopover = e.target.isInstanceOf[HTMLElement] && Option(e.target.asInstanceOf[HTMLElement].getAttribute("data-original-title")).isDefined
-    if (!isPopover) {
-      MyJQuery("[data-original-title]").asInstanceOf[Popovers].popover("hide")
+  document.body.addEventListener(
+    "click",
+    (e: Event) => {
+      val isPopover = e.target.isInstanceOf[HTMLElement] && Option(
+        e.target.asInstanceOf[HTMLElement].getAttribute("data-original-title")).isDefined
+      if (!isPopover) {
+        MyJQuery("[data-original-title]").asInstanceOf[Popovers].popover("hide")
+      }
     }
-  })
+  )
 
   def installCopyListeners(parent: Element): Unit =
     parent.getElementsByClassName(jsHtml.CopyButton).foreach { node =>
@@ -55,11 +58,17 @@ class PicsSocket extends BaseSocket("/sockets") {
   override def handlePayload(payload: JsValue): Unit = {
     val result = (payload \ PicsJson.EventKey).validate[String].flatMap {
       case ClientPics.Added =>
-        payload.validate[ClientPics].map { pics => pics.pics.foreach(prepend) }
+        payload.validate[ClientPics].map { pics =>
+          pics.pics.foreach(prepend)
+        }
       case PicKeys.Removed =>
-        payload.validate[PicKeys].map { keys => keys.keys.foreach(remove) }
+        payload.validate[PicKeys].map { keys =>
+          keys.keys.foreach(remove)
+        }
       case ProfileInfo.Welcome =>
-        payload.validate[ProfileInfo].map { profile => onProfile(profile) }
+        payload.validate[ProfileInfo].map { profile =>
+          onProfile(profile)
+        }
       case other =>
         JsError(s"Unknown '${PicsJson.EventKey}' value: '$other'.")
     }
@@ -67,18 +76,21 @@ class PicsSocket extends BaseSocket("/sockets") {
   }
 
   def prepend(pic: BaseMeta) =
-    elemById(jsHtml.galleryId).map { gallery =>
-      val newElem = jsHtml.thumbnail(pic, visible = false, readOnly = isReadOnly).render
-      installListeners(newElem)
-      gallery.insertBefore(newElem, gallery.firstChild)
-      // enables the transition
-      setTimeout(0.1.seconds) {
-        newElem.classList.remove("invisible")
+    elemById(jsHtml.galleryId)
+      .map { gallery =>
+        val newElem =
+          jsHtml.thumbnail(pic, readOnly = isReadOnly, visible = false, lazyLoaded = false).render
+        installListeners(newElem)
+        gallery.insertBefore(newElem, gallery.firstChild)
+        // enables the transition
+        setTimeout(0.1.seconds) {
+          newElem.classList.remove("invisible")
+        }
       }
-    }.getOrElse {
-      fill(jsHtml.picsId, jsHtml.gallery(Seq(pic), readOnly = isReadOnly))
-      elemById(jsHtml.galleryId).foreach(installListeners)
-    }
+      .getOrElse {
+        fill(jsHtml.picsId, jsHtml.gallery(Seq(pic), readOnly = isReadOnly, lazyLoaded = false))
+        elemById(jsHtml.galleryId).foreach(installListeners)
+      }
 
   def installListeners(elem: Element): Unit = {
     installCopyListeners(elem)
@@ -111,8 +123,7 @@ class PicsSocket extends BaseSocket("/sockets") {
   def elemById(id: String): Option[Element] = Option(document.getElementById(id))
 
   def removeChildren(elem: Element): Unit =
-    while (Option(elem.firstChild).isDefined)
-      elem.removeChild(elem.firstChild)
+    while (Option(elem.firstChild).isDefined) elem.removeChild(elem.firstChild)
 
   /** http://stackoverflow.com/a/30905277
     *

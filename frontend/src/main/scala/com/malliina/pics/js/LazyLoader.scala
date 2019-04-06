@@ -6,6 +6,19 @@ import org.scalajs.dom.raw._
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSGlobal
+import scala.scalajs.js.Dynamic.literal
+
+@js.native
+trait IntersectionOptions extends js.Object {
+  def rootMargin: String = js.native
+}
+
+object IntersectionOptions {
+  def vertical(pixels: Int) = apply(s"${pixels}px 0px ${pixels}px 0px")
+
+  def apply(rootMargin: String): IntersectionOptions =
+    literal(rootMargin = rootMargin).asInstanceOf[IntersectionOptions]
+}
 
 @js.native
 trait IntersectionObserverEntry extends js.Object {
@@ -16,7 +29,8 @@ trait IntersectionObserverEntry extends js.Object {
 @JSGlobal
 @js.native
 class IntersectionObserver(
-    init: js.Function2[js.Array[IntersectionObserverEntry], IntersectionObserver, _])
+    init: js.Function2[js.Array[IntersectionObserverEntry], IntersectionObserver, _],
+    options: IntersectionOptions)
     extends js.Object {
   def observe(elem: Node): Unit = js.native
   def unobserve(elem: Node): Unit = js.native
@@ -41,10 +55,11 @@ class LazyLoader(lazyClass: String) {
             val lazyImage = e.target.asInstanceOf[HTMLImageElement]
             lazyImage.setAttribute("src", lazyImage.getAttribute("data-src"))
             lazyImage.classList.remove(lazyClass)
+            lazyImage.classList.add(PicsStrings.Loaded)
             observer.unobserve(lazyImage)
           }
         }
-      })
+      }, IntersectionOptions.vertical(500))
       lazyImages.foreach { n =>
         lazyImageObserver.observe(n)
       }

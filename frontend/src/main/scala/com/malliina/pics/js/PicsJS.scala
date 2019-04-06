@@ -11,8 +11,6 @@ object PicsJS extends BaseHtml {
   MyJQuery
   Popper
   Bootstrap
-//  BootstrapCSS
-//  FontAwesomeCSS
 
   def main(args: Array[String]): Unit = {
     if (has(PicsClass)) {
@@ -47,11 +45,3 @@ object Popper extends js.Object
 @js.native
 @JSImport("bootstrap", JSImport.Namespace)
 object Bootstrap extends js.Object
-
-@js.native
-@JSImport("bootstrap/dist/css/bootstrap.min.css", JSImport.Namespace)
-object BootstrapCSS extends js.Object
-
-//@js.native
-//@JSImport("@fortawesome/fontawesome-free/css/all.min.css", JSImport.Namespace)
-//object FontAwesomeCSS extends js.Object
