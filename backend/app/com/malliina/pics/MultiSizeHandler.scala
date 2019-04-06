@@ -21,15 +21,26 @@ object MultiSizeHandler {
   }
 
   def clones(handler: ImageHandler) = new MultiSizeHandler(
-    handler, handler, handler, handler
+    handler,
+    handler,
+    handler,
+    handler
   )
 }
 
 class MultiSizeHandler(val smalls: ImageHandler,
                        val mediums: ImageHandler,
                        val larges: ImageHandler,
-                       val originals: ImageHandler) extends ImageHandlerLike {
+                       val originals: ImageHandler)
+    extends ImageHandlerLike {
   val handlers = Seq(smalls, mediums, larges, originals)
+
+  def apply(size: PicSize) = size match {
+    case PicSize.Small    => smalls
+    case PicSize.Medium   => mediums
+    case PicSize.Large    => larges
+    case PicSize.Original => originals
+  }
 
   override def handleImage(image: Image, key: Key) = {
     val work = Future.traverse(handlers)(_.handleImage(image, key))

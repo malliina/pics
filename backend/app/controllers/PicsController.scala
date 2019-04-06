@@ -134,7 +134,15 @@ class PicsController(html: PicsHtml,
     }
   }
 
-  def pic(key: Key) = picAction(sources.originals.storage.find(key), keyNotFound(key))
+  def pic(key: Key) = Action.async { rh =>
+    PicSize(rh)
+      .map { size =>
+        sources(size).storage.find(key).map(df => df.map(send).getOrElse(keyNotFound(key)))
+      }
+      .recover { err =>
+        Future.successful(badRequest(err.message))
+      }
+  }
 
   def small(key: Key) = sendPic(key, sources.smalls.storage)
 
@@ -143,7 +151,7 @@ class PicsController(html: PicsHtml,
   def large(key: Key) = sendPic(key, sources.larges.storage)
 
   def sendPic(key: Key, source: DataSource) =
-    picAction(source.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
+    picAction(_ => source.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
 
   def put = auth.authed { user =>
     Action(parse.temporaryFile).async { req =>
@@ -211,27 +219,22 @@ class PicsController(html: PicsHtml,
 
   def renderVaried(rh: RequestHeader)(f: PartialFunction[MediaRange, Result]) = render(f)(rh)
 
-  private def picAction(find: Future[Option[DataFile]],
-                        onNotFound: => Result): Action[AnyContent] = {
-    val result = find.map { maybe =>
-      maybe
-        .map { df =>
-          Ok.sendPath(df.file).withHeaders(HeaderNames.CACHE_CONTROL -> "public, max-age=31536000")
-        }
-        .getOrElse {
-          onNotFound
-        }
-    }
-    Action.async(result)
-  }
+  private def findKeyAction(key: Key, storage: DataSource): Action[AnyContent] =
+    picAction(_ => storage.find(key), keyNotFound(key))
 
-//  private def streamData(stream: DataStream) =
-//    Ok.sendEntity(
-//      HttpEntity.Streamed(
-//        stream.source,
-//        stream.contentLength.map(_.toBytes),
-//        stream.contentType.map(_.contentType))
-//    )
+  private def picAction(find: RequestHeader => Future[Option[DataFile]],
+                        onNotFound: => Result): Action[AnyContent] =
+    Action.async { rh =>
+      find(rh).map { maybe =>
+        maybe
+          .map(df => send(df))
+          .getOrElse(onNotFound)
+      }
+    }
+
+  private def send(df: DataFile) =
+    Ok.sendPath(df.file)
+      .withHeaders(HeaderNames.CACHE_CONTROL -> "public, max-age=31536000")
 
   private def saveFile(tempFile: Path, by: PicRequest): Future[Result] = {
     val rh = by.rh
