@@ -2,6 +2,7 @@ package com.malliina.pics
 
 import akka.stream.Materializer
 import com.malliina.concurrent.Execution.cached
+import com.malliina.pics.s3.AsyncS3Bucket
 import com.sksamuel.scrimage.Image
 
 import scala.concurrent.Future
@@ -12,10 +13,10 @@ object MultiSizeHandler {
 
   def default(mat: Materializer): MultiSizeHandler = {
     new MultiSizeHandler(
-      ImageHandler("small", ScrimageResizer.Small, cached("smalls", BucketFiles.Small, mat)),
-      ImageHandler("medium", ScrimageResizer.Medium, cached("mediums", BucketFiles.Medium, mat)),
-      ImageHandler("large", ScrimageResizer.Large, cached("larges", BucketFiles.Large, mat)),
-      ImageHandler("original", AsIsResizer, cached("originals", BucketFiles.Original, mat))
+      ImageHandler("small", ScrimageResizer.Small, cached("smalls", AsyncS3Bucket.Small, mat)),
+      ImageHandler("medium", ScrimageResizer.Medium, cached("mediums", AsyncS3Bucket.Medium, mat)),
+      ImageHandler("large", ScrimageResizer.Large, cached("larges", AsyncS3Bucket.Large, mat)),
+      ImageHandler("original", AsIsResizer, cached("originals", AsyncS3Bucket.Original, mat))
     )
   }
 

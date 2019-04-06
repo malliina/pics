@@ -3,6 +3,7 @@ package com.malliina.pics
 import java.nio.file.Path
 
 import com.malliina.concurrent.Execution.cached
+import com.malliina.storage.StorageSize
 
 import scala.concurrent.Future
 
@@ -21,7 +22,7 @@ class FileCachingPics(cache: FilePics, origin: DataSource) extends DataSource {
     }
   }
 
-  override def get(key: Key): Future[DataResponse] =
+  override def get(key: Key): Future[DataFile] =
     cache.contains(key).flatMap { isCached =>
       if (isCached) {
         cache.get(key)
@@ -34,11 +35,11 @@ class FileCachingPics(cache: FilePics, origin: DataSource) extends DataSource {
       }
     }
 
-  override def saveBody(key: Key, file: Path): Future[Unit] =
+  override def saveBody(key: Key, file: Path): Future[StorageSize] =
     for {
-      _ <- origin.saveBody(key, file)
+      size <- origin.saveBody(key, file)
       _ <- cache.saveBody(key, file)
-    } yield ()
+    } yield size
 
   override def remove(key: Key): Future[PicResult] =
     for {

@@ -6,7 +6,7 @@ import com.malliina.http.FullUrl
 import com.malliina.json.ValidatingCompanion
 import play.api.libs.json._
 
-case class PicOwner(name: String) {
+case class PicOwner(name: String) extends AnyVal {
   override def toString = name
 }
 
@@ -25,7 +25,7 @@ object ProfileInfo {
   implicit val json = PicsJson.evented(Welcome, Json.format[ProfileInfo])
 }
 
-case class Key(key: String) {
+case class Key(key: String) extends AnyVal {
   override def toString: String = key
 
   def append(s: String) = Key(s"$key$s")

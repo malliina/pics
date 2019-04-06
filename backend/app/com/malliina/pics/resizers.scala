@@ -25,11 +25,12 @@ object ScrimageResizer {
 class ScrimageResizer(maxWidth: Int, maxHeight: Int) extends ImageResizer {
   def resize(image: Image, dest: Path): Future[Either[ImageException, StorageSize]] =
     recovered {
-      val (_, duration) = Util.timed {
+      val timed = Util.timed {
         image.bound(maxWidth, maxHeight).output(dest)(JpegWriter.Default)
       }
       val resizedSize = Files.size(dest).bytes
-      log.info(s"Resized image with bounds ($maxWidth, $maxHeight)px and size $resizedSize to $dest in $duration.")
+      log.info(
+        s"Resized image with bounds ${maxWidth}x${maxHeight}px and size $resizedSize to $dest in ${timed.duration}.")
       resizedSize
     }
 
@@ -60,14 +61,17 @@ trait ImageResizer {
     resize(Image.fromPath(src), dest)
 
   def resizeFileF(src: Path, dest: Path): Future[StorageSize] =
-    resizeFile(src, dest).flatMap { e => e.fold(err => Future.failed(err.ioe), size => fut(size)) }
+    resizeFile(src, dest).flatMap { e =>
+      e.fold(err => Future.failed(err.ioe), size => fut(size))
+    }
 
   def resize(image: Image, dest: Path): Future[Either[ImageException, StorageSize]]
 
   def recovered[T](work: => T): Future[Either[ImageException, T]] = {
-    Future(Right(work)).recover { case ioe: IOException =>
-      log.error("Failed to resize image", ioe)
-      Left(ImageException(ioe))
+    Future(Right(work)).recover {
+      case ioe: IOException =>
+        log.error("Failed to resize image", ioe)
+        Left(ImageException(ioe))
     }
   }
 

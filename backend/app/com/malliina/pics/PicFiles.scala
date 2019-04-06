@@ -30,10 +30,6 @@ object DataFile {
   )
 }
 
-case class DataStream(source: Source[ByteString, Future[IOResult]],
-                      contentLength: Option[StorageSize],
-                      contentType: Option[ContentType]) extends DataResponse
-
 trait SourceLike {
   def contains(key: Key): Future[Boolean]
 
@@ -43,7 +39,7 @@ trait SourceLike {
 trait DataSource extends SourceLike {
   def load(from: Int, until: Int): Future[Seq[FlatMeta]]
 
-  def get(key: Key): Future[DataResponse]
+  def get(key: Key): Future[DataFile]
 
   /** Removes `key`.
     *
@@ -52,13 +48,13 @@ trait DataSource extends SourceLike {
     */
   def remove(key: Key): Future[PicResult]
 
-  def find(key: Key): Future[Option[DataResponse]] =
+  def find(key: Key): Future[Option[DataFile]] =
     contains(key).flatMap { exists =>
       if (exists) get(key).map(Option.apply)
       else Future.successful(None)
     }
 
-  def saveBody(key: Key, file: Path): Future[Unit]
+  def saveBody(key: Key, file: Path): Future[StorageSize]
 }
 
 trait MetaSource extends SourceLike {

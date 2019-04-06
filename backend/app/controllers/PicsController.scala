@@ -43,11 +43,14 @@ class PicsController(html: PicsHtml,
                      picSink: PicSink,
                      auth: PicsAuth,
                      cache: Cached,
-                     comps: ControllerComponents) extends AbstractController(comps) with PicsStrings {
+                     comps: ControllerComponents)
+    extends AbstractController(comps)
+    with PicsStrings {
 
   val placeHolderResource = "400x300.png"
   val deleteForm: Form[Key] = Form(mapping(PicsHtml.KeyKey -> nonEmptyText)(Key.apply)(Key.unapply))
-  val tokenForm: Form[AccessToken] = Form(mapping(LoginStrings.TokenKey -> nonEmptyText)(AccessToken.apply)(AccessToken.unapply))
+  val tokenForm: Form[AccessToken] = Form(
+    mapping(LoginStrings.TokenKey -> nonEmptyText)(AccessToken.apply)(AccessToken.unapply))
   val reverse = routes.PicsController
   val reverseSocial = routes.Social
   val metaDatabase = pics.metaDatabase
@@ -65,14 +68,15 @@ class PicsController(html: PicsHtml,
 
   def signIn = Action { req =>
     import Social._
-    val call = req.cookies.get(ProviderCookie).flatMap(c => AuthProvider.forString(c.value).toOption).map {
-      case Google => reverseSocial.google()
-      case Microsoft => reverseSocial.microsoft()
-      case Facebook => reverseSocial.facebook()
-      case GitHub => reverseSocial.github()
-      case Amazon => reverseSocial.amazon()
-      case Twitter => reverseSocial.twitter()
-    }
+    val call =
+      req.cookies.get(ProviderCookie).flatMap(c => AuthProvider.forString(c.value).toOption).map {
+        case Google    => reverseSocial.google()
+        case Microsoft => reverseSocial.microsoft()
+        case Facebook  => reverseSocial.facebook()
+        case GitHub    => reverseSocial.github()
+        case Amazon    => reverseSocial.amazon()
+        case Twitter   => reverseSocial.twitter()
+      }
     call.map(c => Redirect(c)).getOrElse(Ok(html.signIn()))
   }
 
@@ -80,14 +84,16 @@ class PicsController(html: PicsHtml,
 
   def postSignIn = Action(parse.form(tokenForm)) { req =>
     val token = req.body
-    auth.authenticator.validateToken(token).fold(
-      _ => {
-        failLogin(LoginStrings.AuthFailed, req)
-      },
-      user => {
-        Redirect(reverse.list()).withSession("username" -> user.username.name)
-      }
-    )
+    auth.authenticator
+      .validateToken(token)
+      .fold(
+        _ => {
+          failLogin(LoginStrings.AuthFailed, req)
+        },
+        user => {
+          Redirect(reverse.list()).withSession("username" -> user.username.name)
+        }
+      )
   }
 
   private def failLogin(message: String, rh: RequestHeader): Result = {
@@ -97,7 +103,9 @@ class PicsController(html: PicsHtml,
 
   def list = parsed(ListRequest.forRequest) { req =>
     metaDatabase.load(req.offset, req.limit, req.user.name).map { keys =>
-      val entries = keys map { key => PicMetas(key, req.rh) }
+      val entries = keys map { key =>
+        PicMetas(key, req.rh)
+      }
       renderContent(req.rh)(
         json = {
           Pics(entries)
@@ -137,14 +145,14 @@ class PicsController(html: PicsHtml,
   def sendPic(key: Key, source: DataSource) =
     picAction(source.find(key).map(_.filter(_.isImage)), Ok.sendResource(placeHolderResource))
 
-  def put = auth.authed { (user: PicRequest) =>
+  def put = auth.authed { user =>
     Action(parse.temporaryFile).async { req =>
       log.info(s"Received file from '${user.name}'. Resizing and uploading...")
       saveFile(req.body.path, user)
     }
   }
 
-  def delete = auth.ownerAuthed { (user: PicRequest) =>
+  def delete = auth.ownerAuthed { user =>
     Action.async(parse.form(deleteForm)) { req =>
       removeKey(req.body, user, reverse.drop())
     }
@@ -168,7 +176,8 @@ class PicsController(html: PicsHtml,
         sources.remove(key).map { _ =>
           renderResult(user.rh)(
             json = Accepted,
-            html = Redirect(redirCall).flashing(UserFeedback.success(s"Deleted key '$key'.").toMap: _*)
+            html =
+              Redirect(redirCall).flashing(UserFeedback.success(s"Deleted key '$key'.").toMap: _*)
           )
         }
       } else {
@@ -194,7 +203,7 @@ class PicsController(html: PicsHtml,
     } else {
       renderVaried(rh) {
         case HtmlAccept() => html
-        case Json10() => json
+        case Json10()     => json
         case JsonAccept() => json
       }
     }
@@ -202,43 +211,48 @@ class PicsController(html: PicsHtml,
 
   def renderVaried(rh: RequestHeader)(f: PartialFunction[MediaRange, Result]) = render(f)(rh)
 
-  private def picAction(find: Future[Option[DataResponse]], onNotFound: => Result): Action[AnyContent] = {
+  private def picAction(find: Future[Option[DataFile]],
+                        onNotFound: => Result): Action[AnyContent] = {
     val result = find.map { maybe =>
-      maybe.map {
-        case DataFile(file, _, _) => Ok.sendPath(file)
-        case s@DataStream(_, _, _) => streamData(s)
-      }.getOrElse {
-        onNotFound
-      }
+      maybe
+        .map { df =>
+          Ok.sendPath(df.file).withHeaders(HeaderNames.CACHE_CONTROL -> "public, max-age=31536000")
+        }
+        .getOrElse {
+          onNotFound
+        }
     }
     Action.async(result)
   }
 
-  private def streamData(stream: DataStream) =
-    Ok.sendEntity(
-      HttpEntity.Streamed(
-        stream.source,
-        stream.contentLength.map(_.toBytes),
-        stream.contentType.map(_.contentType))
-    )
+//  private def streamData(stream: DataStream) =
+//    Ok.sendEntity(
+//      HttpEntity.Streamed(
+//        stream.source,
+//        stream.contentLength.map(_.toBytes),
+//        stream.contentType.map(_.contentType))
+//    )
 
   private def saveFile(tempFile: Path, by: PicRequest): Future[Result] = {
     val rh = by.rh
-    pics.save(tempFile, by, rh.headers.get(XName)).map { meta =>
-      val clientPic = rh.headers.get(XClientPic).map(Key.apply).getOrElse(meta.key)
-      val picMeta = PicMetas(meta, rh)
-      // TODO Use akka-streams
-      picSink.onPic(picMeta.withClient(clientPic), by)
-      log info s"Saved '${picMeta.key}' by '${by.name}' with URL '${picMeta.url}'."
-      Accepted(PicResponse(picMeta)).withHeaders(
-        HeaderNames.LOCATION -> picMeta.url.toString,
-        XKey -> meta.key.key,
-        XClientPic -> clientPic.key
-      )
-    }.recover {
-      case t: ImageFailure => failResize(t, by)
-      case ipa: ImageParseException => failResize(ResizeException(ipa), by)
-    }
+    pics
+      .save(tempFile, by, rh.headers.get(XName))
+      .map { meta =>
+        val clientPic = rh.headers.get(XClientPic).map(Key.apply).getOrElse(meta.key)
+        val picMeta = PicMetas(meta, rh)
+        // TODO Use akka-streams
+        picSink.onPic(picMeta.withClient(clientPic), by)
+        log info s"Saved '${picMeta.key}' by '${by.name}' with URL '${picMeta.url}'."
+        Accepted(PicResponse(picMeta)).withHeaders(
+          HeaderNames.LOCATION -> picMeta.url.toString,
+          XKey -> meta.key.key,
+          XClientPic -> clientPic.key
+        )
+      }
+      .recover {
+        case t: ImageFailure          => failResize(t, by)
+        case ipa: ImageParseException => failResize(ResizeException(ipa), by)
+      }
   }
 
   def failResize(error: ImageFailure, by: PicRequest): Result = error match {
@@ -274,7 +288,8 @@ class PicsController(html: PicsHtml,
 
   // cannot cache streamed entities
 
-  def cachedAction(result: Result) = cache((req: RequestHeader) => req.path, 180.days)(Action(result))
+  def cachedAction(result: Result) =
+    cache((req: RequestHeader) => req.path, 180.days)(Action(result))
 
   def fut[T](t: T) = Future.successful(t)
 }

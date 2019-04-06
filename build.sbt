@@ -36,7 +36,7 @@ val crossJs = cross.js
 
 val frontend = project
   .in(file("frontend"))
-  .enablePlugins(ScalaJSBundlerPlugin, ScalaJSWeb)
+  .enablePlugins(ScalaJSBundlerPlugin, ScalaJSWeb, NodeCheckPlugin)
   .dependsOn(crossJs)
   .settings(commonSettings)
   .settings(
@@ -82,6 +82,7 @@ val backend = project
   .settings(
     buildInfoPackage := "com.malliina.pics",
     scalaJSProjects := Seq(frontend),
+    pipelineStages := Seq(digest, gzip),
     pipelineStages in Assets := Seq(scalaJSPipeline),
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-text" % "1.6",
@@ -99,7 +100,6 @@ val backend = project
       utilPlayDep,
       utilPlayDep % Test classifier "tests"
     ),
-    pipelineStages := Seq(digest, gzip),
     // pipelineStages in Assets := Seq(digest, gzip)
     name in Linux := "pics",
     packageName in Linux := (name in Linux).value,

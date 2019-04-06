@@ -22,6 +22,8 @@ case class ImageReaderFailure(file: Path)
 case class ResizeException(ipe: ImageParseException)
   extends ImageFailure
 
+class KeyNotFound(key: Key) extends Exception(s"Key not found: '$key'.")
+
 case class SingleError(message: String, key: String)
 
 object SingleError {

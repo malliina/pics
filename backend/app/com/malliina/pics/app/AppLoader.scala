@@ -32,12 +32,16 @@ object LocalConf {
   val localConf = Configuration(ConfigFactory.parseFile(localConfFile.toFile))
 }
 
-class AppLoader extends DefaultApp(ctx => new AppComponents(ctx, conf =>
-  GoogleOAuthCredentials(conf).fold(err => throw new Exception(err.message), identity)
-))
+class AppLoader
+    extends DefaultApp(
+      ctx =>
+        new AppComponents(
+          ctx,
+          conf =>
+            GoogleOAuthCredentials(conf).fold(err => throw new Exception(err.message), identity)))
 
 class AppComponents(context: Context, creds: Configuration => GoogleOAuthCredentials)
-  extends BaseComponents(context, creds) {
+    extends BaseComponents(context, creds) {
   override lazy val httpErrorHandler = PicsErrorHandler
 
   override def buildAuthenticator() = PicsAuthenticator(JWTAuth.default, PicsAuth.social)
@@ -46,12 +50,13 @@ class AppComponents(context: Context, creds: Configuration => GoogleOAuthCredent
 }
 
 abstract class BaseComponents(context: Context, creds: Configuration => GoogleOAuthCredentials)
-  extends BuiltInComponentsFromContext(context)
+    extends BuiltInComponentsFromContext(context)
     with HttpFiltersComponents
     with EhCacheComponents
     with AssetsComponents {
   override val configuration = context.initialConfiguration ++ LocalConf.localConf
-  override lazy val httpFilters = Seq(new GzipFilter(), csrfFilter, securityHeadersFilter, allowedHostsFilter)
+  override lazy val httpFilters =
+    Seq(new GzipFilter(), csrfFilter, securityHeadersFilter, allowedHostsFilter)
 
   def buildAuthenticator(): PicsAuthLike
 
@@ -77,8 +82,10 @@ abstract class BaseComponents(context: Context, creds: Configuration => GoogleOA
     "font-src 'self' data: fonts.gstatic.com use.fontawesome.com;"
   )
   val csp = csps.mkString
-  override lazy val securityHeadersConfig = SecurityHeadersConfig(contentSecurityPolicy = Option(csp))
-  override lazy val allowedHostsConfig = AllowedHostsConfig(Seq("localhost", "pics.malliina.com", "images.malliina.com"))
+  override lazy val securityHeadersConfig = SecurityHeadersConfig(
+    contentSecurityPolicy = Option(csp))
+  override lazy val allowedHostsConfig = AllowedHostsConfig(
+    Seq("localhost", "pics.malliina.com", "images.malliina.com"))
 
   override lazy val csrfConfig = CSRFConfig(
     tokenName = CsrfTokenName,
@@ -90,7 +97,8 @@ abstract class BaseComponents(context: Context, creds: Configuration => GoogleOA
   val defaultHttpConf = HttpConfiguration.fromConfiguration(configuration, environment)
   // Sets sameSite = None, otherwise the Google auth redirect will wipe out the session state
   override lazy val httpConfiguration =
-    defaultHttpConf.copy(session = defaultHttpConf.session.copy(cookieName = "picsSession", sameSite = None))
+    defaultHttpConf.copy(
+      session = defaultHttpConf.session.copy(cookieName = "picsSession", sameSite = None))
 
   val html = PicsHtml.build(mode == Mode.Prod)
   val db: PicsDatabase = PicsDatabase.forMode(mode, configuration)
@@ -105,7 +113,8 @@ abstract class BaseComponents(context: Context, creds: Configuration => GoogleOA
   val cognitoControl = CognitoControl.pics(defaultActionBuilder)
   val picsAssets = new PicsAssets(assets)
   lazy val social = Social.buildOrFail(defaultActionBuilder, socialConf)
-  override lazy val router: Router = new Routes(httpErrorHandler, pics, sockets, picsAssets, social, cognitoControl)
+  override lazy val router: Router =
+    new Routes(httpErrorHandler, pics, sockets, picsAssets, social, cognitoControl)
 
   applicationLifecycle.addStopHook { () =>
     Future.successful(db.database.close())
