@@ -135,9 +135,14 @@ class PicsController(html: PicsHtml,
   }
 
   def pic(key: Key) = Action.async { rh =>
+    val isImage = ContentType.parse(key.key).exists(_.isImage)
     PicSize(rh)
       .map { size =>
-        sources(size).storage.find(key).map(df => df.map(send).getOrElse(keyNotFound(key)))
+        sources(size).storage
+          .find(key)
+          .map(df =>
+            df.map(send)
+              .getOrElse(if (isImage) keyNotFound(key) else Ok.sendResource(placeHolderResource)))
       }
       .recover { err =>
         Future.successful(badRequest(err.message))
