@@ -9,7 +9,9 @@ import play.api.routing.Router
 import play.api.test.FakeRequest
 import play.api.{BuiltInComponentsFromContext, Configuration, NoHttpFiltersComponents}
 
-class TestComponents(ctx: Context) extends BuiltInComponentsFromContext(ctx) with NoHttpFiltersComponents {
+class TestComponents(ctx: Context)
+    extends BuiltInComponentsFromContext(ctx)
+    with NoHttpFiltersComponents {
 
   import play.api.routing.sird._
 
@@ -19,15 +21,12 @@ class TestComponents(ctx: Context) extends BuiltInComponentsFromContext(ctx) wit
   )
 
   override def router: Router = Router.from {
-    case GET(p"/") => securityCheck(_.secure)
+    case GET(p"/")    => securityCheck(_.secure)
     case GET(p"/mod") => securityCheck(Proxies.isSecure)
   }
 
   def securityCheck(isSecure: RequestHeader => Boolean) = Action { req =>
-    Results.Ok(Json.obj(
-      "secure" -> isSecure(req),
-      "headers" -> PlayUtils.headersString(req))
-    )
+    Results.Ok(Json.obj("secure" -> isSecure(req), "headers" -> PlayUtils.headersString(req)))
   }
 }
 

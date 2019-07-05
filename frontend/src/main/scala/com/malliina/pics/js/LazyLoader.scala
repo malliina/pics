@@ -47,7 +47,7 @@ class LazyLoader(lazyClass: String) {
   val document = dom.document
   document.addEventListener[Event](
     "DOMContentLoaded",
-    _ => {
+    (_: Event) => {
       val lazyImages = document.querySelectorAll(s"img.$lazyClass")
       val lazyImageObserver = new IntersectionObserver((entries, observer) => {
         entries.foreach { e =>

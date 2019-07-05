@@ -23,7 +23,7 @@ object PicRequest {
 
   def anon(rh: RequestHeader) = PicRequest(AnonUser, rh)
 
-  def apply(user: Username, rh: RequestHeader): PicRequest =
+  def forUser(user: Username, rh: RequestHeader): PicRequest =
     apply(PicOwner(user.name), rh)
 
   def apply(user: PicOwner, rh: RequestHeader): PicRequest =

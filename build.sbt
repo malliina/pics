@@ -2,14 +2,15 @@ import com.malliina.sbt.filetree.DirMap
 import play.sbt.PlayImport
 import sbt.Keys.scalaVersion
 import sbt._
-import sbtcrossproject.CrossPlugin.autoImport.{
-  CrossType => PortableType,
-  crossProject => portableProject
-}
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 
-val utilPlayVersion = "5.1.1"
-val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
+import scala.sys.process.Process
+import scala.util.Try
+
+val utilPlayVersion = "5.1.1" // uses primitives 1.9.0
+val scalaTestVersion = "3.0.8"
 val primitivesVersion = "1.9.0"
+val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
 val commonSettings = Seq(
   organization := "com.malliina",
@@ -19,8 +20,8 @@ val commonSettings = Seq(
     Resolver.bintrayRepo("malliina", "maven")
   ),
   libraryDependencies ++= Seq(
-    "com.lihaoyi" %%% "scalatags" % "0.6.7",
-    "com.typesafe.play" %%% "play-json" % "2.7.1",
+    "com.lihaoyi" %%% "scalatags" % "0.7.0",
+    "com.typesafe.play" %%% "play-json" % "2.7.4",
     "com.malliina" %%% "primitives" % primitivesVersion,
     "com.malliina" %%% "util-html" % utilPlayVersion
   )
@@ -41,34 +42,34 @@ val frontend = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.9.2",
-      "be.doeraene" %%% "scalajs-jquery" % "0.9.2",
-      "org.scalatest" %%% "scalatest" % "3.0.7" % Test
+      "org.scala-js" %%% "scalajs-dom" % "0.9.7",
+      "be.doeraene" %%% "scalajs-jquery" % "0.9.5",
+      "org.scalatest" %%% "scalatest" % scalaTestVersion % Test
     ),
-    version in webpack := "4.27.1",
+    version in webpack := "4.35.2",
     emitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
     npmDependencies in Compile ++= Seq(
-      "bootstrap" -> "4.2.1",
-      "jquery" -> "3.3.1",
-      "popper.js" -> "1.14.6",
-      "@fortawesome/fontawesome-free" -> "5.8.1"
+      "@fortawesome/fontawesome-free" -> "5.9.0",
+      "bootstrap" -> "4.3.1",
+      "jquery" -> "3.4.1",
+      "popper.js" -> "1.15.0",
     ),
     npmDevDependencies in Compile ++= Seq(
-      "autoprefixer" -> "9.4.3",
-      "cssnano" -> "4.1.8",
-      "css-loader" -> "2.1.0",
-      "file-loader" -> "3.0.1",
+      "autoprefixer" -> "9.6.0",
+      "cssnano" -> "4.1.10",
+      "css-loader" -> "3.0.0",
+      "file-loader" -> "4.0.0",
       "less" -> "3.9.0",
-      "less-loader" -> "4.1.0",
-      "mini-css-extract-plugin" -> "0.5.0",
+      "less-loader" -> "5.0.0",
+      "mini-css-extract-plugin" -> "0.7.0",
       "postcss-import" -> "12.0.1",
       "postcss-loader" -> "3.0.0",
-      "postcss-preset-env" -> "6.5.0",
+      "postcss-preset-env" -> "6.6.0",
       "style-loader" -> "0.23.1",
-      "url-loader" -> "1.1.2",
-      "webpack-merge" -> "4.1.5"
+      "url-loader" -> "2.0.1",
+      "webpack-merge" -> "4.2.1"
     ),
     webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.dev.config.js"),
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.prod.config.js")
@@ -76,29 +77,32 @@ val frontend = project
 
 val backend = project
   .in(file("backend"))
-  .enablePlugins(FileTreePlugin, WebScalaJSBundlerPlugin, PlayLinuxPlugin)
+  .enablePlugins(FileTreePlugin, WebScalaJSBundlerPlugin, PlayLinuxPlugin, BuildInfoPlugin)
   .dependsOn(crossJvm)
   .settings(commonSettings)
   .settings(
     buildInfoPackage := "com.malliina.pics",
+    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "hash" -> gitHash),
     scalaJSProjects := Seq(frontend),
     pipelineStages := Seq(digest, gzip),
     pipelineStages in Assets := Seq(scalaJSPipeline),
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-text" % "1.6",
-      "com.amazonaws" % "aws-java-sdk-s3" % "1.11.461",
-      "software.amazon.awssdk" % "s3" % "2.1.3",
+      "com.amazonaws" % "aws-java-sdk-s3" % "1.11.587",
+      "software.amazon.awssdk" % "s3" % "2.7.0",
       PlayImport.ehcache,
       PlayImport.ws,
       "com.malliina" %% "play-social" % utilPlayVersion,
-      "com.typesafe.slick" %% "slick" % "3.2.3",
+      "com.typesafe.slick" %% "slick" % "3.3.2",
       "com.h2database" % "h2" % "1.4.197",
       "mysql" % "mysql-connector-java" % "5.1.47",
       "com.zaxxer" % "HikariCP" % "3.3.1",
       "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8",
       "com.malliina" %% "logstreams-client" % "1.5.0",
       utilPlayDep,
-      utilPlayDep % Test classifier "tests"
+      utilPlayDep % Test classifier "tests",
+      "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
+      "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.3" % Test
     ),
     // pipelineStages in Assets := Seq(digest, gzip)
     name in Linux := "pics",
@@ -140,3 +144,6 @@ val pics = project
   .in(file("."))
   .aggregate(frontend, backend)
   .settings(commonSettings)
+
+def gitHash: String =
+  Try(Process("git rev-parse --short HEAD").lineStream.head).toOption.getOrElse("unknown")

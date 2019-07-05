@@ -26,8 +26,8 @@ class AuthFrontend(log: BaseLogger) extends Frontend with LoginStrings {
       Future.failed(e)
   }
 
-  def submitToken(token: String, inputId: String, to: HTMLFormElement): Unit = {
-    input(inputId).value = token
+  def submitToken(token: AccessToken, inputId: String, to: HTMLFormElement): Unit = {
+    input(inputId).value = token.jwtToken
     PicsJS.csrf.installTo(to)
     to.submit()
   }

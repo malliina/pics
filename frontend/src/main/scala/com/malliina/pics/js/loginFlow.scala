@@ -39,7 +39,7 @@ class Login(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log) {
         mfa.show()
         mfa.session
     }.map { success =>
-      submitToken(success.accessToken.jwtToken, LoginTokenId, loginForm)
+      submitToken(success.accessToken, LoginTokenId, loginForm)
     }.feedbackTo(LoginFeedbackId)
   }
 
@@ -83,7 +83,7 @@ class ForgotPassword(log: BaseLogger) extends AuthFrontend(log) {
       log.info(s"Password reset for '$email'.")
       user.authenticate(email, newPass)
     }.map { success =>
-      submitToken(success.accessToken.jwtToken, ResetTokenId, resetForm)
+      submitToken(success.accessToken, ResetTokenId, resetForm)
     }.feedbackTo(ResetFeedbackId)
   }
 

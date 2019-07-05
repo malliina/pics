@@ -31,7 +31,7 @@ object JWTAuth {
 class JWTAuth(val validator: CognitoAccessValidator) {
   def userOrAnon(rh: RequestHeader): Either[Result, PicRequest] =
     auth(rh)
-      .map(e => e.map(u => PicRequest(u.username, rh)))
+      .map(e => e.map(u => PicRequest.forUser(u.username, rh)))
       .getOrElse(Right(PicRequest.anon(rh)))
 
   def jwtAuth(rh: RequestHeader): Either[Result, JWTUser] =

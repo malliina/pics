@@ -4,9 +4,9 @@ import com.malliina.http.FullUrl
 import com.malliina.pics.js.BaseSocket.{EventKey, Ping}
 import org.scalajs.dom
 import org.scalajs.dom.CloseEvent
-import org.scalajs.dom.raw.{ErrorEvent, Event, MessageEvent}
+import org.scalajs.dom.raw.{Event, MessageEvent}
+import org.scalajs.jquery.JQuery
 import play.api.libs.json._
-import org.scalajs.jquery.{JQuery, jQuery}
 
 import scala.util.Try
 
@@ -41,19 +41,21 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
 
   def onMessage(msg: MessageEvent): Unit = {
     log.info(s"Got message: ${msg.data.toString}")
-    Try(Json.parse(msg.data.toString)).map { json =>
-      val isPing = (json \ EventKey).validate[String].filter(_ == Ping).isSuccess
-      if (!isPing) {
-        handlePayload(json)
+    Try(Json.parse(msg.data.toString))
+      .map { json =>
+        val isPing = (json \ EventKey).validate[String].filter(_ == Ping).isSuccess
+        if (!isPing) {
+          handlePayload(json)
+        }
       }
-    }.recover { case e => onJsonException(e) }
+      .recover { case e => onJsonException(e) }
   }
 
   def onConnected(e: Event): Unit = showConnected()
 
   def onClosed(e: CloseEvent): Unit = showDisconnected()
 
-  def onError(e: ErrorEvent): Unit = showDisconnected()
+  def onError(e: Event): Unit = showDisconnected()
 
   def openSocket(pathAndQuery: String) = {
     val url = wsBaseUrl.append(pathAndQuery)
@@ -61,7 +63,7 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
     socket.onopen = (e: Event) => onConnected(e)
     socket.onmessage = (e: MessageEvent) => onMessage(e)
     socket.onclose = (e: CloseEvent) => onClosed(e)
-    socket.onerror = (e: ErrorEvent) => onError(e)
+    socket.onerror = (e: Event) => onError(e)
     socket
   }
 

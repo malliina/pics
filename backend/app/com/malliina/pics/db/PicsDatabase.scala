@@ -1,6 +1,7 @@
 package com.malliina.pics.db
 
 import java.nio.file.{Files, Path, Paths}
+import java.sql.{PreparedStatement, ResultSet, Timestamp}
 import java.time.Instant
 
 import com.malliina.concurrent.Execution
@@ -9,10 +10,45 @@ import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import javax.sql.DataSource
 import org.h2.jdbcx.JdbcConnectionPool
 import play.api.{Configuration, Logger, Mode}
+import slick.ast.FieldSymbol
 import slick.jdbc.{H2Profile, JdbcProfile, MySQLProfile}
 import slick.util.AsyncExecutor
 
 import scala.concurrent.ExecutionContext
+
+object InstantMySQLProfile extends JdbcProfile with MySQLProfile {
+  override val columnTypes = new JdbcTypes
+
+  class JdbcTypes extends super.JdbcTypes {
+    override val instantType = new InstantJdbcType {
+      override def sqlTypeName(sym: Option[FieldSymbol]) = "TIMESTAMP(3)"
+      override def setValue(v: Instant, p: PreparedStatement, idx: Int): Unit =
+        p.setTimestamp(idx, Timestamp.from(v))
+      override def getValue(r: ResultSet, idx: Int): Instant =
+        Option(r.getTimestamp(idx)).map(_.toInstant).orNull
+      override def updateValue(v: Instant, r: ResultSet, idx: Int): Unit =
+        r.updateTimestamp(idx, Timestamp.from(v))
+      override def valueToSQLLiteral(value: Instant): String = s"'${Timestamp.from(value)}'"
+    }
+  }
+}
+
+object InstantH2Profile extends JdbcProfile with H2Profile {
+  override val columnTypes = new JdbcTypes
+
+  class JdbcTypes extends super.JdbcTypes {
+    override val instantType = new InstantJdbcType {
+      override def sqlTypeName(sym: Option[FieldSymbol]) = "TIMESTAMP(3)"
+      override def setValue(v: Instant, p: PreparedStatement, idx: Int): Unit =
+        p.setTimestamp(idx, Timestamp.from(v))
+      override def getValue(r: ResultSet, idx: Int): Instant =
+        Option(r.getTimestamp(idx)).map(_.toInstant).orNull
+      override def updateValue(v: Instant, r: ResultSet, idx: Int): Unit =
+        r.updateTimestamp(idx, Timestamp.from(v))
+      override def valueToSQLLiteral(value: Instant): String = s"'${Timestamp.from(value)}'"
+    }
+  }
+}
 
 object PicsDatabase {
   private val log = Logger(getClass)
@@ -60,7 +96,7 @@ object PicsDatabase {
       .getOrElse("")
     val url = s"jdbc:h2:$memOrFile;DB_CLOSE_DELAY=-1$databaseUrlSettings"
     log info s"Connecting to '$url'..."
-    apply(JdbcConnectionPool.create(url, "", ""), H2Profile)
+    apply(JdbcConnectionPool.create(url, "", ""), InstantH2Profile)
   }
 
   // To keep the content of an in-memory database as long as the virtual machine is alive, use
@@ -76,7 +112,7 @@ object PicsDatabase {
     hikari.setUsername(conf.user)
     hikari.setPassword(conf.pass)
     log info s"Connecting to '${conf.url}'..."
-    apply(new HikariDataSource(hikari), MySQLProfile)
+    apply(new HikariDataSource(hikari), InstantMySQLProfile)
   }
 
   def executor(threads: Int) = AsyncExecutor(
