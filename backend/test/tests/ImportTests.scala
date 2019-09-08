@@ -6,7 +6,7 @@ import java.text.SimpleDateFormat
 import com.malliina.pics.db.{Conf, PicsDatabase}
 import com.malliina.pics.{Key, PicOwner}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 class ImportTests extends BaseSuite {
   ignore("connect") {

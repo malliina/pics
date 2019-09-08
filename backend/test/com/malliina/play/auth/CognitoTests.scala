@@ -19,7 +19,7 @@ class CognitoTests extends FunSuite {
     )
     val result = validator.validate(token)
     assert(result.isLeft)
-    val err = result.left.get
+    val err = result.left.toOption.get
     assert(err.isInstanceOf[Expired])
   }
 
