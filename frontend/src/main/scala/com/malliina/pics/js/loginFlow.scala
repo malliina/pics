@@ -24,23 +24,27 @@ class Login(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log) {
     val pass = passIn.value
     val user = CognitoUser(email, userPool)
 
-    user.authenticate(email, pass).recoverWith {
-      case _: NotConfirmedException =>
-        log.info(s"User not confirmed. Awaiting confirmation...")
-        hide()
-        confirm.show()
-        confirm.confirmed.flatMap { user =>
-          user.authenticate(email, pass)
-        }
-      case _: TotpRequiredException =>
-        log.info(s"Requesting MFA for '$email'...")
-        hide()
-        val mfa = Mfa(user, log)
-        mfa.show()
-        mfa.session
-    }.map { success =>
-      submitToken(success.accessToken, LoginTokenId, loginForm)
-    }.feedbackTo(LoginFeedbackId)
+    user
+      .authenticate(email, pass)
+      .recoverWith {
+        case _: NotConfirmedException =>
+          log.info(s"User not confirmed. Awaiting confirmation...")
+          hide()
+          confirm.show()
+          confirm.confirmed.flatMap { user =>
+            user.authenticate(email, pass)
+          }
+        case _: TotpRequiredException =>
+          log.info(s"Requesting MFA for '$email'...")
+          hide()
+          val mfa = Mfa(user, log)
+          mfa.show()
+          mfa.session
+      }
+      .map { success =>
+        submitToken(success.accessToken, LoginTokenId, loginForm)
+      }
+      .feedbackTo(LoginFeedbackId)
   }
 
   def hide(): Unit = loginForm.setAttribute(Hidden, Hidden)
@@ -65,13 +69,18 @@ class ForgotPassword(log: BaseLogger) extends AuthFrontend(log) {
   private def sendCode(): Unit = {
     val email = elem[HTMLInputElement](ForgotEmailId).value
     val user = CognitoUser(email, userPool)
-    user.forgot().map { _ =>
-      log.info(s"Forgot sent to '$email'.")
-      hide()
-      resetEmailIn.value = email
-      elem[HTMLElement](ResetFeedbackId).appendChild(alertSuccess(s"Code sent to '$email'.").render)
-      resetForm.removeAttribute(Hidden)
-    }.feedbackTo(ForgotFeedbackId)
+    user
+      .forgot()
+      .map { _ =>
+        log.info(s"Forgot sent to '$email'.")
+        hide()
+        resetEmailIn.value = email
+        elem[HTMLElement](ResetFeedbackId).appendChild(
+          alertSuccess(s"Code sent to '$email'.").render
+        )
+        resetForm.removeAttribute(Hidden)
+      }
+      .feedbackTo(ForgotFeedbackId)
   }
 
   private def reset(): Unit = {
@@ -79,12 +88,16 @@ class ForgotPassword(log: BaseLogger) extends AuthFrontend(log) {
     val user = CognitoUser(email, userPool)
     val code = elem[HTMLInputElement](ResetCodeId).value
     val newPass = elem[HTMLInputElement](ResetNewPasswordId).value
-    user.reset(code, newPass).flatMap { _ =>
-      log.info(s"Password reset for '$email'.")
-      user.authenticate(email, newPass)
-    }.map { success =>
-      submitToken(success.accessToken, ResetTokenId, resetForm)
-    }.feedbackTo(ResetFeedbackId)
+    user
+      .reset(code, newPass)
+      .flatMap { _ =>
+        log.info(s"Password reset for '$email'.")
+        user.authenticate(email, newPass)
+      }
+      .map { success =>
+        submitToken(success.accessToken, ResetTokenId, resetForm)
+      }
+      .feedbackTo(ResetFeedbackId)
   }
 
   private def resetEmailIn = elem[HTMLInputElement](ResetEmailId)
@@ -110,9 +123,12 @@ class Mfa(user: CognitoUser, log: BaseLogger) extends AuthFrontend(log) {
 
   private def sendMfa() = {
     val code = elem[HTMLInputElement](MfaCodeId).value
-    user.sendMFA(code).map { session =>
-      success.trySuccess(session)
-    }.feedbackTo(MfaFeedbackId)
+    user
+      .sendMFA(code)
+      .map { session =>
+        success.trySuccess(session)
+      }
+      .feedbackTo(MfaFeedbackId)
   }
 
   def show(): Unit = mfaForm.removeAttribute(Hidden)

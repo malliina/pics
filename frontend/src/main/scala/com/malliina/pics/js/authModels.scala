@@ -45,7 +45,8 @@ object IdentityCredentials {
   import js.JSConverters._
 
   def apply(poolId: String, logins: Map[String, String]) =
-    literal(IdentityPoolId = poolId, Logins = logins.toJSDictionary).asInstanceOf[IdentityCredentials]
+    literal(IdentityPoolId = poolId, Logins = logins.toJSDictionary)
+      .asInstanceOf[IdentityCredentials]
 
   def google(poolId: String, idToken: String) =
     apply(poolId, Map("accounts.google.com" -> idToken))

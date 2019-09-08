@@ -2,8 +2,14 @@ package controllers
 
 import com.malliina.concurrent.Execution.cached
 import com.malliina.http.{FullUrl, OkClient}
-import com.malliina.play.auth.CodeValidator._
-import com.malliina.play.auth.{CodeValidator, CognitoIdentityConf, CognitoIdentityConfs, CognitoTokens, CognitoValidators}
+import com.malliina.play.auth.OAuthKeys.{CodeKey, State}
+import com.malliina.play.auth.{
+  CodeValidator,
+  CognitoIdentityConf,
+  CognitoIdentityConfs,
+  CognitoTokens,
+  CognitoValidators
+}
 import com.malliina.play.http.FullUrls
 import com.malliina.play.json.JsonMessages
 import controllers.CognitoControl.log
@@ -27,9 +33,7 @@ class CognitoControl(conf: CognitoIdentityConf, actions: ActionBuilder[Request, 
   type AuthState = String
 
   def google = socialLogin((state, redir) => conf.authUrlGoogle(state, redir))
-
   def facebook = socialLogin((state, redir) => conf.authUrlFacebook(state, redir))
-
   def amazon = socialLogin((state, redir) => conf.authUrlAmazon(state, redir))
 
   private def socialLogin(authUrl: (AuthState, FullUrl) => FullUrl) = actions { req =>
@@ -40,9 +44,11 @@ class CognitoControl(conf: CognitoIdentityConf, actions: ActionBuilder[Request, 
   def redirUrl(rh: RequestHeader) = FullUrls(routes.Social.amazonCallback(), rh)
 
   def signOut = actions { req =>
-    Redirect(conf.logoutUrl(FullUrls(routes.CognitoControl.signOutCallback(), req)).url)
-      .withNewSession
-      .discardingCookies(DiscardingCookie(Social.LastIdCookie), DiscardingCookie(Social.ProviderCookie))
+    Redirect(conf.logoutUrl(FullUrls(routes.CognitoControl.signOutCallback(), req)).url).withNewSession
+      .discardingCookies(
+        DiscardingCookie(Social.LastIdCookie),
+        DiscardingCookie(Social.ProviderCookie)
+      )
       .withCookies(Cookie(Social.PromptCookie, Social.SelectAccount))
   }
 
@@ -64,33 +70,42 @@ class CognitoControl(conf: CognitoIdentityConf, actions: ActionBuilder[Request, 
     val sessionState = req.session.get(State)
     val isStateOk = requestState.exists(rs => sessionState.contains(rs))
     if (isStateOk) {
-      req.getQueryString(CodeKey).map { code =>
-        httpClient.postForm(conf.tokensUrl, conf.tokenParameters(code, redirUrl(req))).map { res =>
-          res.parse[CognitoTokens].fold(
-            jsonErrors => {
-              val msg = "Tokens response failed JSON validation."
-              log.error(s"$msg $jsonErrors")
-              BadRequest(JsonMessages.failure(msg))
-            },
-            tokens => {
-              CognitoValidators.picsId.validate(tokens.idToken).fold(
-                err => {
-                  log.error(s"${err.message} $err")
-                  JWTAuth.failJwt(err)
-                },
-                user => {
-                  log.info(s"Social login for '${user.username}' completed.")
-                  Redirect(routes.PicsController.list()).withSession("username" -> user.username.name)
-                }
-              )
-            }
-          )
+      req
+        .getQueryString(CodeKey)
+        .map { code =>
+          httpClient.postForm(conf.tokensUrl, conf.tokenParameters(code, redirUrl(req))).map {
+            res =>
+              res
+                .parse[CognitoTokens]
+                .fold(
+                  jsonErrors => {
+                    val msg = "Tokens response failed JSON validation."
+                    log.error(s"$msg $jsonErrors")
+                    BadRequest(JsonMessages.failure(msg))
+                  },
+                  tokens => {
+                    CognitoValidators.picsId
+                      .validate(tokens.idToken)
+                      .fold(
+                        err => {
+                          log.error(s"${err.message} $err")
+                          JWTAuth.failJwt(err)
+                        },
+                        user => {
+                          log.info(s"Social login for '${user.username}' completed.")
+                          Redirect(routes.PicsController.list())
+                            .withSession("username" -> user.username.name)
+                        }
+                      )
+                  }
+                )
+          }
         }
-      }.getOrElse {
-        val msg = "No code in callback."
-        log.warn(msg)
-        fut(BadRequest(JsonMessages.failure(msg)))
-      }
+        .getOrElse {
+          val msg = "No code in callback."
+          log.warn(msg)
+          fut(BadRequest(JsonMessages.failure(msg)))
+        }
     } else {
       val msg = "Invalid state parameter in OAuth callback."
       log error msg

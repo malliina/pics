@@ -18,9 +18,11 @@ sealed trait DataResponse {
   def isImage: Boolean = contentType.exists(_.isImage)
 }
 
-case class DataFile(file: Path,
-                    contentLength: Option[StorageSize],
-                    contentType: Option[ContentType]) extends DataResponse
+case class DataFile(
+    file: Path,
+    contentLength: Option[StorageSize],
+    contentType: Option[ContentType]
+) extends DataResponse
 
 object DataFile {
   def apply(file: Path): DataFile = DataFile(

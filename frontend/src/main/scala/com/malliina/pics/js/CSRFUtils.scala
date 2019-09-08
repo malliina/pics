@@ -20,11 +20,13 @@ class CSRFUtils(val log: BaseLogger = BaseLogger.console) {
     }
 
   def installTo(form: HTMLFormElement) = {
-    readCookie(CsrfCookieName).map { tokenValue =>
-      form.appendChild(BaseHtml.csrfInput(CsrfTokenName, tokenValue).render)
-    }.getOrElse {
-      log.info("CSRF token not found.")
-    }
+    readCookie(CsrfCookieName)
+      .map { tokenValue =>
+        form.appendChild(BaseHtml.csrfInput(CsrfTokenName, tokenValue).render)
+      }
+      .getOrElse {
+        log.info("CSRF token not found.")
+      }
   }
 
   def readCookie(key: String) = {
@@ -32,7 +34,11 @@ class CSRFUtils(val log: BaseLogger = BaseLogger.console) {
   }
 
   def cookiesMap(in: String) =
-    in.split(";").toList.map(_.trim.split("=", 2).toList).collect {
-      case key :: value :: Nil => key -> value
-    }.toMap
+    in.split(";")
+      .toList
+      .map(_.trim.split("=", 2).toList)
+      .collect {
+        case key :: value :: Nil => key -> value
+      }
+      .toMap
 }

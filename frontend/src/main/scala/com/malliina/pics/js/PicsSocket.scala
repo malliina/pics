@@ -36,7 +36,8 @@ class PicsSocket extends BaseSocket("/sockets") {
     "click",
     (e: Event) => {
       val isPopover = e.target.isInstanceOf[HTMLElement] && Option(
-        e.target.asInstanceOf[HTMLElement].getAttribute("data-original-title")).isDefined
+        e.target.asInstanceOf[HTMLElement].getAttribute("data-original-title")
+      ).isDefined
       if (!isPopover) {
         MyJQuery("[data-original-title]").asInstanceOf[Popovers].popover("hide")
       }

@@ -10,12 +10,16 @@ import tests.{TestAppSuite, TestAuthenticator, await}
 
 class PicsTests extends TestAppSuite {
   test("version endpoint returns ok for acceptable Accept header") {
-    val result = makeRequest(FakeRequest(GET, "/version").withHeaders(ACCEPT -> PicsController.Json10.mimeType))
+    val result = makeRequest(
+      FakeRequest(GET, "/version").withHeaders(ACCEPT -> PicsController.Json10.mimeType)
+    )
     assert(result.header.status === 200)
   }
 
   test("version endpoint returns not acceptable for unacceptable Accept header") {
-    val result = makeRequest(FakeRequest(GET, "/version").withHeaders(ACCEPT -> "application/vnd.pics.v09+json"))
+    val result = makeRequest(
+      FakeRequest(GET, "/version").withHeaders(ACCEPT -> "application/vnd.pics.v09+json")
+    )
     assert(result.header.status === 406)
   }
 
@@ -66,7 +70,9 @@ class PicsTests extends TestAppSuite {
 
   def testAuthQuery(user: String) = s"?${TestAuthenticator.TestQuery}=$user"
 
-  def makePost[B: Writeable](uri: String, body: B) = makeRequest(buildPostRequest(uri).withBody(body))
+  def makePost[B: Writeable](uri: String, body: B) = makeRequest(
+    buildPostRequest(uri).withBody(body)
+  )
 
   def makeEmptyPost(uri: String) = makeRequest(buildPostRequest(uri))
 

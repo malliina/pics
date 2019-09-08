@@ -15,9 +15,11 @@ class HttpTests extends BaseSuite {
     val mat = NoMaterializer
     val client = StandaloneAhcWSClient()(mat)
     val sessionCookie = DefaultWSCookie("PLAY_SESSION", "")
-    val req = client.url("https://pics.malliina.com/pics?f=json").withCookies(sessionCookie).get().map { r =>
-      r.body[JsValue].as[Pics]
-    }
+    val req =
+      client.url("https://pics.malliina.com/pics?f=json").withCookies(sessionCookie).get().map {
+        r =>
+          r.body[JsValue].as[Pics]
+      }
     val pics = await(req)
     val start = System.currentTimeMillis()
     val statusReq = Future.traverse(pics.pics) { pic =>

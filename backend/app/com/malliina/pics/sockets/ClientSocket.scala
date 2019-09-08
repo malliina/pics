@@ -27,9 +27,7 @@ class ClientSocket(ctx: SocketContext) extends JsonActor(ctx) {
   }
 }
 
-case class SocketContext(out: ActorRef,
-                         req: PicRequest,
-                         mediator: ActorRef) extends ActorMeta {
+case class SocketContext(out: ActorRef, req: PicRequest, mediator: ActorRef) extends ActorMeta {
   override def rh = req.rh
 
   def user = req.name

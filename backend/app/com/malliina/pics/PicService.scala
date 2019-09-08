@@ -18,6 +18,7 @@ object PicService {
 }
 
 class PicService(val metaDatabase: PicsMetaDatabase, val handler: MultiSizeHandler) {
+
   /** Resizes the image in `tempFile`, uploads it to S3 and saves image metadata in the database.
     *
     * Fails with Exception, ImageParseException, ...
@@ -34,7 +35,9 @@ class PicService(val metaDatabase: PicsMetaDatabase, val handler: MultiSizeHandl
     val key = Keys.randomish().append(s".${ext.toLowerCase}")
     val renamedFile = tempFile resolveSibling s"$key"
     Files.copy(tempFile, renamedFile)
-    log.trace(s"Copied temp file '$tempFile' to '$renamedFile', size ${Files.size(tempFile)} bytes.")
+    log.trace(
+      s"Copied temp file '$tempFile' to '$renamedFile', size ${Files.size(tempFile)} bytes."
+    )
     //    val thumbFile = renamedFile resolveSibling s"$name-thumb.$ext"
     for {
       _ <- handler.handle(renamedFile, key)

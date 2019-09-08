@@ -23,41 +23,55 @@ class Profile(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log) {
       val signOut = signOutButton.render
       root.appendChild(signOut)
       signOut.onclick = (_: MouseEvent) => {
-        user.globalLogout().map { _ =>
-          log.info("Signed out globally.")
-        }.recover {
-          case t =>
-            log.error(t)
-        }
+        user
+          .globalLogout()
+          .map { _ =>
+            log.info("Signed out globally.")
+          }
+          .recover {
+            case t =>
+              log.error(t)
+          }
       }
       disable.onclick = (_: MouseEvent) => {
-        user.disableTotp().map { s =>
-          log.info(s"Disabled MFA for '${user.username}'. Message was '$s'.")
-        }.recover {
-          case t => log.error(t)
-        }
+        user
+          .disableTotp()
+          .map { s =>
+            log.info(s"Disabled MFA for '${user.username}'. Message was '$s'.")
+          }
+          .recover {
+            case t => log.error(t)
+          }
       }
       enable.onclick = (_: MouseEvent) => {
-        user.associateTotp().map { secret =>
-          log.info(s"Got secret code $secret")
-          val codeContainer = qrCodeContainer.render
-          val str = s"otpauth://totp/AWSCognito:${user.username}?secret=$secret&issuer=Amazon%20Cognito"
-          new QRCode(codeContainer, QRCodeOptions(str, 128, 128))
-          root.appendChild(codeContainer)
-          val codeForm = totpForm.render
-          root.appendChild(codeForm)
-          codeForm.onsubmit = (e: Event) => {
-            val code = elem[HTMLInputElement](TotpCodeId).value
-            user.verifyTotp(code, "TOTP Device").map { _ =>
-              log.info("TOTP verified.")
-              elem[HTMLElement](TotpFeedbackId).appendChild(alertSuccess(s"MFA enabled.").render)
-            }.feedbackTo(TotpFeedbackId)
-            e.preventDefault()
+        user
+          .associateTotp()
+          .map { secret =>
+            log.info(s"Got secret code $secret")
+            val codeContainer = qrCodeContainer.render
+            val str =
+              s"otpauth://totp/AWSCognito:${user.username}?secret=$secret&issuer=Amazon%20Cognito"
+            new QRCode(codeContainer, QRCodeOptions(str, 128, 128))
+            root.appendChild(codeContainer)
+            val codeForm = totpForm.render
+            root.appendChild(codeForm)
+            codeForm.onsubmit = (e: Event) => {
+              val code = elem[HTMLInputElement](TotpCodeId).value
+              user
+                .verifyTotp(code, "TOTP Device")
+                .map { _ =>
+                  log.info("TOTP verified.")
+                  elem[HTMLElement](TotpFeedbackId)
+                    .appendChild(alertSuccess(s"MFA enabled.").render)
+                }
+                .feedbackTo(TotpFeedbackId)
+              e.preventDefault()
+            }
           }
-        }.recover {
-          case t =>
-            log.error(t)
-        }
+          .recover {
+            case t =>
+              log.error(t)
+          }
       }
     }
   }
@@ -88,9 +102,21 @@ object ProfileHtml extends BaseHtml {
     divClass(FormGroup, id := TotpFeedbackId)
   )
 
-  def labeledInput(labelText: String, inId: String, inType: String, maybePlaceholder: Option[String], moreInput: Modifier*) = modifier(
+  def labeledInput(
+      labelText: String,
+      inId: String,
+      inType: String,
+      maybePlaceholder: Option[String],
+      moreInput: Modifier*
+  ) = modifier(
     label(`for` := inId)(labelText),
-    input(`type` := inType, `class` := FormControl, id := inId, maybePlaceholder.fold(empty)(ph => placeholder := ph), moreInput)
+    input(
+      `type` := inType,
+      `class` := FormControl,
+      id := inId,
+      maybePlaceholder.fold(empty)(ph => placeholder := ph),
+      moreInput
+    )
   )
 
   def divClass(clazz: String, more: Modifier*) = tags.divClass(clazz, more)

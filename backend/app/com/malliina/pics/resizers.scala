@@ -30,7 +30,8 @@ class ScrimageResizer(maxWidth: Int, maxHeight: Int) extends ImageResizer {
       }
       val resizedSize = Files.size(dest).bytes
       log.info(
-        s"Resized image with bounds ${maxWidth}x${maxHeight}px and size $resizedSize to $dest in ${timed.duration}.")
+        s"Resized image with bounds ${maxWidth}x${maxHeight}px and size $resizedSize to $dest in ${timed.duration}."
+      )
       resizedSize
     }
 

@@ -10,17 +10,13 @@ import play.api.libs.json.Json
 
 sealed trait ImageFailure
 
-case class ImageException(ioe: IOException)
-  extends ImageFailure
+case class ImageException(ioe: IOException) extends ImageFailure
 
-case class UnsupportedFormat(format: String, supported: Seq[String])
-  extends ImageFailure
+case class UnsupportedFormat(format: String, supported: Seq[String]) extends ImageFailure
 
-case class ImageReaderFailure(file: Path)
-  extends ImageFailure
+case class ImageReaderFailure(file: Path) extends ImageFailure
 
-case class ResizeException(ipe: ImageParseException)
-  extends ImageFailure
+case class ResizeException(ipe: ImageParseException) extends ImageFailure
 
 class KeyNotFound(key: Key) extends Exception(s"Key not found: '$key'.")
 

@@ -69,7 +69,8 @@ object PicsDatabase {
     Conf.fromConf(conf).map(mysql).getOrElse(defaultFile())
 
   def defaultFile() = {
-    val path = sys.props.get("pics.home")
+    val path = sys.props
+      .get("pics.home")
       .map(h => Paths.get(h))
       .getOrElse(tmpDir)
       .resolve("picsdb")
@@ -89,7 +90,8 @@ object PicsDatabase {
   }
 
   def h2(memOrFile: String): PicsDatabase = {
-    val databaseUrlSettings = sys.props.get(H2UrlSettings)
+    val databaseUrlSettings = sys.props
+      .get(H2UrlSettings)
       .map(_.trim)
       .filter(_.nonEmpty)
       .map(ss => s";$ss")
@@ -125,7 +127,7 @@ object PicsDatabase {
 }
 
 class PicsDatabase(ds: DataSource, p: JdbcProfile, val ec: ExecutionContext)
-  extends DatabaseLike(p) {
+    extends DatabaseLike(p) {
   val mappings = Mappings(p)
   val api = profile.api
 

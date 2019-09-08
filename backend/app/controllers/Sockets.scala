@@ -16,7 +16,8 @@ object Sockets {
     new Sockets(auth)(as, mat)
 }
 
-class Sockets(auth: PicsAuth)(implicit actorSystem: ActorSystem, mat: Materializer) extends PicSink {
+class Sockets(auth: PicsAuth)(implicit actorSystem: ActorSystem, mat: Materializer)
+    extends PicSink {
   val mediator = actorSystem.actorOf(ClientSockets.props())
 
   def onPics(pics: ClientPics, owner: PicRequest): Unit =
@@ -29,11 +30,13 @@ class Sockets(auth: PicsAuth)(implicit actorSystem: ActorSystem, mat: Materializ
     mediator ! Unicast(Json.toJson(c), to.name)
 
   def listen = WebSocket.acceptOrResult[JsValue, JsValue] { rh =>
-    auth.auth(rh).map(_.map { user =>
-      ActorFlow.actorRef { out =>
-        ClientSocket.props(SocketContext(out, user, mediator))
-      }
-    })
+    auth
+      .auth(rh)
+      .map(_.map { user =>
+        ActorFlow.actorRef { out =>
+          ClientSocket.props(SocketContext(out, user, mediator))
+        }
+      })
   }
 }
 

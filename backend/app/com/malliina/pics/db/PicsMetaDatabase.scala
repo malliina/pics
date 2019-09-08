@@ -36,7 +36,9 @@ class PicsMetaDatabase(val db: PicsDatabase) extends MetaSource {
     run(action).flatMap { maybeRow =>
       maybeRow
         .map(r => fut[KeyMeta](r))
-        .getOrElse(Future.failed(new Exception(s"Failed to find inserted picture meta for '$key'.")))
+        .getOrElse(
+          Future.failed(new Exception(s"Failed to find inserted picture meta for '$key'."))
+        )
     }
   }
 
@@ -50,7 +52,9 @@ class PicsMetaDatabase(val db: PicsDatabase) extends MetaSource {
 
   def remove(key: Key, user: PicOwner): Future[Boolean] = {
     val action = pics.filter(pic => pic.owner === user && pic.key === key).delete
-    run(action).map { i => i > 0 }
+    run(action).map { i =>
+      i > 0
+    }
   }
 
   def run[R](a: DBIOAction[R, NoStream, Nothing]): Future[R] =

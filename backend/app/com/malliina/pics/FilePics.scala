@@ -11,8 +11,8 @@ import com.malliina.pics.db.PicsDatabase
 import com.malliina.storage.{StorageLong, StorageSize}
 import play.api.Logger
 
-import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 object FilePics {
   private val log = Logger(getClass)

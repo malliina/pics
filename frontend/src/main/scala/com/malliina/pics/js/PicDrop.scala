@@ -36,7 +36,10 @@ class PicDrop extends Frontend with PicsStrings {
         val loc = xhr.getResponseHeader("Location")
         val key = xhr.getResponseHeader(XKey)
         if (loc != null && key != null) {
-          val feedback = div(`class` := "lead alert alert-success", role := "alert")("Saved ", a(href := loc)(key))
+          val feedback = div(`class` := "lead alert alert-success", role := "alert")(
+            "Saved ",
+            a(href := loc)(key)
+          )
           document.getElementById("feedback").appendChild(feedback.render)
         }
       }

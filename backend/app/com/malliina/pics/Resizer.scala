@@ -23,14 +23,22 @@ class Resizer(maxWidth: Int, maxHeight: Int) {
   def resizeFromFile(src: Path, dest: Path): Either[ImageFailure, BufferedImage] = {
     val format = FilenameUtils.getExtension(src.getFileName.toString)
     try {
-      Option(ImageIO.read(src.toFile)).map { bufferedImage =>
-        val resized = resize(bufferedImage)
-        val writerFound = ImageIO.write(resized, format, dest.toFile)
-        if (writerFound) Right(resized)
-        else Left(UnsupportedFormat(format, ImageIO.getWriterFormatNames.toList.map(_.toLowerCase).distinct))
-      }.getOrElse {
-        Left(ImageReaderFailure(src))
-      }
+      Option(ImageIO.read(src.toFile))
+        .map { bufferedImage =>
+          val resized = resize(bufferedImage)
+          val writerFound = ImageIO.write(resized, format, dest.toFile)
+          if (writerFound) Right(resized)
+          else
+            Left(
+              UnsupportedFormat(
+                format,
+                ImageIO.getWriterFormatNames.toList.map(_.toLowerCase).distinct
+              )
+            )
+        }
+        .getOrElse {
+          Left(ImageReaderFailure(src))
+        }
     } catch {
       case ioe: IOException => Left(ImageException(ioe))
     }
@@ -54,7 +62,10 @@ class Resizer(maxWidth: Int, maxHeight: Int) {
     val g = resized.createGraphics()
     g.setPaint(Color.white)
     g.fillRect(0, 0, width, height)
-    g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
+    g.setRenderingHint(
+      RenderingHints.KEY_INTERPOLATION,
+      RenderingHints.VALUE_INTERPOLATION_BILINEAR
+    )
     g.drawImage(src, 0, 0, width, height, null)
     g.dispose()
     resized

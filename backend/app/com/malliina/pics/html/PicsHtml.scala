@@ -73,9 +73,11 @@ class PicsHtml(scripts: Seq[String]) extends BaseHtml {
           )
         ),
         fullRow(
-          postableForm(reverse.delete().toString,
-                       `class` := "drop-row form-inline",
-                       id := "delete-form")(
+          postableForm(
+            reverse.delete().toString,
+            `class` := "drop-row form-inline",
+            id := "delete-form"
+          )(
             divClass("input-group")(
               divClass("input-group-prepend")(
                 spanClass("input-group-text")("pics/")
@@ -109,9 +111,15 @@ class PicsHtml(scripts: Seq[String]) extends BaseHtml {
   def privacyPolicy = {
     val privacyContent: Modifier = divContainer(
       h1(`class` := "page-header")("Privacy Policy"),
-      p("This privacy policy describes how your information is used and stored when you use this app."),
-      p("The purpose of using and storing your information is to enable app functionality and optimize your user experience. Your information is not used for any other purposes than enabling application features. Your information is not shared with third parties."),
-      p("Network communications: This app may communicate with other networked servers. The communication enables the transfer of images to and from your devices."),
+      p(
+        "This privacy policy describes how your information is used and stored when you use this app."
+      ),
+      p(
+        "The purpose of using and storing your information is to enable app functionality and optimize your user experience. Your information is not used for any other purposes than enabling application features. Your information is not shared with third parties."
+      ),
+      p(
+        "Network communications: This app may communicate with other networked servers. The communication enables the transfer of images to and from your devices."
+      ),
       p("Network requests may be logged by server software.")
     )
     basePage(PageConf("Pics - Privacy Policy", inner = privacyContent))
@@ -156,19 +164,25 @@ class PicsHtml(scripts: Seq[String]) extends BaseHtml {
           ),
           ulClass(s"${navbars.Nav}")(
             li(`class` := s"nav-item $Dropdown")(
-              a(href := "#",
+              a(
+                href := "#",
                 `class` := s"nav-link $DropdownToggle",
                 dataToggle := Dropdown,
                 role := Button,
                 aria.haspopup := tags.True,
-                aria.expanded := tags.False)(
+                aria.expanded := tags.False
+              )(
                 fa("user"),
                 s" ${u.name} ",
                 spanClass(Caret)
               ),
               ulClass(DropdownMenu)(
-                li(a(href := routes.CognitoControl.signOut(), `class` := "nav-link")(fa("sign-in-alt"),
-                                                                                     " Sign Out"))
+                li(
+                  a(href := routes.CognitoControl.signOut(), `class` := "nav-link")(
+                    fa("sign-in-alt"),
+                    " Sign Out"
+                  )
+                )
               )
             )
           )
@@ -188,11 +202,12 @@ class PicsHtml(scripts: Seq[String]) extends BaseHtml {
   def fa(faName: String) = i(`class` := s"fa fa-$faName", title := faName, aria.hidden := tags.True)
 
   def withNavbar(navLinks: Modifier*) =
-    navbar.basic(reverse.list(),
-                 "Pics",
-                 navLinks,
-                 navClass =
-                   s"${navbars.Navbar} navbar-expand-sm ${navbars.Light} ${navbars.BgLight}")
+    navbar.basic(
+      reverse.list(),
+      "Pics",
+      navLinks,
+      navClass = s"${navbars.Navbar} navbar-expand-sm ${navbars.Light} ${navbars.BgLight}"
+    )
 
   def basePage(conf: PageConf) = TagPage(
     html(lang := En)(
@@ -218,7 +233,9 @@ class PicsHtml(scripts: Seq[String]) extends BaseHtml {
   )
 }
 
-case class PageConf(title: String,
-                    extraHeader: Modifier = (),
-                    bodyClass: String = "",
-                    inner: Modifier = ())
+case class PageConf(
+    title: String,
+    extraHeader: Modifier = (),
+    bodyClass: String = "",
+    inner: Modifier = ()
+)

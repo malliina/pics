@@ -28,13 +28,19 @@ class PicsAuthenticator(jwtAuth: JWTAuth, bundle: AuthBundle[PicRequest]) extend
   override def authenticate(rh: RequestHeader): Future[Either[Result, PicRequest]] = {
     val execAuth: PartialFunction[MediaRange, Future[Either[Result, PicRequest]]] = {
       case PicsController.HtmlAccept() => authHtml(rh)
-      case PicsController.Json10() => authJwt(rh)
+      case PicsController.Json10()     => authJwt(rh)
       case PicsController.JsonAccept() => authJwt(rh)
     }
 
     def acceptedResult(ms: Seq[MediaRange]): Future[Either[Result, PicRequest]] = ms match {
-      case Nil => fut(Left(Results.NotAcceptable(Errors.single(s"No acceptable '${HeaderNames.ACCEPT}' header found."))))
-      case Seq(m, tail@_*) => execAuth.applyOrElse(m, (_: MediaRange) => acceptedResult(tail))
+      case Nil =>
+        fut(
+          Left(
+            Results
+              .NotAcceptable(Errors.single(s"No acceptable '${HeaderNames.ACCEPT}' header found."))
+          )
+        )
+      case Seq(m, tail @ _*) => execAuth.applyOrElse(m, (_: MediaRange) => acceptedResult(tail))
     }
 
     val accepted =

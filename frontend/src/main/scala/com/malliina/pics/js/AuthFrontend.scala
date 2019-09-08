@@ -12,7 +12,6 @@ class AuthFrontend(log: BaseLogger) extends Frontend with LoginStrings {
   val Hidden = "hidden"
 
   def emailIn = input(EmailId)
-
   def passIn = input(PasswordId)
 
   def alertDanger(msg: String) = BaseHtml.alertDanger(msg)

@@ -38,7 +38,9 @@ class AppLoader
         new AppComponents(
           ctx,
           conf =>
-            GoogleOAuthCredentials(conf).fold(err => throw new Exception(err.message), identity)))
+            GoogleOAuthCredentials(conf).fold(err => throw new Exception(err.message), identity)
+        )
+    )
 
 class AppComponents(context: Context, creds: Configuration => GoogleOAuthCredentials)
     extends BaseComponents(context, creds) {
@@ -83,9 +85,11 @@ abstract class BaseComponents(context: Context, creds: Configuration => GoogleOA
   )
   val csp = csps.mkString
   override lazy val securityHeadersConfig = SecurityHeadersConfig(
-    contentSecurityPolicy = Option(csp))
+    contentSecurityPolicy = Option(csp)
+  )
   override lazy val allowedHostsConfig = AllowedHostsConfig(
-    Seq("localhost", "pics.malliina.com", "images.malliina.com"))
+    Seq("localhost", "pics.malliina.com", "images.malliina.com")
+  )
 
   override lazy val csrfConfig = CSRFConfig(
     tokenName = CsrfTokenName,
@@ -98,7 +102,8 @@ abstract class BaseComponents(context: Context, creds: Configuration => GoogleOA
   // Sets sameSite = None, otherwise the Google auth redirect will wipe out the session state
   override lazy val httpConfiguration =
     defaultHttpConf.copy(
-      session = defaultHttpConf.session.copy(cookieName = "picsSession", sameSite = None))
+      session = defaultHttpConf.session.copy(cookieName = "picsSession", sameSite = None)
+    )
 
   val html = PicsHtml.build(mode == Mode.Prod)
   val db: PicsDatabase = PicsDatabase.forMode(mode, configuration)

@@ -30,8 +30,8 @@ trait IntersectionObserverEntry extends js.Object {
 @js.native
 class IntersectionObserver(
     init: js.Function2[js.Array[IntersectionObserverEntry], IntersectionObserver, _],
-    options: IntersectionOptions)
-    extends js.Object {
+    options: IntersectionOptions
+) extends js.Object {
   def observe(elem: Node): Unit = js.native
   def unobserve(elem: Node): Unit = js.native
 }

@@ -28,11 +28,12 @@ object MultiSizeHandler {
   )
 }
 
-class MultiSizeHandler(val smalls: ImageHandler,
-                       val mediums: ImageHandler,
-                       val larges: ImageHandler,
-                       val originals: ImageHandler)
-    extends ImageHandlerLike {
+class MultiSizeHandler(
+    val smalls: ImageHandler,
+    val mediums: ImageHandler,
+    val larges: ImageHandler,
+    val originals: ImageHandler
+) extends ImageHandlerLike {
   val handlers = Seq(smalls, mediums, larges, originals)
 
   def apply(size: PicSize) = size match {

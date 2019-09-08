@@ -2,7 +2,7 @@ scalaVersion := "2.12.8"
 
 resolvers ++= Seq(
   ivyRepo("bintray-sbt-plugin-releases",
-    "http://dl.bintray.com/content/sbt/sbt-plugin-releases"),
+    "https://dl.bintray.com/content/sbt/sbt-plugin-releases"),
   ivyRepo("malliina bintray sbt",
     "https://dl.bintray.com/malliina/sbt-plugins/"),
   Resolver.bintrayRepo("malliina", "maven")
@@ -12,7 +12,8 @@ classpathTypes += "maven-plugin"
 
 Seq(
   "com.typesafe.play" % "sbt-plugin" % "2.7.3",
-  "com.malliina" % "sbt-utils-maven" % "0.13.0",
+  "com.malliina" % "sbt-utils-maven" % "0.14.2",
+  "com.malliina" % "sbt-nodejs" % "0.14.2",
   "com.malliina" %% "sbt-packager" % "2.7.0",
   "com.malliina" % "sbt-filetree" % "0.3.0",
   "com.typesafe.sbt" % "sbt-gzip" % "1.0.2",

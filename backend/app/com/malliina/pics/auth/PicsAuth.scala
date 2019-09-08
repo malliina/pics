@@ -27,9 +27,8 @@ object PicsAuth {
     )
 }
 
-class PicsAuth(val authenticator: PicsAuthLike,
-               mat: Materializer,
-               actions: DefaultActionBuilder) extends ControllerHelpers {
+class PicsAuth(val authenticator: PicsAuthLike, mat: Materializer, actions: DefaultActionBuilder)
+    extends ControllerHelpers {
 
   def authAction(a: PicRequest => Future[Result]) =
     authed(req => actions.async(a(req)))
@@ -49,19 +48,27 @@ class PicsAuth(val authenticator: PicsAuthLike,
   def adminAuthed(a: PicRequest => EssentialAction) =
     withAuth(rh => authed(rh, _.name == PicsAuth.AdminUser), a)
 
-  def withAuth(check: RequestHeader => Future[Either[Result, PicRequest]], a: PicRequest => EssentialAction) =
+  def withAuth(
+      check: RequestHeader => Future[Either[Result, PicRequest]],
+      a: PicRequest => EssentialAction
+  ) =
     EssentialAction { rh =>
-      val futAcc = check(rh).map(_.fold(
-        err => actions(err)(rh),
-        req => a(req)(rh)
-      ))
+      val futAcc = check(rh).map(
+        _.fold(
+          err => actions(err)(rh),
+          req => a(req)(rh)
+        )
+      )
       Accumulator.flatten(futAcc)(mat)
     }
 
   def auth(rh: RequestHeader): Future[Either[Result, PicRequest]] =
     authed(rh, _ => true)
 
-  def authed(rh: RequestHeader, authorize: PicRequest => Boolean): Future[Either[Result, PicRequest]] = {
+  def authed(
+      rh: RequestHeader,
+      authorize: PicRequest => Boolean
+  ): Future[Either[Result, PicRequest]] = {
     authenticator.authenticate(rh).map(_.filterOrElse(authorize, unauth(rh)))
   }
 

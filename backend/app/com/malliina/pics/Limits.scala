@@ -24,6 +24,8 @@ object Limits {
     offset <- read[Int](Offset, rh).getOrElse(Right(DefaultOffset))
   } yield Limits(limit, offset)
 
-  def read[A](key: String, rh: RequestHeader)(implicit basic: QueryStringBindable[A]): Option[Either[Errors, A]] =
+  def read[A](key: String, rh: RequestHeader)(
+      implicit basic: QueryStringBindable[A]
+  ): Option[Either[Errors, A]] =
     basic.bind(key, rh.queryString).map(_.left.map(err => Errors(Seq(SingleError(err)))))
 }

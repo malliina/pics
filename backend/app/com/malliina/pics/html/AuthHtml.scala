@@ -59,7 +59,9 @@ object AuthHtml extends BaseHtml {
         emptyNavbar,
         divClass("container")(
           divClass("auth-form ml-auto mr-auto")(
-            heading, row(signUpForm(feedback)), row(confirmForm)
+            heading,
+            row(signUpForm(feedback)),
+            row(confirmForm)
           )
         )
       ),
@@ -93,11 +95,13 @@ object AuthHtml extends BaseHtml {
         labeledInput("Password", PasswordId, "password", None)
       ),
       divClass(s"$FormGroup d-flex")(
-        a(`class` := "btn btn-link mr-auto pl-0", href := "#", id := ForgotPasswordLinkId)("Forgot password?"),
+        a(`class` := "btn btn-link mr-auto pl-0", href := "#", id := ForgotPasswordLinkId)(
+          "Forgot password?"
+        ),
         submitButton(`class` := btn.primary, "Sign in")
       ),
       divClass(s"$FormGroup d-flex")(
-        a(`class` := "btn btn-link ml-auto mr-auto", href := reverse.signUp())("Sign up"),
+        a(`class` := "btn btn-link ml-auto mr-auto", href := reverse.signUp())("Sign up")
       ),
       divClass(FormGroup, id := LoginFeedbackId)(
         renderFeedback(feedback)
@@ -116,7 +120,14 @@ object AuthHtml extends BaseHtml {
     )
 
   def resetForm =
-    form(id := ResetFormId, `class` := col.md.twelve, method := Post, action := reverse.postSignIn(), novalidate, hidden)(
+    form(
+      id := ResetFormId,
+      `class` := col.md.twelve,
+      method := Post,
+      action := reverse.postSignIn(),
+      novalidate,
+      hidden
+    )(
       input(`type` := "hidden", name := TokenKey, id := ResetTokenId),
       divClass(FormGroup)(
         labeledInput("Email address", ResetEmailId, "email", None, disabled)
@@ -134,7 +145,13 @@ object AuthHtml extends BaseHtml {
     )
 
   def signUpForm(feedback: Option[UserFeedback] = None) =
-    form(id := SignUpFormId, `class` := col.md.twelve, method := Post, action := reverse.postSignIn(), novalidate)(
+    form(
+      id := SignUpFormId,
+      `class` := col.md.twelve,
+      method := Post,
+      action := reverse.postSignIn(),
+      novalidate
+    )(
       input(`type` := "hidden", name := TokenKey, id := LoginTokenId),
       divClass(FormGroup)(
         labeledInput("Email address", EmailId, "email", Option("me@example.com"))
@@ -177,12 +194,25 @@ object AuthHtml extends BaseHtml {
 
   def socialButton(provider: String, linkTo: Call, linkText: String) =
     a(`class` := s"social-button $provider", href := linkTo)(
-      span(`class` := s"social-logo $provider"), span(`class` := "social-text", linkText)
+      span(`class` := s"social-logo $provider"),
+      span(`class` := "social-text", linkText)
     )
 
-  def labeledInput(labelText: String, inId: String, inType: String, maybePlaceholder: Option[String], moreInput: Modifier*) = modifier(
+  def labeledInput(
+      labelText: String,
+      inId: String,
+      inType: String,
+      maybePlaceholder: Option[String],
+      moreInput: Modifier*
+  ) = modifier(
     label(`for` := inId)(labelText),
-    input(`type` := inType, `class` := FormControl, id := inId, maybePlaceholder.fold(empty)(ph => placeholder := ph), moreInput)
+    input(
+      `type` := inType,
+      `class` := FormControl,
+      id := inId,
+      maybePlaceholder.fold(empty)(ph => placeholder := ph),
+      moreInput
+    )
   )
 
   def emptyNavbar =

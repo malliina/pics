@@ -14,7 +14,8 @@ class ImportTests extends BaseSuite {
     val db = PicsDatabase.mysql(conf)
     import db.api._
     import db.mappings._
-    val lines = Files.readAllLines(Paths.get(sys.props("user.home")).resolve("files/pics.csv")).asScala.toList
+    val lines =
+      Files.readAllLines(Paths.get(sys.props("user.home")).resolve("files/pics.csv")).asScala.toList
     val sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
     val triples = lines.map { line =>
       val Array(key, owner, date) = line.split(";")

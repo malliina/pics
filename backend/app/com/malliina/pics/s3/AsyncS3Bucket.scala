@@ -18,7 +18,7 @@ import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.model._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext, Future}
 
@@ -69,9 +69,11 @@ class AsyncS3Bucket(bucket: BucketName, v2: S3AsyncClient)(implicit ec: Executio
         .map(_.drop(from))
   }
 
-  private def loadAcc(desiredSize: Int,
-                      current: ListObjectsV2Response,
-                      acc: Seq[FlatMeta]): Future[Seq[FlatMeta]] = {
+  private def loadAcc(
+      desiredSize: Int,
+      current: ListObjectsV2Response,
+      acc: Seq[FlatMeta]
+  ): Future[Seq[FlatMeta]] = {
     val newAcc = acc ++ current.contents().asScala.map { obj =>
       FlatMeta(Key(obj.key()), obj.lastModified())
     }

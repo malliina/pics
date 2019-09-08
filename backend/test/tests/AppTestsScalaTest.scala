@@ -31,7 +31,7 @@ object TestAuthenticator extends PicsAuthLike {
 }
 
 class TestComps(context: Context, creds: GoogleOAuthCredentials)
-  extends BaseComponents(context, _ => creds) {
+    extends BaseComponents(context, _ => creds) {
   override def buildAuthenticator() = TestAuthenticator
 
   override def buildPics() = MultiSizeHandler.clones(TestHandler)
@@ -41,6 +41,7 @@ class TestComps(context: Context, creds: GoogleOAuthCredentials)
   override lazy val socialConf: SocialConf = fakeSocialConf
 }
 
-abstract class TestAppSuite extends AppSuite(ctx => {
-  new TestComps(ctx, GoogleOAuthCredentials("id", "secret", "scope"))
-})
+abstract class TestAppSuite
+    extends AppSuite(ctx => {
+      new TestComps(ctx, GoogleOAuthCredentials("id", "secret", "scope"))
+    })

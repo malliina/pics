@@ -7,14 +7,14 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossP
 import scala.sys.process.Process
 import scala.util.Try
 
-val utilPlayVersion = "5.1.1" // uses primitives 1.9.0
+val utilPlayVersion = "5.2.4"
 val scalaTestVersion = "3.0.8"
-val primitivesVersion = "1.9.0"
+val primitivesVersion = "1.11.0"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
 val commonSettings = Seq(
   organization := "com.malliina",
-  scalaVersion := "2.12.8",
+  scalaVersion := "2.13.0",
   resolvers ++= Seq(
     "Sonatype releases" at "https://oss.sonatype.org/content/repositories/releases/",
     Resolver.bintrayRepo("malliina", "maven")
@@ -37,7 +37,7 @@ val crossJs = cross.js
 
 val frontend = project
   .in(file("frontend"))
-  .enablePlugins(ScalaJSBundlerPlugin, ScalaJSWeb, NodeCheckPlugin)
+  .enablePlugins(ScalaJSBundlerPlugin, ScalaJSWeb, NodeJsPlugin)
   .dependsOn(crossJs)
   .settings(commonSettings)
   .settings(
@@ -89,7 +89,7 @@ val backend = project
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-text" % "1.6",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.587",
-      "software.amazon.awssdk" % "s3" % "2.7.0",
+      "software.amazon.awssdk" % "s3" % "2.8.3",
       PlayImport.ehcache,
       PlayImport.ws,
       "com.malliina" %% "play-social" % utilPlayVersion,
@@ -97,8 +97,8 @@ val backend = project
       "com.h2database" % "h2" % "1.4.197",
       "mysql" % "mysql-connector-java" % "5.1.47",
       "com.zaxxer" % "HikariCP" % "3.3.1",
-      "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8",
-      "com.malliina" %% "logstreams-client" % "1.5.0",
+      "com.malliina" %% "scrimage-core" % "2.1.10",
+      "com.malliina" %% "logstreams-client" % "1.6.0",
       utilPlayDep,
       utilPlayDep % Test classifier "tests",
       "org.scalatest" %% "scalatest" % scalaTestVersion % Test,

@@ -30,12 +30,14 @@ object Social {
   def buildOrFail(actions: ActionBuilder[Request, AnyContent], socialConf: SocialConf) =
     new Social(actions, socialConf)
 
-  case class SocialConf(githubConf: AuthConf,
-                        microsoftConf: AuthConf,
-                        googleConf: AuthConf,
-                        facebookConf: AuthConf,
-                        twitterConf: AuthConf,
-                        amazonConf: AuthConf = AuthConf("2rnqepv44epargdosba6nlg2t9", "unused"))
+  case class SocialConf(
+      githubConf: AuthConf,
+      microsoftConf: AuthConf,
+      googleConf: AuthConf,
+      facebookConf: AuthConf,
+      twitterConf: AuthConf,
+      amazonConf: AuthConf = AuthConf("2rnqepv44epargdosba6nlg2t9", "unused")
+  )
 
   object SocialConf {
     def apply(conf: Configuration): SocialConf =
@@ -55,17 +57,11 @@ object Social {
   }
 
   case object Google extends AuthProvider("google")
-
   case object Microsoft extends AuthProvider("microsoft")
-
   case object Amazon extends AuthProvider("amazon")
-
   case object Twitter extends AuthProvider("twitter")
-
   case object Facebook extends AuthProvider("facebook")
-
   case object GitHub extends AuthProvider("github")
-
 }
 
 class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
@@ -98,13 +94,29 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
       handler.onUnauthorized(error, req)
   }
 
-  val microsoftValidator = MicrosoftCodeValidator(oauthConf(routes.Social.microsoftCallback(), conf.microsoftConf))
-  val gitHubValidator = GitHubCodeValidator(oauthConf(routes.Social.githubCallback(), conf.githubConf))
-  val googleValidator = GoogleCodeValidator(oauthConf(routes.Social.googleCallback(), conf.googleConf))
-  val facebookValidator = FacebookCodeValidator(oauthConf(routes.Social.facebookCallback(), conf.facebookConf))
-  val twitterValidator = TwitterValidator(oauthConf(routes.Social.twitterCallback(), conf.twitterConf))
-  private val amazonOauth = OAuthConf(routes.Social.amazonCallback(), cognitoHandler, conf.amazonConf, okClient)
-  val amazonValidator = CognitoCodeValidator("pics.auth.eu-west-1.amazoncognito.com", IdentityProvider.LoginWithAmazon, CognitoValidators.picsId, amazonOauth)
+  val microsoftValidator = MicrosoftCodeValidator(
+    oauthConf(routes.Social.microsoftCallback(), conf.microsoftConf)
+  )
+  val gitHubValidator = GitHubCodeValidator(
+    oauthConf(routes.Social.githubCallback(), conf.githubConf)
+  )
+  val googleValidator = GoogleCodeValidator(
+    oauthConf(routes.Social.googleCallback(), conf.googleConf)
+  )
+  val facebookValidator = FacebookCodeValidator(
+    oauthConf(routes.Social.facebookCallback(), conf.facebookConf)
+  )
+  val twitterValidator = TwitterValidator(
+    oauthConf(routes.Social.twitterCallback(), conf.twitterConf)
+  )
+  private val amazonOauth =
+    OAuthConf(routes.Social.amazonCallback(), cognitoHandler, conf.amazonConf, okClient)
+  val amazonValidator = CognitoCodeValidator(
+    "pics.auth.eu-west-1.amazoncognito.com",
+    IdentityProvider.LoginWithAmazon,
+    CognitoValidators.picsId,
+    amazonOauth
+  )
 
   def oauthConf(redirCall: Call, conf: AuthConf) = OAuthConf(redirCall, handler, conf, okClient)
 
@@ -133,7 +145,9 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
   def amazonCallback = callback(amazonValidator, Amazon)
 
   private def start(codeValidator: AuthValidator) =
-    actions.async { req => codeValidator.start(req, Map.empty) }
+    actions.async { req =>
+      codeValidator.start(req, Map.empty)
+    }
 
   private def startHinted(codeValidator: LoginHintSupport) =
     actions.async { req =>
@@ -152,7 +166,11 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
   private def callback(codeValidator: AuthValidator, provider: AuthProvider): Action[AnyContent] =
     actions.async { req =>
       codeValidator.validateCallback(req).map { r =>
-        val cookie = Cookie(ProviderCookie, provider.name, maxAge = Option(LoginCookieDuration.toSeconds.toInt))
+        val cookie = Cookie(
+          ProviderCookie,
+          provider.name,
+          maxAge = Option(LoginCookieDuration.toSeconds.toInt)
+        )
         if (r.header.status < 400) r.withCookies(cookie)
         else r
       }

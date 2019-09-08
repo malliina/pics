@@ -17,7 +17,7 @@ object ImageHandler {
 }
 
 class ImageHandler(prefix: String, resizer: ImageResizer, val storage: DataSource)
-  extends ImageHandlerLike {
+    extends ImageHandlerLike {
 
   def createTempFile = Files.createTempFile(prefix, null)
 
@@ -25,9 +25,7 @@ class ImageHandler(prefix: String, resizer: ImageResizer, val storage: DataSourc
     log.info(s"Handling $prefix of '$key'...")
     val dest = createTempFile
     resizer.resize(image, dest).flatMap { e =>
-      e.fold(
-        err => Future.failed(err.ioe),
-        _ => storage.saveBody(key, dest).map(_ => dest))
+      e.fold(err => Future.failed(err.ioe), _ => storage.saveBody(key, dest).map(_ => dest))
     }
   }
 
@@ -35,6 +33,7 @@ class ImageHandler(prefix: String, resizer: ImageResizer, val storage: DataSourc
 }
 
 trait ImageHandlerLike {
+
   /** Might fail with Exception, ImageParseException, ...
     *
     * @param original orig image
