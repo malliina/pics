@@ -59,4 +59,6 @@ class PicsMetaDatabase(val db: PicsDatabase) extends MetaSource {
 
   def run[R](a: DBIOAction[R, NoStream, Nothing]): Future[R] =
     db.database.run(a)
+
+  def close(): Unit = db.database.close()
 }

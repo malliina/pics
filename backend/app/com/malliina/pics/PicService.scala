@@ -14,10 +14,13 @@ object PicService {
   private val log = Logger(getClass)
 
   def apply(db: PicsDatabase, handler: MultiSizeHandler): PicService =
-    new PicService(PicsMetaDatabase(db), handler)
+    apply(PicsMetaDatabase(db), handler)
+
+  def apply(db: MetaSource, handler: MultiSizeHandler): PicService =
+    new PicService(db, handler)
 }
 
-class PicService(val metaDatabase: PicsMetaDatabase, val handler: MultiSizeHandler) {
+class PicService(val metaDatabase: MetaSource, val handler: MultiSizeHandler) {
 
   /** Resizes the image in `tempFile`, uploads it to S3 and saves image metadata in the database.
     *

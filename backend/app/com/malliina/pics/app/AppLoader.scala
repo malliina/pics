@@ -6,12 +6,14 @@ import com.malliina.oauth.GoogleOAuthCredentials
 import com.malliina.pics.CSRFConf.{CsrfCookieName, CsrfHeaderName, CsrfTokenName, CsrfTokenNoCheck}
 import com.malliina.pics._
 import com.malliina.pics.auth.{PicsAuth, PicsAuthLike, PicsAuthenticator}
-import com.malliina.pics.db.PicsDatabase
+import com.malliina.pics.db.NewPicsDatabase.fail
+import com.malliina.pics.db.{Conf, NewPicsDatabase}
 import com.malliina.pics.html.PicsHtml
 import com.malliina.play.app.DefaultApp
 import com.typesafe.config.ConfigFactory
 import controllers.Social.SocialConf
 import controllers._
+import org.flywaydb.core.Flyway
 import play.api.ApplicationLoader.Context
 import play.api.cache.Cached
 import play.api.cache.ehcache.EhCacheComponents
@@ -37,13 +39,12 @@ class AppLoader
       ctx =>
         new AppComponents(
           ctx,
-          conf =>
-            GoogleOAuthCredentials(conf).fold(err => throw new Exception(err.message), identity)
+          conf => GoogleOAuthCredentials(conf).fold(err => throw new Exception(err.message), identity)
         )
     )
 
 class AppComponents(context: Context, creds: Configuration => GoogleOAuthCredentials)
-    extends BaseComponents(context, creds) {
+    extends BaseComponents(context, creds, c => Conf.fromConf(c).fold(fail, identity)) {
   override lazy val httpErrorHandler = PicsErrorHandler
 
   override def buildAuthenticator() = PicsAuthenticator(JWTAuth.default, PicsAuth.social)
@@ -51,7 +52,10 @@ class AppComponents(context: Context, creds: Configuration => GoogleOAuthCredent
   override def buildPics() = MultiSizeHandler.default(materializer)
 }
 
-abstract class BaseComponents(context: Context, creds: Configuration => GoogleOAuthCredentials)
+abstract class BaseComponents(
+  context: Context,
+  creds: Configuration => GoogleOAuthCredentials,
+  dbConf: Configuration => Conf)
     extends BuiltInComponentsFromContext(context)
     with HttpFiltersComponents
     with EhCacheComponents
@@ -106,9 +110,19 @@ abstract class BaseComponents(context: Context, creds: Configuration => GoogleOA
     )
 
   val html = PicsHtml.build(mode == Mode.Prod)
-  val db: PicsDatabase = PicsDatabase.forMode(mode, configuration)
-  db.init()
-  val service = PicService(db, buildPics())
+  val conf = dbConf(configuration)
+  val builder = Flyway.configure.dataSource(conf.url, conf.user, conf.pass)
+  val flyway =
+    if (mode == Mode.Test) {
+      builder.load()
+    } else {
+      val f = builder.baselineVersion("1").load
+      f.baseline()
+      f
+    }
+  flyway.migrate()
+  val quill = NewPicsDatabase(actorSystem, conf)
+  val service = PicService(quill, buildPics())
   val cache = new Cached(defaultCacheApi)
   override lazy val httpErrorHandler = PicsErrorHandler
   val authenticator = buildAuthenticator()
@@ -122,6 +136,6 @@ abstract class BaseComponents(context: Context, creds: Configuration => GoogleOA
     new Routes(httpErrorHandler, pics, sockets, picsAssets, social, cognitoControl)
 
   applicationLifecycle.addStopHook { () =>
-    Future.successful(db.database.close())
+    Future.successful(quill.close())
   }
 }

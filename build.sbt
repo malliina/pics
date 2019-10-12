@@ -54,7 +54,7 @@ val frontend = project
       "@fortawesome/fontawesome-free" -> "5.9.0",
       "bootstrap" -> "4.3.1",
       "jquery" -> "3.4.1",
-      "popper.js" -> "1.15.0",
+      "popper.js" -> "1.15.0"
     ),
     npmDevDependencies in Compile ++= Seq(
       "autoprefixer" -> "9.6.0",
@@ -93,6 +93,8 @@ val backend = project
       PlayImport.ehcache,
       PlayImport.ws,
       "com.malliina" %% "play-social" % utilPlayVersion,
+      "io.getquill" %% "quill-jdbc" % "3.4.10",
+      "org.flywaydb" % "flyway-core" % "6.0.3",
       "com.typesafe.slick" %% "slick" % "3.3.2",
       "com.h2database" % "h2" % "1.4.197",
       "mysql" % "mysql-connector-java" % "5.1.47",
@@ -102,7 +104,8 @@ val backend = project
       utilPlayDep,
       utilPlayDep % Test classifier "tests",
       "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
-      "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.3" % Test
+      "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.3" % Test,
+      "ch.vorburger.mariaDB4j" % "mariaDB4j" % "2.4.0" % Test
     ),
     // pipelineStages in Assets := Seq(digest, gzip)
     name in Linux := "pics",
@@ -137,7 +140,7 @@ val backend = project
       .ofProject(frontend) { modules =>
         (modules / "bootstrap").allPaths +++ (modules / "@fortawesome" / "fontawesome-free").allPaths
       }
-      .value,
+      .value
   )
 
 val pics = project

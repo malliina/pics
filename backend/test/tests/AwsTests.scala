@@ -8,6 +8,8 @@ import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.malliina.pics.s3.AsyncS3Bucket
 import org.scalatest.FunSuite
+import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider
+import software.amazon.awssdk.profiles.ProfileFile
 
 import scala.collection.JavaConverters.asScalaBuffer
 import scala.concurrent.Future
@@ -19,6 +21,10 @@ class AwsTests extends FunSuite {
 
   implicit val mat = ActorMaterializer()(ActorSystem("test"))
   implicit val ec = mat.executionContext
+
+  ignore("read profile") {
+    ProfileCredentialsProvider.create("pimp").resolveCredentials()
+  }
 
   ignore("list images") {
     val src = AsyncS3Bucket.Original

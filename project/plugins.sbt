@@ -23,7 +23,9 @@ Seq(
   "org.portable-scala" % "sbt-scalajs-crossproject" % "0.6.0",
   "org.scala-js" % "sbt-scalajs" % "0.6.28",
   "ch.epfl.scala" % "sbt-web-scalajs-bundler" % "0.14.0",
-  "com.eed3si9n" % "sbt-buildinfo" % "0.9.0"
+  "com.eed3si9n" % "sbt-buildinfo" % "0.9.0",
+  "ch.epfl.scala" % "sbt-bloop" % "1.3.4",
+  "org.scalameta" % "sbt-scalafmt" % "2.0.4"
 ) map addSbtPlugin
 
 def ivyRepo(name: String, urlString: String) =

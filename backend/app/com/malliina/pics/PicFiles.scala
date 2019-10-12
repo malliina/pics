@@ -1,5 +1,6 @@
 package com.malliina.pics
 
+import java.io.Closeable
 import java.nio.file.{Files, Path}
 
 import akka.stream.IOResult
@@ -18,11 +19,8 @@ sealed trait DataResponse {
   def isImage: Boolean = contentType.exists(_.isImage)
 }
 
-case class DataFile(
-    file: Path,
-    contentLength: Option[StorageSize],
-    contentType: Option[ContentType]
-) extends DataResponse
+case class DataFile(file: Path, contentLength: Option[StorageSize], contentType: Option[ContentType])
+    extends DataResponse
 
 object DataFile {
   def apply(file: Path): DataFile = DataFile(
@@ -59,10 +57,9 @@ trait DataSource extends SourceLike {
   def saveBody(key: Key, file: Path): Future[StorageSize]
 }
 
-trait MetaSource extends SourceLike {
+trait MetaSource extends SourceLike with Closeable {
   def load(from: Int, until: Int, user: PicOwner): Future[Seq[KeyMeta]]
-
   def saveMeta(key: Key, owner: PicOwner): Future[KeyMeta]
-
+  def putMetaIfNotExists(meta: KeyMeta): Future[Int]
   def remove(key: Key, user: PicOwner): Future[Boolean]
 }

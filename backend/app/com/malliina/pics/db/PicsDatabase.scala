@@ -57,7 +57,7 @@ object PicsDatabase {
   val MySQLDriver = "com.mysql.jdbc.Driver"
   val tmpDir = Paths.get(sys.props("java.io.tmpdir"))
 
-  def forMode(mode: Mode, conf: Configuration) =
+  def forMode(mode: Mode, conf: Configuration): PicsDatabase =
     if (mode == Mode.Prod) prod(conf)
     else if (mode == Mode.Dev) dev(conf)
     else inMemory()
@@ -107,15 +107,18 @@ object PicsDatabase {
 
   def mysqlFromEnvOrFail() = mysql(Conf.fromEnvOrFail())
 
-  def mysql(conf: Conf): PicsDatabase = {
+  def dataSource(conf: Conf): HikariDataSource = {
     val hikari = new HikariConfig()
     hikari.setDriverClassName(MySQLDriver)
     hikari.setJdbcUrl(conf.url)
     hikari.setUsername(conf.user)
     hikari.setPassword(conf.pass)
     log info s"Connecting to '${conf.url}'..."
-    apply(new HikariDataSource(hikari), InstantMySQLProfile)
+    new HikariDataSource(hikari)
   }
+
+  def mysql(conf: Conf): PicsDatabase =
+    apply(dataSource(conf), InstantMySQLProfile)
 
   def executor(threads: Int) = AsyncExecutor(
     name = "AsyncExecutor.pics",
@@ -126,8 +129,7 @@ object PicsDatabase {
   )
 }
 
-class PicsDatabase(ds: DataSource, p: JdbcProfile, val ec: ExecutionContext)
-    extends DatabaseLike(p) {
+class PicsDatabase(ds: DataSource, p: JdbcProfile, val ec: ExecutionContext) extends DatabaseLike(p) {
   val mappings = Mappings(p)
   val api = profile.api
 
