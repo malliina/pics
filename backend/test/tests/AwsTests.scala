@@ -9,10 +9,9 @@ import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.malliina.pics.s3.AsyncS3Bucket
 import org.scalatest.FunSuite
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider
-import software.amazon.awssdk.profiles.ProfileFile
 
-import scala.collection.JavaConverters.asScalaBuffer
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 class AwsTests extends FunSuite {
   val bucketName = "malliina-pics-test-bucket2"
@@ -32,6 +31,24 @@ class AwsTests extends FunSuite {
       //      val content = src.get(key)
       //      val newKey = Key(key.key + ".jpg")
       //      println(s"$key ct ${content.contentType}")
+    }
+  }
+
+  ignore("create bucket, save file, delete bucket") {
+    withBucket { aws =>
+      aws.putObject(bucketName, objectKey, testContent)
+
+      val objs = aws.listObjects(bucketName)
+      objs.getObjectSummaries.asScala foreach { file =>
+        val obj = aws.getObject(bucketName, file.getKey)
+        // Source closes the InputStream upon completion
+        val contentSource = StreamConverters.fromInputStream(() => obj.getObjectContent)
+        val contentConcat: Future[ByteString] = contentSource.runFold(ByteString.empty)(_ ++ _)
+        val content = await(contentConcat)
+        assert(content.utf8String === testContent)
+      }
+
+      aws.deleteObject(bucketName, objectKey)
     }
   }
 
@@ -72,24 +89,6 @@ class AwsTests extends FunSuite {
 //    }
 //    await(task)
 //  }
-
-  ignore("create bucket, save file, delete bucket") {
-    withBucket { aws =>
-      aws.putObject(bucketName, objectKey, testContent)
-
-      val objs = aws.listObjects(bucketName)
-      asScalaBuffer(objs.getObjectSummaries) foreach { file =>
-        val obj = aws.getObject(bucketName, file.getKey)
-        // Source closes the InputStream upon completion
-        val contentSource = StreamConverters.fromInputStream(() => obj.getObjectContent)
-        val contentConcat: Future[ByteString] = contentSource.runFold(ByteString.empty)(_ ++ _)
-        val content = await(contentConcat)
-        assert(content.utf8String === testContent)
-      }
-
-      aws.deleteObject(bucketName, objectKey)
-    }
-  }
 
   def withBucket[T](code: AmazonS3 => T) = {
     val aws: AmazonS3 = AmazonS3ClientBuilder.standard().withRegion(Regions.EU_WEST_1).build()

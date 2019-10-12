@@ -47,7 +47,7 @@ class ImageTests extends FunSuite {
     val resizer = ScrimageResizer.Small
     val result = resizeWith(resizer, "demo-scrimage-small.jpeg")
     assert(result.isRight)
-    val size = result.right.get
+    val size = result.toOption.get
     assert(size < 100.kilos)
   }
 
@@ -55,7 +55,7 @@ class ImageTests extends FunSuite {
     val resizer = ScrimageResizer.Medium
     val result = resizeWith(resizer, "demo-scrimage-normal.jpeg")
     assert(result.isRight)
-    val size = result.right.get
+    val size = result.toOption.get
     assert(size < 200.kilos)
   }
 
@@ -63,7 +63,7 @@ class ImageTests extends FunSuite {
     val resizer = ScrimageResizer.Large
     val result = resizeWith(resizer, "demo-scrimage-large.jpeg")
     assert(result.isRight)
-    val size = result.right.get
+    val size = result.toOption.get
     assert(size < 600.kilos)
   }
 

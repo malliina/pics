@@ -13,9 +13,7 @@ import scala.concurrent.Future
 
 trait PicsAuthLike {
   def authenticate(rh: RequestHeader): Future[Either[Result, PicRequest]]
-
   def validateToken(token: AccessToken): Either[Result, CognitoUser]
-
   def unauth = Results.Unauthorized(Errors.single("Unauthorized."))
 }
 

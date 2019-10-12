@@ -4,7 +4,6 @@ import java.nio.file.{Files, Path}
 
 import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.PicService.log
-import com.malliina.pics.db.{PicsDatabase, PicsMetaDatabase}
 import org.apache.commons.io.FilenameUtils
 import play.api.Logger
 
@@ -12,9 +11,6 @@ import scala.concurrent.Future
 
 object PicService {
   private val log = Logger(getClass)
-
-  def apply(db: PicsDatabase, handler: MultiSizeHandler): PicService =
-    apply(PicsMetaDatabase(db), handler)
 
   def apply(db: MetaSource, handler: MultiSizeHandler): PicService =
     new PicService(db, handler)

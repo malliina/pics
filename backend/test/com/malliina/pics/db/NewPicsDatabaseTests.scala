@@ -1,17 +1,11 @@
 package com.malliina.pics.db
 
 import akka.actor.ActorSystem
-import com.malliina.pics.{Key, Keys, PicOwner}
+import com.malliina.pics.{Keys, PicOwner}
 import org.flywaydb.core.Flyway
 import tests.{BaseSuite, TestComps}
 
 class NewPicsDatabaseTests extends BaseSuite {
-  test("can insert picture") {
-    val db = PicsMetaDatabase.inMemory()
-    val op = db.saveMeta(Key("test.jpg"), PicOwner("test"))
-    await(op)
-  }
-
   test("can CRUD pic meta") {
     val as = ActorSystem("test")
     try {

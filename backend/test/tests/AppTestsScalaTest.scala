@@ -5,7 +5,7 @@ import com.malliina.oauth.GoogleOAuthCredentials
 import com.malliina.pics._
 import com.malliina.pics.app.BaseComponents
 import com.malliina.pics.auth.PicsAuthLike
-import com.malliina.pics.db.{Conf, PicsDatabase}
+import com.malliina.pics.db.Conf
 import com.malliina.play.auth.{AccessToken, AuthConf, CognitoUser}
 import controllers.Social.SocialConf
 import play.api.ApplicationLoader.Context
@@ -48,7 +48,7 @@ object TestComps {
     val dbConfig = DBConfigurationBuilder.newBuilder()
     val db = DB.newEmbeddedDB(dbConfig.build())
     db.start()
-    Conf(dbConfig.getURL("test"), "root", "", PicsDatabase.MySQLDriver)
+    Conf(dbConfig.getURL("test"), "root", "", Conf.MySQLDriver)
   }
 }
 

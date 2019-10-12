@@ -7,8 +7,9 @@ import java.util.Date
 import akka.actor.ActorSystem
 import com.malliina.pics.db.NewPicsDatabase.{fail, log}
 import com.malliina.pics.{Key, KeyMeta, MetaSource, PicOwner}
-import com.zaxxer.hikari.HikariDataSource
+import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import io.getquill.{MysqlEscape, MysqlJdbcContext, NamingStrategy, SnakeCase}
+import org.flywaydb.core.Flyway
 import play.api.Logger
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -18,10 +19,28 @@ object NewPicsDatabase {
 
   def apply(as: ActorSystem, dbConf: Conf): NewPicsDatabase = {
     val pool = as.dispatchers.lookup("contexts.database")
-    apply(PicsDatabase.dataSource(dbConf), pool)
+    apply(dataSource(dbConf), pool)
   }
 
   def apply(ds: HikariDataSource, ec: ExecutionContext): NewPicsDatabase = new NewPicsDatabase(ds)(ec)
+
+  def mysqlFromEnvOrFail(as: ActorSystem) = withMigrations(as, Conf.fromEnvOrFail())
+
+  def withMigrations(as: ActorSystem, conf: Conf) = {
+    val flyway = Flyway.configure.dataSource(conf.url, conf.user, conf.pass).load()
+    flyway.migrate()
+    apply(as, conf)
+  }
+
+  def dataSource(conf: Conf): HikariDataSource = {
+    val hikari = new HikariConfig()
+    hikari.setDriverClassName(Conf.MySQLDriver)
+    hikari.setJdbcUrl(conf.url)
+    hikari.setUsername(conf.user)
+    hikari.setPassword(conf.pass)
+    log info s"Connecting to '${conf.url}'..."
+    new HikariDataSource(hikari)
+  }
 
   def fail(message: String): Nothing = throw new Exception(message)
 }

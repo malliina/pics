@@ -69,7 +69,6 @@ abstract class BaseComponents(
   def buildPics(): MultiSizeHandler
 
   val mode = environment.mode
-
   lazy val socialConf = SocialConf(configuration)
 
   val allowedCsp = Seq(
@@ -111,17 +110,7 @@ abstract class BaseComponents(
 
   val html = PicsHtml.build(mode == Mode.Prod)
   val conf = dbConf(configuration)
-  val builder = Flyway.configure.dataSource(conf.url, conf.user, conf.pass)
-  val flyway =
-    if (mode == Mode.Test) {
-      builder.load()
-    } else {
-      val f = builder.baselineVersion("1").load
-      f.baseline()
-      f
-    }
-  flyway.migrate()
-  val quill = NewPicsDatabase(actorSystem, conf)
+  val quill = NewPicsDatabase.withMigrations(actorSystem, conf)
   val service = PicService(quill, buildPics())
   val cache = new Cached(defaultCacheApi)
   override lazy val httpErrorHandler = PicsErrorHandler

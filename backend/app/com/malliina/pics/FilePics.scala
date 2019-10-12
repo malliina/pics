@@ -7,7 +7,6 @@ import akka.stream.{IOResult, Materializer}
 import akka.util.ByteString
 import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.FilePics.log
-import com.malliina.pics.db.PicsDatabase
 import com.malliina.storage.{StorageLong, StorageSize}
 import play.api.Logger
 
@@ -16,10 +15,11 @@ import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 object FilePics {
   private val log = Logger(getClass)
+  val tmpDir = Paths.get(sys.props("java.io.tmpdir"))
 
   val PicsEnvKey = "pics.dir"
   val picsDir =
-    sys.env.get(PicsEnvKey).map(Paths.get(_)).getOrElse(PicsDatabase.tmpDir.resolve("pics"))
+    sys.env.get(PicsEnvKey).map(Paths.get(_)).getOrElse(tmpDir.resolve("pics"))
 
   def apply(dir: Path, mat: Materializer): FilePics = new FilePics(dir, mat)
 
