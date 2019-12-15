@@ -10,15 +10,15 @@ import play.api.test.FakeRequest
 import play.api.{BuiltInComponentsFromContext, Configuration, NoHttpFiltersComponents}
 
 class TestComponents(ctx: Context)
-    extends BuiltInComponentsFromContext(ctx)
-    with NoHttpFiltersComponents {
+  extends BuiltInComponentsFromContext(ctx)
+  with NoHttpFiltersComponents {
 
   import play.api.routing.sird._
 
-  override lazy val configuration: Configuration = ctx.initialConfiguration ++ Configuration(
+  override lazy val configuration: Configuration = Configuration(
     "play.http.forwarded.version" -> "x-forwarded",
     "play.http.forwarded.trustedProxies" -> List("0.0.0.0/0", "::/0")
-  )
+  ).withFallback(ctx.initialConfiguration)
 
   override def router: Router = Router.from {
     case GET(p"/")    => securityCheck(_.secure)
@@ -31,7 +31,6 @@ class TestComponents(ctx: Context)
 }
 
 class SiloTest extends AppSuite(new TestComponents(_)) {
-
   import play.api.test.Helpers._
 
   test("play says secure is false despite https in trusted proxy") {

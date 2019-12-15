@@ -1,7 +1,6 @@
 package tests
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.StreamConverters
 import akka.util.ByteString
 import com.amazonaws.regions.Regions
@@ -18,8 +17,8 @@ class AwsTests extends FunSuite {
   val objectKey = "myKey"
   val testContent = "test content"
 
-  implicit val mat = ActorMaterializer()(ActorSystem("test"))
-  implicit val ec = mat.executionContext
+  implicit val as = ActorSystem("test")
+  implicit val ec = as.dispatcher
 
   ignore("read profile") {
     ProfileCredentialsProvider.create("pimp").resolveCredentials()

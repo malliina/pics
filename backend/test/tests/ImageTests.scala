@@ -1,10 +1,10 @@
 package tests
 
 import java.nio.file.{Files, Paths}
-import javax.imageio.ImageIO
 
 import com.malliina.pics.{ContentType, Resizer, ScrimageResizer}
 import com.malliina.storage.StorageInt
+import javax.imageio.ImageIO
 import org.scalatest.FunSuite
 
 class ImageTests extends FunSuite {

@@ -1,18 +1,17 @@
 package com.malliina.pics.db
 
 import akka.actor.ActorSystem
+import com.malliina.pics.app.EmbeddedMySQL
 import com.malliina.pics.{Keys, PicOwner}
-import org.flywaydb.core.Flyway
-import tests.{BaseSuite, TestComps}
+import tests.BaseSuite
 
 class NewPicsDatabaseTests extends BaseSuite {
   test("can CRUD pic meta") {
     val as = ActorSystem("test")
+    val db = EmbeddedMySQL.temporary
     try {
-      val conf = TestComps.startTestDatabase()
-      val flyway = Flyway.configure.dataSource(conf.url, conf.user, conf.pass).load
-      flyway.migrate()
-      val picsDatabase = NewPicsDatabase(as, conf)
+      val conf = db.conf
+      val picsDatabase = NewPicsDatabase.withMigrations(as, conf)
       import picsDatabase.ec
       val user = PicOwner("testuser")
       val key = Keys.randomish()
@@ -27,6 +26,7 @@ class NewPicsDatabaseTests extends BaseSuite {
       assert(!await(picsDatabase.contains(key)))
     } finally {
       await(as.terminate())
+      db.stop()
     }
   }
 }

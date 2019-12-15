@@ -1,19 +1,19 @@
 package tests
 
-import com.malliina.concurrent.Execution
+import akka.actor.ActorSystem
 import com.malliina.pics.Pics
 import play.api.libs.json.JsValue
 import play.api.libs.ws.DefaultWSCookie
 import play.api.libs.ws.ahc.StandaloneAhcWSClient
-import play.api.test.NoMaterializer
 
-import scala.concurrent.Future
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, Future}
 
 class HttpTests extends BaseSuite {
   ignore("list pics") {
-    implicit val ec = Execution.cached
-    val mat = NoMaterializer
-    val client = StandaloneAhcWSClient()(mat)
+    implicit val as = ActorSystem("test")
+    implicit val ec = as.dispatcher
+    val client = StandaloneAhcWSClient()
     val sessionCookie = DefaultWSCookie("PLAY_SESSION", "")
     val req =
       client.url("https://pics.malliina.com/pics?f=json").withCookies(sessionCookie).get().map {
@@ -31,5 +31,6 @@ class HttpTests extends BaseSuite {
     val statuses = await(statusReq)
     println(s"Length ${statuses.length}")
     println(statuses)
+    Await.result(as.terminate(), 5.seconds)
   }
 }

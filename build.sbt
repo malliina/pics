@@ -2,26 +2,28 @@ import com.malliina.sbt.filetree.DirMap
 import play.sbt.PlayImport
 import sbt.Keys.scalaVersion
 import sbt._
-import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
+import sbtcrossproject.CrossPlugin.autoImport.{
+  CrossType => PortableType,
+  crossProject => portableProject
+}
 
 import scala.sys.process.Process
 import scala.util.Try
 
-val utilPlayVersion = "5.2.4"
+val utilPlayVersion = "5.4.0"
 val scalaTestVersion = "3.0.8"
-val primitivesVersion = "1.11.0"
+val primitivesVersion = "1.13.0"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
 val commonSettings = Seq(
   organization := "com.malliina",
-  scalaVersion := "2.13.0",
+  scalaVersion := "2.13.1",
   resolvers ++= Seq(
-    "Sonatype releases" at "https://oss.sonatype.org/content/repositories/releases/",
     Resolver.bintrayRepo("malliina", "maven")
   ),
   libraryDependencies ++= Seq(
     "com.lihaoyi" %%% "scalatags" % "0.7.0",
-    "com.typesafe.play" %%% "play-json" % "2.7.4",
+    "com.typesafe.play" %%% "play-json" % "2.8.1",
     "com.malliina" %%% "primitives" % primitivesVersion,
     "com.malliina" %%% "util-html" % utilPlayVersion
   )
@@ -87,22 +89,22 @@ val backend = project
     pipelineStages := Seq(digest, gzip),
     pipelineStages in Assets := Seq(scalaJSPipeline),
     libraryDependencies ++= Seq(
-      "org.apache.commons" % "commons-text" % "1.6",
-      "com.amazonaws" % "aws-java-sdk-s3" % "1.11.587",
-      "software.amazon.awssdk" % "s3" % "2.8.3",
+      "org.apache.commons" % "commons-text" % "1.8",
+      "com.amazonaws" % "aws-java-sdk-s3" % "1.11.693",
+      "software.amazon.awssdk" % "s3" % "2.10.35",
       PlayImport.ehcache,
       PlayImport.ws,
       "com.malliina" %% "play-social" % utilPlayVersion,
-      "io.getquill" %% "quill-jdbc" % "3.4.10",
-      "org.flywaydb" % "flyway-core" % "6.0.3",
-      "mysql" % "mysql-connector-java" % "5.1.47",
+      "io.getquill" %% "quill-jdbc" % "3.5.0",
+      "org.flywaydb" % "flyway-core" % "6.1.1",
+      "mysql" % "mysql-connector-java" % "5.1.48",
       "com.malliina" %% "scrimage-core" % "2.1.10",
-      "com.malliina" %% "logstreams-client" % "1.6.0",
+      "com.malliina" %% "logstreams-client" % "1.7.0",
       utilPlayDep,
       utilPlayDep % Test classifier "tests",
       "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
-      "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.3" % Test,
-      "ch.vorburger.mariaDB4j" % "mariaDB4j" % "2.4.0" % Test
+      "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test,
+      "ch.vorburger.mariaDB4j" % "mariaDB4j" % "2.4.0"
     ),
     // pipelineStages in Assets := Seq(digest, gzip)
     name in Linux := "pics",

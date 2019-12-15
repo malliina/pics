@@ -6,14 +6,12 @@ import com.malliina.oauth.GoogleOAuthCredentials
 import com.malliina.pics.CSRFConf.{CsrfCookieName, CsrfHeaderName, CsrfTokenName, CsrfTokenNoCheck}
 import com.malliina.pics._
 import com.malliina.pics.auth.{PicsAuth, PicsAuthLike, PicsAuthenticator}
-import com.malliina.pics.db.NewPicsDatabase.fail
 import com.malliina.pics.db.{Conf, NewPicsDatabase}
 import com.malliina.pics.html.PicsHtml
 import com.malliina.play.app.DefaultApp
 import com.typesafe.config.ConfigFactory
 import controllers.Social.SocialConf
 import controllers._
-import org.flywaydb.core.Flyway
 import play.api.ApplicationLoader.Context
 import play.api.cache.Cached
 import play.api.cache.ehcache.EhCacheComponents
@@ -30,42 +28,61 @@ import router.Routes
 import scala.concurrent.Future
 
 object LocalConf {
-  val localConfFile = Paths.get(sys.props("user.home")).resolve(".pics/pics.conf")
+  val appDir = Paths.get(sys.props("user.home")).resolve(".pics")
+  val localConfFile = appDir.resolve("pics.conf")
   val localConf = Configuration(ConfigFactory.parseFile(localConfFile.toFile))
 }
 
 class AppLoader
-    extends DefaultApp(
-      ctx =>
-        new AppComponents(
-          ctx,
-          conf => GoogleOAuthCredentials(conf).fold(err => throw new Exception(err.message), identity)
-        )
-    )
+  extends DefaultApp(
+    ctx =>
+      new AppComponents(
+        ctx,
+        conf => GoogleOAuthCredentials(conf).fold(err => throw new Exception(err.message), identity)
+      )
+  )
 
 class AppComponents(context: Context, creds: Configuration => GoogleOAuthCredentials)
-    extends BaseComponents(context, creds, c => Conf.fromConf(c).fold(fail, identity)) {
+  extends BaseComponents(
+    context,
+    creds,
+    c => Conf.fromConf(c).fold(_ => AppConf(EmbeddedMySQL.permanent), c => AppConf(c))
+  ) {
   override lazy val httpErrorHandler = PicsErrorHandler
 
   override def buildAuthenticator() = PicsAuthenticator(JWTAuth.default, PicsAuth.social)
-
   override def buildPics() = MultiSizeHandler.default(materializer)
+}
+
+trait AppConf {
+  def database: Conf
+  def close(): Unit
+}
+
+object AppConf {
+  def apply(embedded: EmbeddedMySQL) = new AppConf {
+    override def database = embedded.conf
+    override def close(): Unit = embedded.stop()
+  }
+  def apply(conf: Conf) = new AppConf {
+    override def database = conf
+    override def close(): Unit = ()
+  }
 }
 
 abstract class BaseComponents(
   context: Context,
   creds: Configuration => GoogleOAuthCredentials,
-  dbConf: Configuration => Conf)
-    extends BuiltInComponentsFromContext(context)
-    with HttpFiltersComponents
-    with EhCacheComponents
-    with AssetsComponents {
-  override val configuration = context.initialConfiguration ++ LocalConf.localConf
+  dbConf: Configuration => AppConf
+) extends BuiltInComponentsFromContext(context)
+  with HttpFiltersComponents
+  with EhCacheComponents
+  with AssetsComponents {
+  override val configuration = LocalConf.localConf.withFallback(context.initialConfiguration)
   override lazy val httpFilters =
     Seq(new GzipFilter(), csrfFilter, securityHeadersFilter, allowedHostsFilter)
 
   def buildAuthenticator(): PicsAuthLike
-
   def buildPics(): MultiSizeHandler
 
   val mode = environment.mode
@@ -110,7 +127,7 @@ abstract class BaseComponents(
 
   val html = PicsHtml.build(mode == Mode.Prod)
   val conf = dbConf(configuration)
-  val quill = NewPicsDatabase.withMigrations(actorSystem, conf)
+  val quill = NewPicsDatabase.withMigrations(actorSystem, conf.database)
   val service = PicService(quill, buildPics())
   val cache = new Cached(defaultCacheApi)
   override lazy val httpErrorHandler = PicsErrorHandler
@@ -125,6 +142,9 @@ abstract class BaseComponents(
     new Routes(httpErrorHandler, pics, sockets, picsAssets, social, cognitoControl)
 
   applicationLifecycle.addStopHook { () =>
-    Future.successful(quill.close())
+    Future.successful {
+      quill.close()
+      conf.close()
+    }
   }
 }
