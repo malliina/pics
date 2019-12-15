@@ -234,8 +234,8 @@ class PicsHtml(scripts: Seq[String]) extends BaseHtml {
 }
 
 case class PageConf(
-    title: String,
-    extraHeader: Modifier = (),
-    bodyClass: String = "",
-    inner: Modifier = ()
+  title: String,
+  extraHeader: Modifier = (),
+  bodyClass: String = "",
+  inner: Modifier = ()
 )

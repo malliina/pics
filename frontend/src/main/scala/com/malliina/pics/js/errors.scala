@@ -25,24 +25,24 @@ class TotpRequiredException extends CognitoException("TOTP required.")
 class MfaRequiredException extends CognitoException("MFA required.")
 
 class AuthException(friendly: String, val error: CognitoAuthFailure)
-    extends CognitoException(friendly)
+  extends CognitoException(friendly)
 
 class NotAuthorizedException(error: CognitoAuthFailure)
-    extends AuthException("Incorrect username or password.", error)
+  extends AuthException("Incorrect username or password.", error)
 
 class UserNotFound(error: CognitoAuthFailure) extends AuthException("User does not exist.", error)
 
 class NotConfirmedException(error: CognitoAuthFailure)
-    extends AuthException("User not confirmed.", error)
+  extends AuthException("User not confirmed.", error)
 
 class SignUpException(friendly: String, val error: CognitoAuthFailure)
-    extends CognitoException(friendly)
+  extends CognitoException(friendly)
 
 class ConfirmException(error: CognitoAuthFailure)
-    extends SignUpException("Confirmation failed.", error)
+  extends SignUpException("Confirmation failed.", error)
 
 class CodeMismatchException(error: CognitoAuthFailure)
-    extends SignUpException("Invalid verification code.", error)
+  extends SignUpException("Invalid verification code.", error)
 
 class UserAlreadyExists(error: CognitoAuthFailure)
-    extends SignUpException("User already exists.", error)
+  extends SignUpException("User already exists.", error)

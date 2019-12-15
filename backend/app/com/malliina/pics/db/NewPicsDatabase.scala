@@ -22,7 +22,8 @@ object NewPicsDatabase {
     apply(dataSource(dbConf), pool)
   }
 
-  def apply(ds: HikariDataSource, ec: ExecutionContext): NewPicsDatabase = new NewPicsDatabase(ds)(ec)
+  def apply(ds: HikariDataSource, ec: ExecutionContext): NewPicsDatabase =
+    new NewPicsDatabase(ds)(ec)
 
   def mysqlFromEnvOrFail(as: ActorSystem) = withMigrations(as, Conf.fromEnvOrFail())
 
@@ -45,7 +46,9 @@ object NewPicsDatabase {
   def fail(message: String): Nothing = throw new Exception(message)
 }
 
-class NewPicsDatabase(ds: HikariDataSource)(implicit val ec: ExecutionContext) extends MetaSource with Closeable {
+class NewPicsDatabase(ds: HikariDataSource)(implicit val ec: ExecutionContext)
+  extends MetaSource
+  with Closeable {
   val naming = NamingStrategy(SnakeCase, MysqlEscape)
   lazy val ctx = new MysqlJdbcContext(naming, ds)
   import ctx._
@@ -57,7 +60,11 @@ class NewPicsDatabase(ds: HikariDataSource)(implicit val ec: ExecutionContext) e
 
   def load(from: Int, until: Int, user: PicOwner): Future[Seq[KeyMeta]] = Future {
     val q = quote {
-      pics.filter(_.owner == lift(user)).sortBy(_.added)(Ord.desc).drop(lift(from)).take(lift(until))
+      pics
+        .filter(_.owner == lift(user))
+        .sortBy(_.added)(Ord.desc)
+        .drop(lift(from))
+        .take(lift(until))
     }
     run(q)
   }
@@ -108,7 +115,11 @@ class NewPicsDatabase(ds: HikariDataSource)(implicit val ec: ExecutionContext) e
         0
       } else {
         val insertion = quote {
-          pics.insert(_.key -> lift(meta.key), _.owner -> lift(meta.owner), _.added -> lift(meta.added))
+          pics.insert(
+            _.key -> lift(meta.key),
+            _.owner -> lift(meta.owner),
+            _.added -> lift(meta.added)
+          )
         }
         run(insertion).toInt
       }

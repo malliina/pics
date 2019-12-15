@@ -31,12 +31,12 @@ object Social {
     new Social(actions, socialConf)
 
   case class SocialConf(
-      githubConf: AuthConf,
-      microsoftConf: AuthConf,
-      googleConf: AuthConf,
-      facebookConf: AuthConf,
-      twitterConf: AuthConf,
-      amazonConf: AuthConf = AuthConf("2rnqepv44epargdosba6nlg2t9", "unused")
+    githubConf: AuthConf,
+    microsoftConf: AuthConf,
+    googleConf: AuthConf,
+    facebookConf: AuthConf,
+    twitterConf: AuthConf,
+    amazonConf: AuthConf = AuthConf("2rnqepv44epargdosba6nlg2t9", "unused")
   )
 
   object SocialConf {

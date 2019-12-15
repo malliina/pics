@@ -57,11 +57,11 @@ trait SignUpResult extends js.Object {
 @JSGlobal("AmazonCognitoIdentity.CognitoUserPool")
 class CognitoUserPool(options: PoolData) extends js.Object {
   def signUp(
-      username: String,
-      password: String,
-      attributes: js.Array[CognitoUserAttribute],
-      validationData: js.Any,
-      callback: js.Function2[CognitoAuthFailure, SignUpResult, _]
+    username: String,
+    password: String,
+    attributes: js.Array[CognitoUserAttribute],
+    validationData: js.Any,
+    callback: js.Function2[CognitoAuthFailure, SignUpResult, _]
   ): Unit = js.native
 
   def getCurrentUser(): CognitoUser = js.native
@@ -152,9 +152,9 @@ class CognitoUser(options: UserData) extends js.Object {
   def authenticateUser(creds: AuthenticationDetails, callback: AuthCallback): Unit = js.native
 
   def confirmRegistration(
-      confirmationCode: String,
-      forceAliasCreation: Boolean,
-      callback: js.Function2[CognitoAuthFailure, String, _]
+    confirmationCode: String,
+    forceAliasCreation: Boolean,
+    callback: js.Function2[CognitoAuthFailure, String, _]
   ): Unit = js.native
 
   def resendConfirmationCode(callback: js.Function2[CognitoAuthFailure, String, _]): Unit =
@@ -165,9 +165,9 @@ class CognitoUser(options: UserData) extends js.Object {
   def confirmPassword(code: String, newPassword: String, callback: SimpleCallback): Unit = js.native
 
   def setUserMfaPreference(
-      sms: MfaSettings,
-      totp: MfaSettings,
-      callback: js.Function2[js.Error, String, _]
+    sms: MfaSettings,
+    totp: MfaSettings,
+    callback: js.Function2[js.Error, String, _]
   ): Unit = js.native
 
   def enableMFA(callback: js.Function2[js.Error, String, _]): Unit = js.native
@@ -181,9 +181,9 @@ class CognitoUser(options: UserData) extends js.Object {
   def associateSoftwareToken(callback: TOTPCallback): Unit = js.native
 
   def verifySoftwareToken(
-      totpCode: String,
-      friendlyDeviceName: String,
-      callback: SessionCallback
+    totpCode: String,
+    friendlyDeviceName: String,
+    callback: SessionCallback
   ): Unit = js.native
 
   def sendMFACode(code: String, callback: SessionCallback, mfaType: String): Unit = js.native
@@ -378,11 +378,11 @@ trait AuthCallback extends js.Object {
 
 object AuthCallback {
   def apply(
-      onToken: CognitoSession => Unit,
-      onFailure: CognitoAuthFailure => Unit,
-      onMfa: js.Any => Unit,
-      onTotp: js.Any => Unit,
-      mfaSetup: (String, js.Any) => Unit
+    onToken: CognitoSession => Unit,
+    onFailure: CognitoAuthFailure => Unit,
+    onMfa: js.Any => Unit,
+    onTotp: js.Any => Unit,
+    mfaSetup: (String, js.Any) => Unit
   ): AuthCallback =
     literal(
       onSuccess = onToken,
@@ -402,8 +402,8 @@ trait SessionCallback extends js.Object {
 
 object SessionCallback {
   def apply(
-      onToken: CognitoSession => Unit,
-      onFailure: CognitoAuthFailure => Unit
+    onToken: CognitoSession => Unit,
+    onFailure: CognitoAuthFailure => Unit
   ): SessionCallback =
     literal(onSuccess = onToken, onFailure = onFailure).asInstanceOf[SessionCallback]
 }

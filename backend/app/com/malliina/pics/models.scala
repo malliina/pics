@@ -57,11 +57,7 @@ object PicSize {
   case object Original extends PicSize("o")
 }
 
-case class PicBundle(
-  small: Path,
-  medium: Path,
-  large: Path,
-  original: Path)
+case class PicBundle(small: Path, medium: Path, large: Path, original: Path)
 
 case class AppMeta(name: String, version: String, gitHash: String)
 

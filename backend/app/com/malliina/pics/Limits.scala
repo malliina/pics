@@ -25,7 +25,7 @@ object Limits {
   } yield Limits(limit, offset)
 
   def read[A](key: String, rh: RequestHeader)(
-      implicit basic: QueryStringBindable[A]
+    implicit basic: QueryStringBindable[A]
   ): Option[Either[Errors, A]] =
     basic.bind(key, rh.queryString).map(_.left.map(err => Errors(Seq(SingleError(err)))))
 }

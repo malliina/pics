@@ -199,11 +199,11 @@ object AuthHtml extends BaseHtml {
     )
 
   def labeledInput(
-      labelText: String,
-      inId: String,
-      inType: String,
-      maybePlaceholder: Option[String],
-      moreInput: Modifier*
+    labelText: String,
+    inId: String,
+    inType: String,
+    maybePlaceholder: Option[String],
+    moreInput: Modifier*
   ) = modifier(
     label(`for` := inId)(labelText),
     input(

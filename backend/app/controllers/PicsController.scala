@@ -44,9 +44,9 @@ class PicsController(
   picSink: PicSink,
   auth: PicsAuth,
   cache: Cached,
-  comps: ControllerComponents)
-    extends AbstractController(comps)
-    with PicsStrings {
+  comps: ControllerComponents
+) extends AbstractController(comps)
+  with PicsStrings {
 
   val placeHolderResource = "400x300.png"
   val deleteForm: Form[Key] = Form(mapping(PicsHtml.KeyKey -> nonEmptyText)(Key.apply)(Key.unapply))
@@ -142,13 +142,12 @@ class PicsController(
       .map { size =>
         sources(size).storage
           .find(key)
-          .map(
-            df =>
-              df.map(send)
-                .getOrElse(
-                  if (isImage) keyNotFound(key)
-                  else Ok.sendResource(placeHolderResource)
-                )
+          .map(df =>
+            df.map(send)
+              .getOrElse(
+                if (isImage) keyNotFound(key)
+                else Ok.sendResource(placeHolderResource)
+              )
           )
       }
       .recover { err =>
@@ -196,7 +195,8 @@ class PicsController(
         sources.remove(key).map { _ =>
           renderResult(user.rh)(
             json = Accepted,
-            html = Redirect(redirCall).flashing(UserFeedback.success(s"Deleted key '$key'.").toMap: _*)
+            html =
+              Redirect(redirCall).flashing(UserFeedback.success(s"Deleted key '$key'.").toMap: _*)
           )
         }
       } else {
@@ -233,7 +233,10 @@ class PicsController(
   private def findKeyAction(key: Key, storage: DataSource): Action[AnyContent] =
     picAction(_ => storage.find(key), keyNotFound(key))
 
-  private def picAction(find: RequestHeader => Future[Option[DataFile]], onNotFound: => Result): Action[AnyContent] =
+  private def picAction(
+    find: RequestHeader => Future[Option[DataFile]],
+    onNotFound: => Result
+  ): Action[AnyContent] =
     Action.async { rh =>
       find(rh).map { maybe =>
         maybe

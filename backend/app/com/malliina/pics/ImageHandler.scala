@@ -17,7 +17,7 @@ object ImageHandler {
 }
 
 class ImageHandler(prefix: String, resizer: ImageResizer, val storage: DataSource)
-    extends ImageHandlerLike {
+  extends ImageHandlerLike {
 
   def createTempFile = Files.createTempFile(prefix, null)
 

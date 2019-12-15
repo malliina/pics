@@ -8,7 +8,11 @@ import com.malliina.pics.s3.AsyncS3Bucket.log
 import com.malliina.play.auth.CodeValidator
 import com.malliina.storage.{StorageLong, StorageSize}
 import play.api.Logger
-import software.amazon.awssdk.auth.credentials.{AwsCredentialsProviderChain, DefaultCredentialsProvider, ProfileCredentialsProvider}
+import software.amazon.awssdk.auth.credentials.{
+  AwsCredentialsProviderChain,
+  DefaultCredentialsProvider,
+  ProfileCredentialsProvider
+}
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.model._
@@ -41,7 +45,8 @@ object AsyncS3Bucket {
   val Original = AsyncS3Bucket(BucketName("malliina-pics"))
 }
 
-class AsyncS3Bucket(bucket: BucketName, v2: S3AsyncClient)(implicit ec: ExecutionContext) extends DataSource {
+class AsyncS3Bucket(bucket: BucketName, v2: S3AsyncClient)(implicit ec: ExecutionContext)
+  extends DataSource {
   val bucketName = bucket.name
   val downloadsDir = FilePics.tmpDir.resolve("downloads")
   Files.createDirectories(downloadsDir)
@@ -63,7 +68,11 @@ class AsyncS3Bucket(bucket: BucketName, v2: S3AsyncClient)(implicit ec: Executio
         .map(_.drop(from))
   }
 
-  private def loadAcc(desiredSize: Int, current: ListObjectsV2Response, acc: Seq[FlatMeta]): Future[Seq[FlatMeta]] = {
+  private def loadAcc(
+    desiredSize: Int,
+    current: ListObjectsV2Response,
+    acc: Seq[FlatMeta]
+  ): Future[Seq[FlatMeta]] = {
     val newAcc = acc ++ current.contents().asScala.map { obj =>
       FlatMeta(Key(obj.key()), obj.lastModified())
     }

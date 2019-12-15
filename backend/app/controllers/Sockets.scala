@@ -17,7 +17,7 @@ object Sockets {
 }
 
 class Sockets(auth: PicsAuth)(implicit actorSystem: ActorSystem, mat: Materializer)
-    extends PicSink {
+  extends PicSink {
   val mediator = actorSystem.actorOf(ClientSockets.props())
 
   def onPics(pics: ClientPics, owner: PicRequest): Unit =
