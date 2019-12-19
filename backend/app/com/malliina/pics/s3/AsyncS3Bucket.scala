@@ -35,7 +35,7 @@ object AsyncS3Bucket {
       .credentialsProvider(creds)
       .build()
     val s3 = AsyncS3Client(client, Execution.cached)
-    Await.result(s3.createIfNotExists(bucket), 10.seconds)
+    Await.result(s3.createIfNotExists(bucket), 30.seconds)
     new AsyncS3Bucket(bucket, client)(Execution.cached)
   }
 

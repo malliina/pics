@@ -8,4 +8,7 @@ class PicsAssets(builder: AssetsBuilder) {
     builder.at("/public", s"static/$file", aggressiveCaching = true)
 
   def versioned(path: String, file: Asset) = builder.versioned(path, file)
+
+  def appleDomainAssociation =
+    builder.at("/public", "well-known/apple-developer-domain-association.txt")
 }
