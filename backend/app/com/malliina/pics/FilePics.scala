@@ -76,8 +76,7 @@ class FilePics(val dir: Path, mat: Materializer) extends DataSource {
       .toPath(file)
       .runWith(source)(mat)
       .map { res =>
-        val outcome = if (res.status.isSuccess) "successfully" else "erroneously"
-        log.info(s"Saved '$key' of ${res.count} bytes to '$file' $outcome.")
+        log.info(s"Saved '$key' of ${res.count} bytes to '$file'.")
         file
       }
       .recoverWith {

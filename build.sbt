@@ -99,7 +99,7 @@ val backend = project
       "org.flywaydb" % "flyway-core" % "6.1.1",
       "mysql" % "mysql-connector-java" % "5.1.48",
       "com.malliina" %% "scrimage-core" % "2.1.10",
-      "com.malliina" %% "logstreams-client" % "1.7.0",
+      "com.malliina" %% "logstreams-client" % "1.8.1",
       utilPlayDep,
       utilPlayDep % Test classifier "tests",
       "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
