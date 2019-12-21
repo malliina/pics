@@ -59,6 +59,8 @@ object AppleCodeValidator {
   def staticConf(conf: AuthConf) = StaticConf(emailScope, authUrl, tokensUrl, conf)
 }
 
+/** @see https://developer.apple.com/documentation/signinwithapplejs/incorporating_sign_in_with_apple_into_other_platforms
+  */
 class AppleCodeValidator(val oauth: OAuthConf[Email], validator: AppleTokenValidator)
   extends StaticCodeValidator[Email, Email]("Apple", AppleCodeValidator.staticConf(oauth.conf)) {
 
