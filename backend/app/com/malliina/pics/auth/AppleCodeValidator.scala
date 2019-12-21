@@ -6,7 +6,7 @@ import com.malliina.http.FullUrl
 import com.malliina.oauth.TokenResponse
 import com.malliina.play.auth.StaticCodeValidator.StaticConf
 import com.malliina.play.auth._
-import com.malliina.values.Email
+import com.malliina.values.{Email, ErrorMessage}
 import play.api.mvc.{RequestHeader, Result}
 import com.malliina.play.auth.OAuthKeys.{
   ClientId => ClientIdKey,
@@ -16,6 +16,24 @@ import com.malliina.play.auth.OAuthKeys.{
 import com.malliina.play.http.FullUrls
 
 import scala.concurrent.Future
+
+case class AppleResponse(code: Code, state: String, idToken: IdToken)
+
+object AppleResponse {
+  def apply(form: Map[String, Seq[String]]): Either[ErrorMessage, AppleResponse] = {
+    def read(key: String) =
+      form.get(key).flatMap(_.headOption).toRight(ErrorMessage(s"Not found: '$key' in $form."))
+    for {
+      code <- read(CodeKey).map(Code.apply)
+      state <- read(State)
+      idToken <- read("id_token").map(IdToken.apply)
+    } yield AppleResponse(code, state, idToken)
+  }
+}
+
+object AppleTokenValidator {
+  def apply(clientIds: Seq[ClientId]) = new AppleTokenValidator(clientIds, Seq(Issuer.apple))
+}
 
 class AppleTokenValidator(clientIds: Seq[ClientId], issuers: Seq[Issuer])
   extends TokenValidator(issuers.map(_.value)) {
@@ -35,6 +53,9 @@ object AppleCodeValidator {
   val authUrl = host / "/auth/authorize"
   val jwksUri = host / "/auth/keys"
   val tokensUrl = host / "/auth/token"
+
+  def apply(oauth: OAuthConf[Email], validator: AppleTokenValidator): AppleCodeValidator =
+    new AppleCodeValidator(oauth, validator)
 
   def staticConf(conf: AuthConf) = StaticConf(emailScope, authUrl, tokensUrl, conf)
 }

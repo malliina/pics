@@ -2,16 +2,17 @@ package controllers
 
 import com.malliina.concurrent.Execution.cached
 import com.malliina.http.OkClient
+import com.malliina.pics.Errors
+import com.malliina.pics.auth.{AppleCodeValidator, AppleResponse, AppleTokenValidator}
 import com.malliina.play.auth.CognitoCodeValidator.IdentityProvider
 import com.malliina.play.auth._
 import com.malliina.play.http.HttpConstants
 import com.malliina.values.Email
 import controllers.Social._
-import play.api.http.HeaderNames.CACHE_CONTROL
-import play.api.mvc.Results.Redirect
 import play.api.mvc._
 import play.api.{Configuration, Logger}
 
+import scala.concurrent.Future
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.util.Try
 
@@ -27,8 +28,8 @@ object Social {
   val SessionKey = "picsUser"
   val LastIdCookie = "picsLastId"
 
-  def buildOrFail(actions: ActionBuilder[Request, AnyContent], socialConf: SocialConf) =
-    new Social(actions, socialConf)
+  def buildOrFail(socialConf: SocialConf, comps: ControllerComponents) =
+    new Social(socialConf, comps)
 
   case class SocialConf(
     githubConf: AuthConf,
@@ -36,15 +37,28 @@ object Social {
     googleConf: AuthConf,
     facebookConf: AuthConf,
     twitterConf: AuthConf,
-    amazonConf: AuthConf = AuthConf("2rnqepv44epargdosba6nlg2t9", "unused")
+    amazonConf: AuthConf = AuthConf("2rnqepv44epargdosba6nlg2t9", "unused"),
+    apple: AuthConf
   )
 
   object SocialConf {
-    def apply(conf: Configuration): SocialConf =
-      Try(read(AuthConfReader.env)).getOrElse(read(AuthConfReader.conf(conf)))
+    def apply(conf: Configuration): SocialConf = {
+      val apple = AuthConf(
+        conf.get[String]("pics.apple.client.id"),
+        conf.get[String]("pics.apple.client.secret")
+      )
+      Try(read(AuthConfReader.env, apple)).getOrElse(read(AuthConfReader.conf(conf), apple))
+    }
 
-    def read(reader: AuthConfReader) =
-      SocialConf(reader.github, reader.microsoft, reader.google, reader.facebook, reader.twitter)
+    def read(reader: AuthConfReader, apple: AuthConf) =
+      SocialConf(
+        reader.github,
+        reader.microsoft,
+        reader.google,
+        reader.facebook,
+        reader.twitter,
+        apple = apple
+      )
   }
 
   sealed abstract class AuthProvider(val name: String)
@@ -62,9 +76,11 @@ object Social {
   case object Twitter extends AuthProvider("twitter")
   case object Facebook extends AuthProvider("facebook")
   case object GitHub extends AuthProvider("github")
+  case object Apple extends AuthProvider("apple")
 }
 
-class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
+class Social(conf: SocialConf, comps: ControllerComponents) extends AbstractController(comps) {
+  val reverse = routes.Social
   val okClient = OkClient.default
   val successCall = routes.PicsController.list()
   val handler: AuthHandler = new AuthHandler {
@@ -95,20 +111,25 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
   }
 
   val microsoftValidator = MicrosoftCodeValidator(
-    oauthConf(routes.Social.microsoftCallback(), conf.microsoftConf)
+    oauthConf(reverse.microsoftCallback(), conf.microsoftConf)
   )
   val gitHubValidator = GitHubCodeValidator(
-    oauthConf(routes.Social.githubCallback(), conf.githubConf)
+    oauthConf(reverse.githubCallback(), conf.githubConf)
   )
   val googleValidator = GoogleCodeValidator(
-    oauthConf(routes.Social.googleCallback(), conf.googleConf)
+    oauthConf(reverse.googleCallback(), conf.googleConf)
   )
   val facebookValidator = FacebookCodeValidator(
-    oauthConf(routes.Social.facebookCallback(), conf.facebookConf)
+    oauthConf(reverse.facebookCallback(), conf.facebookConf)
   )
   val twitterValidator = TwitterValidator(
-    oauthConf(routes.Social.twitterCallback(), conf.twitterConf)
+    oauthConf(reverse.twitterCallback(), conf.twitterConf)
   )
+  val appleValidator = AppleCodeValidator(
+    oauthConf(reverse.appleCallback(), conf.apple),
+    AppleTokenValidator(Seq(ClientId(conf.apple.clientId)))
+  )
+
   private val amazonOauth =
     OAuthConf(routes.Social.amazonCallback(), cognitoHandler, conf.amazonConf, okClient)
   val amazonValidator = CognitoCodeValidator(
@@ -121,36 +142,62 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
   def oauthConf(redirCall: Call, conf: AuthConf) = OAuthConf(redirCall, handler, conf, okClient)
 
   def microsoft = startHinted(microsoftValidator)
-
   def microsoftCallback = callback(microsoftValidator, Microsoft)
 
   def github = start(gitHubValidator)
-
   def githubCallback = callback(gitHubValidator, GitHub)
 
   def google = startHinted(googleValidator)
-
   def googleCallback = callback(googleValidator, Google)
 
   def facebook = start(facebookValidator)
-
   def facebookCallback = callback(facebookValidator, Facebook)
 
   def twitter = start(twitterValidator)
-
   def twitterCallback = callback(twitterValidator, Twitter)
 
   def amazon = start(amazonValidator)
-
   def amazonCallback = callback(amazonValidator, Amazon)
 
-  private def start(codeValidator: AuthValidator) =
-    actions.async { req =>
+  def apple = start(appleValidator)
+//  def appleCallback = callback(appleValidator, Apple)
+
+  def appleCallback = Action(parse.formUrlEncoded).async { req =>
+    AppleResponse(req.body).fold(
+      err => {
+        val msg = s"Failed to parse Apple response: '$err'."
+        log.error(msg)
+        fut(BadRequest(Errors.single(msg)))
+      },
+      response => {
+        val actualState = response.state
+        val sessionState = req.session.get(OAuthKeys.State)
+        val isStateOk = sessionState.contains(actualState)
+        if (isStateOk) {
+          appleValidator.validate(response.code, req).map { outcome =>
+            appleValidator.onOutcome(outcome, req)
+          }
+        } else {
+          val detailed = sessionState.fold(s"Got '$actualState' but found nothing to compare to.") {
+            expected =>
+              s"Got '$actualState' but expected '$expected'."
+          }
+          log.error(s"Authentication failed, state mismatch. $detailed $req")
+          fut(appleValidator.onOutcome(Left(OAuthError("State mismatch.")), req))
+        }
+      }
+    )
+  }
+
+  private def fut[T](t: T) = Future.successful(t)
+
+  private def start(codeValidator: AuthValidator): Action[AnyContent] =
+    Action.async { req =>
       codeValidator.start(req, Map.empty)
     }
 
   private def startHinted(codeValidator: LoginHintSupport) =
-    actions.async { req =>
+    Action.async { req =>
       val promptCookie = req.cookies.get(PromptCookie)
       val extra = promptCookie.map(c => Map(PromptKey -> c.value)).getOrElse(Map.empty)
       val maybeEmail = req.cookies.get(LastIdCookie).map(_.value).filter(_ => extra.isEmpty)
@@ -164,7 +211,7 @@ class Social(actions: ActionBuilder[Request, AnyContent], conf: SocialConf) {
     }
 
   private def callback(codeValidator: AuthValidator, provider: AuthProvider): Action[AnyContent] =
-    actions.async { req =>
+    Action.async { req =>
       codeValidator.validateCallback(req).map { r =>
         val cookie = Cookie(
           ProviderCookie,

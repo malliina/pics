@@ -78,6 +78,7 @@ class PicsController(
         case GitHub    => reverseSocial.github()
         case Amazon    => reverseSocial.amazon()
         case Twitter   => reverseSocial.twitter()
+        case Apple     => reverseSocial.apple()
       }
     call.map(c => Redirect(c)).getOrElse(Ok(html.signIn()))
   }

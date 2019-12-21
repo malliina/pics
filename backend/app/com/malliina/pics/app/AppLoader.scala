@@ -137,7 +137,7 @@ abstract class BaseComponents(
   val pics = new PicsController(html, service, sockets, auth, cache, controllerComponents)
   val cognitoControl = CognitoControl.pics(defaultActionBuilder)
   val picsAssets = new PicsAssets(assets)
-  lazy val social = Social.buildOrFail(defaultActionBuilder, socialConf)
+  lazy val social = Social.buildOrFail(socialConf, controllerComponents)
   override lazy val router: Router =
     new Routes(httpErrorHandler, pics, sockets, picsAssets, social, cognitoControl)
 

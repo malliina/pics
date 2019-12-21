@@ -22,12 +22,14 @@ GET           /sign-in/github                                            control
 GET           /sign-in/microsoft                                         controllers.Social.microsoft
 GET           /sign-in/google                                            controllers.Social.google
 GET           /sign-in/facebook                                          controllers.Social.facebook
+GET           /sign-in/apple                                             controllers.Social.apple
 GET           /sign-in/callbacks/amazon                                  controllers.Social.amazonCallback
 GET           /sign-in/callbacks/twitter                                 controllers.Social.twitterCallback
 GET           /sign-in/callbacks/github                                  controllers.Social.githubCallback
 GET           /sign-in/callbacks/microsoft                               controllers.Social.microsoftCallback
 GET           /sign-in/callbacks/google                                  controllers.Social.googleCallback
 GET           /sign-in/callbacks/facebook                                controllers.Social.facebookCallback
+POST          /sign-in/callbacks/apple                                   controllers.Social.appleCallback
 GET           /sign-out/leave                                            controllers.CognitoControl.signOut
 GET           /sign-out                                                  controllers.CognitoControl.signOutCallback
 GET           /legal/privacy                                             controllers.PicsController.privacyPolicy

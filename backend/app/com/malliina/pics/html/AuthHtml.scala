@@ -20,7 +20,8 @@ object AuthHtml extends BaseHtml {
       socialButton("microsoft", reverseSocial.microsoft(), "Sign in with Microsoft"),
       socialButton("github", reverseSocial.github(), "Sign in with GitHub"),
       socialButton("twitter", reverseSocial.twitter(), "Sign in with Twitter"),
-      socialButton("amazon", reverseSocial.amazon(), "Sign in with Amazon")
+      socialButton("amazon", reverseSocial.amazon(), "Sign in with Amazon"),
+      socialButton("apple", reverseSocial.apple(), "Sign in with Apple")
     )
     val loginDivider = divClass("login-divider")(
       divClass("line"),
