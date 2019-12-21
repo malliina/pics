@@ -17,7 +17,7 @@ import com.malliina.play.http.FullUrls
 
 import scala.concurrent.Future
 
-case class AppleResponse(code: Code, state: String, idToken: IdToken)
+case class AppleResponse(code: Code, state: String)
 
 object AppleResponse {
   def apply(form: Map[String, Seq[String]]): Either[ErrorMessage, AppleResponse] = {
@@ -26,8 +26,7 @@ object AppleResponse {
     for {
       code <- read(CodeKey).map(Code.apply)
       state <- read(State)
-      idToken <- read("id_token").map(IdToken.apply)
-    } yield AppleResponse(code, state, idToken)
+    } yield AppleResponse(code, state)
   }
 }
 
