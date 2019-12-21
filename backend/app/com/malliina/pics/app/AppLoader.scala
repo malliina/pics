@@ -115,7 +115,11 @@ abstract class BaseComponents(
     tokenName = CsrfTokenName,
     cookieName = Option(CsrfCookieName),
     headerName = CsrfHeaderName,
-    shouldProtect = rh => !rh.headers.get(CsrfHeaderName).contains(CsrfTokenNoCheck)
+    shouldProtect = rh => {
+      val hasCsrfHeader = rh.headers.get(CsrfHeaderName).contains(CsrfTokenNoCheck)
+      val isAuthCallback = rh.path.startsWith("/sign-in/callbacks/")
+      !hasCsrfHeader && !isAuthCallback
+    }
   )
 
   val defaultHttpConf = HttpConfiguration.fromConfiguration(configuration, environment)
