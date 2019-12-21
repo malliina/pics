@@ -78,7 +78,7 @@ class AppleCodeValidator(val oauth: OAuthConf[Email], validator: AppleTokenValid
     handler.resultFor(outcome, req)
 
   override def extraRedirParams(rh: RequestHeader): Map[String, String] =
-    Map(ResponseType -> CodeKey, "response_mode" -> "query")
+    Map(ResponseType -> CodeKey, "response_mode" -> "form_post")
 
   def tokenParameters(code: Code, redirUrl: FullUrl) = Map(
     ClientIdKey -> clientConf.clientId,
