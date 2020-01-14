@@ -160,7 +160,6 @@ class Social(conf: SocialConf, comps: ControllerComponents) extends AbstractCont
   def amazonCallback = callback(amazonValidator, Amazon)
 
   def apple = start(appleValidator)
-//  def appleCallback = callback(appleValidator, Apple)
 
   def appleCallback = Action(parse.formUrlEncoded).async { req =>
     AppleResponse(req.body).fold(
@@ -222,4 +221,6 @@ class Social(conf: SocialConf, comps: ControllerComponents) extends AbstractCont
         else r
       }
     }
+
+  def close(): Unit = okClient.close()
 }

@@ -79,7 +79,13 @@ val frontend = project
 
 val backend = project
   .in(file("backend"))
-  .enablePlugins(FileTreePlugin, WebScalaJSBundlerPlugin, PlayLinuxPlugin, BuildInfoPlugin)
+  .enablePlugins(
+    FileTreePlugin,
+    WebScalaJSBundlerPlugin,
+    PlayLinuxPlugin,
+    BuildInfoPlugin,
+    PlayHotReloadPlugin
+  )
   .dependsOn(crossJvm)
   .settings(commonSettings)
   .settings(

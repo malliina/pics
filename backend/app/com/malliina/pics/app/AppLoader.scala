@@ -87,7 +87,7 @@ abstract class BaseComponents(
 
   val mode = environment.mode
   lazy val socialConf = SocialConf(configuration)
-
+  val devCsp = if (mode == Mode.Dev) "localhost:8080" :: Nil else Nil
   val allowedCsp = Seq(
     "maxcdn.bootstrapcdn.com",
     "code.jquery.com",
@@ -95,7 +95,7 @@ abstract class BaseComponents(
     "fonts.gstatic.com",
     "use.fontawesome.com",
     "fonts.googleapis.com"
-  )
+  ) ++ devCsp
   val allowedEntry = allowedCsp.mkString(" ")
   val csps = Seq(
     s"default-src 'self' 'unsafe-inline' 'unsafe-eval' $allowedEntry;",
@@ -149,6 +149,7 @@ abstract class BaseComponents(
     Future.successful {
       quill.close()
       conf.close()
+      social.close()
     }
   }
 }

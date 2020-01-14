@@ -12,18 +12,18 @@ import play.api.mvc.Call
 import play.filters.csrf.CSRF
 import scalatags.Text
 import scalatags.Text.GenericAttr
-import scalatags.Text.all._
-
+import scalatags.Text.all.{defer => _, _}
 import scala.language.implicitConversions
 
 object PicsHtml {
   val CopyButton = "copy-button"
-  val True = "true"
+
   val False = "false"
+  val True = "true"
+
   val KeyKey = "key"
   val dataIdAttr = attr("data-id")
   val dataContentAttr = attr("data-content")
-  val defer = attr("defer").empty
   val async = attr("async").empty
 
   val reverse = routes.PicsController
@@ -33,7 +33,11 @@ object PicsHtml {
   def build(isProd: Boolean): PicsHtml = {
     val name = "frontend"
     val opt = if (isProd) "opt" else "fastopt"
-    new PicsHtml(Seq(s"$name-$opt-library.js", s"$name-$opt-loader.js", s"$name-$opt.js"))
+    val hotReload = if (isProd) Nil else FullUrl("http", "localhost:8080", "/socket.js") :: Nil
+    new PicsHtml(
+      Seq(s"$name-$opt-library.js", s"$name-$opt-loader.js", s"$name-$opt.js"),
+      hotReload
+    )
   }
 
   implicit def urlWriter(url: FullUrl): Text.StringFrag =
@@ -55,7 +59,7 @@ object PicsHtml {
     form(role := FormRole, action := onAction, method := Post, more)
 }
 
-class PicsHtml(scripts: Seq[String]) extends BaseHtml {
+class PicsHtml(scripts: Seq[String], absoluteScripts: Seq[FullUrl]) extends BaseHtml {
   def signIn(feedback: Option[UserFeedback] = None) = basePage(AuthHtml.signIn(feedback))
 
   def signUp(feedback: Option[UserFeedback] = None) = basePage(AuthHtml.signUp(feedback))
@@ -222,6 +226,9 @@ class PicsHtml(scripts: Seq[String]) extends BaseHtml {
         conf.extraHeader,
         scripts.map { js =>
           deferredJsPath(js)
+        },
+        absoluteScripts.map { url =>
+          script(src := url, defer)
         }
       ),
       body(`class` := conf.bodyClass)(

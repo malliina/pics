@@ -6,7 +6,7 @@ import com.malliina.http.FullUrl
 import scala.language.implicitConversions
 
 class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, FragT])
-    extends Bootstrap(ts) {
+  extends Bootstrap(ts) {
 
   import tags._
   import tags.impl.all._
@@ -79,7 +79,8 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
             dataIdAttr := pic.url.toString(),
             dataToggle := "popover",
             dataContentAttr := "Copied!"
-          )("Copy"))
+          )("Copy")
+        )
       )
       thumb(pic, visible, lazyLoaded, more)
     }
@@ -89,14 +90,18 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
     input(`type` := "hidden", name := inputName, value := inputValue)
 
   def thumb(pic: BaseMeta, visible: Boolean, lazyLoaded: Boolean, more: Modifier*) = {
-    figure(`class` := names("figure thumbnail img-thumbnail", if (visible) "" else "invisible"),
-           id := thumbId(pic.key),
-           dataIdAttr := pic.key)(
+    figure(
+      `class` := names("figure thumbnail img-thumbnail", if (visible) "" else "invisible"),
+      id := thumbId(pic.key),
+      dataIdAttr := pic.key
+    )(
       divClass(names("pic", if (more.nonEmpty) "captioned" else ""))(
         a(href := pic.url)(
-          img(if (lazyLoaded) data("src") := pic.small else src := pic.small,
-              alt := pic.key,
-              `class` := names("thumb", if (lazyLoaded) PicsStrings.Lazy else PicsStrings.Loaded))
+          img(
+            if (lazyLoaded) data("src") := pic.small else src := pic.small,
+            alt := pic.key,
+            `class` := names("thumb", if (lazyLoaded) PicsStrings.Lazy else PicsStrings.Loaded)
+          )
         )
       ),
       more

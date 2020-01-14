@@ -9,10 +9,10 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-language:implicitConversio
 classpathTypes += "maven-plugin"
 
 Seq(
-  "com.typesafe.play" % "sbt-plugin" % "2.8.0",
-  "com.malliina" % "sbt-utils-maven" % "0.15.1",
+  "com.malliina" % "play-hot-reload" % "0.0.6",
+  "com.malliina" % "sbt-utils-maven" % "0.15.2",
   "com.malliina" % "sbt-nodejs" % "0.15.1",
-  "com.malliina" %% "sbt-packager" % "2.8.2",
+  "com.malliina" %% "sbt-packager" % "2.8.3",
   "com.malliina" % "sbt-filetree" % "0.4.0",
   "com.typesafe.sbt" % "sbt-gzip" % "1.0.2",
   "com.typesafe.sbt" % "sbt-digest" % "1.1.4",
