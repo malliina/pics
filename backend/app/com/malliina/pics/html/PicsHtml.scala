@@ -2,6 +2,7 @@ package com.malliina.pics.html
 
 import com.malliina.html.UserFeedback
 import com.malliina.http.FullUrl
+import com.malliina.live.LiveReload
 import com.malliina.pics.html.PicsHtml._
 import com.malliina.pics.{html => _, _}
 import com.malliina.play.tags.TagPage
@@ -13,6 +14,7 @@ import play.filters.csrf.CSRF
 import scalatags.Text
 import scalatags.Text.GenericAttr
 import scalatags.Text.all.{defer => _, _}
+
 import scala.language.implicitConversions
 
 object PicsHtml {
@@ -33,7 +35,7 @@ object PicsHtml {
   def build(isProd: Boolean): PicsHtml = {
     val name = "frontend"
     val opt = if (isProd) "opt" else "fastopt"
-    val hotReload = if (isProd) Nil else FullUrl("http", "localhost:8080", "/socket.js") :: Nil
+    val hotReload = if (isProd) Nil else FullUrl.build(LiveReload.script).toOption.toList
     new PicsHtml(
       Seq(s"$name-$opt-library.js", s"$name-$opt-loader.js", s"$name-$opt.js"),
       hotReload

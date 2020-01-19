@@ -50,6 +50,7 @@ val frontend = project
     ),
     version in webpack := "4.35.2",
     emitSourceMaps := false,
+    webpackEmitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
     npmDependencies in Compile ++= Seq(
@@ -84,7 +85,7 @@ val backend = project
     WebScalaJSBundlerPlugin,
     PlayLinuxPlugin,
     BuildInfoPlugin,
-    PlayHotReloadPlugin
+    PlayLiveReloadPlugin
   )
   .dependsOn(crossJvm)
   .settings(commonSettings)

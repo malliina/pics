@@ -1,29 +1,17 @@
 scalaVersion := "2.12.10"
 
-resolvers ++= Seq(
-  ivyRepo("bintray-sbt-plugin-releases", "https://dl.bintray.com/content/sbt/sbt-plugin-releases"),
-  ivyRepo("malliina bintray sbt", "https://dl.bintray.com/malliina/sbt-plugins/"),
-  Resolver.bintrayRepo("malliina", "maven")
-)
-scalacOptions ++= Seq("-unchecked", "-deprecation", "-language:implicitConversions")
-classpathTypes += "maven-plugin"
-
 Seq(
-  "com.malliina" % "play-hot-reload" % "0.0.6",
-  "com.malliina" % "sbt-utils-maven" % "0.15.2",
-  "com.malliina" % "sbt-nodejs" % "0.15.1",
-  "com.malliina" %% "sbt-packager" % "2.8.3",
-  "com.malliina" % "sbt-filetree" % "0.4.0",
+  "com.malliina" % "play-live-reload" % "0.0.26",
+  "com.malliina" % "sbt-nodejs" % "0.15.7",
+  "com.malliina" %% "sbt-packager" % "2.8.4",
+  "com.malliina" % "sbt-filetree" % "0.4.1",
   "com.typesafe.sbt" % "sbt-gzip" % "1.0.2",
   "com.typesafe.sbt" % "sbt-digest" % "1.1.4",
-  "com.vmunier" % "sbt-web-scalajs" % "1.0.6",
-  "org.portable-scala" % "sbt-scalajs-crossproject" % "0.6.0",
+  "com.vmunier" % "sbt-web-scalajs" % "1.0.10-0.6",
+  "org.portable-scala" % "sbt-scalajs-crossproject" % "0.6.1",
   "org.scala-js" % "sbt-scalajs" % "0.6.31",
-  "ch.epfl.scala" % "sbt-web-scalajs-bundler" % "0.14.0",
+  "ch.epfl.scala" % "sbt-scalajs-bundler-sjs06" % "0.16.0",
   "com.eed3si9n" % "sbt-buildinfo" % "0.9.0",
   "ch.epfl.scala" % "sbt-bloop" % "1.3.4",
   "org.scalameta" % "sbt-scalafmt" % "2.3.0"
 ) map addSbtPlugin
-
-def ivyRepo(name: String, urlString: String) =
-  Resolver.url(name, url(urlString))(Resolver.ivyStylePatterns)

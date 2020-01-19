@@ -87,7 +87,7 @@ abstract class BaseComponents(
 
   val mode = environment.mode
   lazy val socialConf = SocialConf(configuration)
-  val devCsp = if (mode == Mode.Dev) "localhost:8080" :: Nil else Nil
+  val devCsp = if (mode == Mode.Dev) "localhost:10101" :: Nil else Nil
   val allowedCsp = Seq(
     "maxcdn.bootstrapcdn.com",
     "code.jquery.com",
