@@ -24,7 +24,7 @@ val commonSettings = Seq(
     Resolver.bintrayRepo("malliina", "maven")
   ),
   libraryDependencies ++= Seq(
-    "com.lihaoyi" %%% "scalatags" % "0.7.0",
+    "com.lihaoyi" %%% "scalatags" % "0.8.5",
     "com.typesafe.play" %%% "play-json" % "2.8.1",
     "com.malliina" %%% "primitives" % primitivesVersion,
     "com.malliina" %%% "util-html" % utilPlayVersion
