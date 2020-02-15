@@ -13,6 +13,8 @@ import scala.util.Try
 val utilPlayVersion = "5.4.0"
 val scalaTestVersion = "3.0.8"
 val primitivesVersion = "1.13.0"
+val testContainersScalaVersion = "0.35.2"
+
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
 val commonSettings = Seq(
@@ -22,7 +24,7 @@ val commonSettings = Seq(
     Resolver.bintrayRepo("malliina", "maven")
   ),
   libraryDependencies ++= Seq(
-    "com.lihaoyi" %%% "scalatags" % "0.7.0",
+    "com.lihaoyi" %%% "scalatags" % "0.8.5",
     "com.typesafe.play" %%% "play-json" % "2.8.1",
     "com.malliina" %%% "primitives" % primitivesVersion,
     "com.malliina" %%% "util-html" % utilPlayVersion
@@ -48,31 +50,31 @@ val frontend = project
       "be.doeraene" %%% "scalajs-jquery" % "0.9.5",
       "org.scalatest" %%% "scalatest" % scalaTestVersion % Test
     ),
-    version in webpack := "4.35.2",
+    version in webpack := "4.41.6",
     emitSourceMaps := false,
     webpackEmitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
     npmDependencies in Compile ++= Seq(
-      "@fortawesome/fontawesome-free" -> "5.9.0",
-      "bootstrap" -> "4.3.1",
+      "@fortawesome/fontawesome-free" -> "5.12.1",
+      "bootstrap" -> "4.4.1",
       "jquery" -> "3.4.1",
-      "popper.js" -> "1.15.0"
+      "popper.js" -> "1.16.1"
     ),
     npmDevDependencies in Compile ++= Seq(
-      "autoprefixer" -> "9.6.0",
+      "autoprefixer" -> "9.7.4",
       "cssnano" -> "4.1.10",
-      "css-loader" -> "3.0.0",
-      "file-loader" -> "4.0.0",
-      "less" -> "3.9.0",
+      "css-loader" -> "3.4.2",
+      "file-loader" -> "5.0.2",
+      "less" -> "3.11.1",
       "less-loader" -> "5.0.0",
-      "mini-css-extract-plugin" -> "0.7.0",
+      "mini-css-extract-plugin" -> "0.9.0",
       "postcss-import" -> "12.0.1",
       "postcss-loader" -> "3.0.0",
-      "postcss-preset-env" -> "6.6.0",
-      "style-loader" -> "0.23.1",
-      "url-loader" -> "2.0.1",
-      "webpack-merge" -> "4.2.1"
+      "postcss-preset-env" -> "6.7.0",
+      "style-loader" -> "1.1.3",
+      "url-loader" -> "3.0.0",
+      "webpack-merge" -> "4.2.2"
     ),
     webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.dev.config.js"),
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.prod.config.js")
@@ -111,7 +113,8 @@ val backend = project
       utilPlayDep % Test classifier "tests",
       "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
       "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test,
-      "ch.vorburger.mariaDB4j" % "mariaDB4j" % "2.4.0"
+      "com.dimafeng" %% "testcontainers-scala-scalatest" % testContainersScalaVersion % Test,
+      "com.dimafeng" %% "testcontainers-scala-mysql" % testContainersScalaVersion % Test
     ),
     // pipelineStages in Assets := Seq(digest, gzip)
     name in Linux := "pics",
@@ -149,10 +152,17 @@ val backend = project
       .value
   )
 
+val runApp = inputKey[Unit]("Runs the app")
+
 val pics = project
   .in(file("."))
   .aggregate(frontend, backend)
   .settings(commonSettings)
+  .settings(
+    runApp := (run in Compile).in(backend).evaluated
+  )
 
 def gitHash: String =
   Try(Process("git rev-parse --short HEAD").lineStream.head).toOption.getOrElse("unknown")
+
+Global / onChangedBuildSource := ReloadOnSourceChanges
