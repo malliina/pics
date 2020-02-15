@@ -46,7 +46,7 @@ class AppComponents(context: Context, creds: Configuration => GoogleOAuthCredent
   extends BaseComponents(
     context,
     creds,
-    c => Conf.fromConf(c).fold(_ => AppConf(EmbeddedMySQL.permanent), c => AppConf(c))
+    c => Conf.fromConf(c).fold(err => throw new Exception(err), c => AppConf(c))
   ) {
   override lazy val httpErrorHandler = PicsErrorHandler
 
@@ -60,10 +60,6 @@ trait AppConf {
 }
 
 object AppConf {
-  def apply(embedded: EmbeddedMySQL) = new AppConf {
-    override def database = embedded.conf
-    override def close(): Unit = embedded.stop()
-  }
   def apply(conf: Conf) = new AppConf {
     override def database = conf
     override def close(): Unit = ()

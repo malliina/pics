@@ -1,16 +1,17 @@
 package com.malliina.pics.db
 
 import akka.actor.ActorSystem
-import com.malliina.pics.app.EmbeddedMySQL
+import com.dimafeng.testcontainers.{ForAllTestContainer, MySQLContainer}
 import com.malliina.pics.{Keys, PicOwner}
-import tests.BaseSuite
+import tests.{BaseSuite, TestConf}
 
-class NewPicsDatabaseTests extends BaseSuite {
+class NewPicsDatabaseTests extends BaseSuite with ForAllTestContainer {
+  override val container = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
+
   test("can CRUD pic meta") {
     val as = ActorSystem("test")
-    val db = EmbeddedMySQL.temporary
+    val conf = TestConf(container)
     try {
-      val conf = db.conf
       val picsDatabase = NewPicsDatabase.withMigrations(as, conf)
       import picsDatabase.ec
       val user = PicOwner("testuser")
@@ -26,7 +27,6 @@ class NewPicsDatabaseTests extends BaseSuite {
       assert(!await(picsDatabase.contains(key)))
     } finally {
       await(as.terminate())
-      db.stop()
     }
   }
 }
