@@ -21,6 +21,7 @@ GET           /sign-in/twitter                                           control
 GET           /sign-in/github                                            controllers.Social.github
 GET           /sign-in/microsoft                                         controllers.Social.microsoft
 GET           /sign-in/google                                            controllers.Social.google
+GET           /sign-in/google-amazon                                     controllers.Social.googleViaAmazon
 GET           /sign-in/facebook                                          controllers.Social.facebook
 GET           /sign-in/apple                                             controllers.Social.apple
 GET           /sign-in/callbacks/amazon                                  controllers.Social.amazonCallback
@@ -28,6 +29,7 @@ GET           /sign-in/callbacks/twitter                                 control
 GET           /sign-in/callbacks/github                                  controllers.Social.githubCallback
 GET           /sign-in/callbacks/microsoft                               controllers.Social.microsoftCallback
 GET           /sign-in/callbacks/google                                  controllers.Social.googleCallback
+GET           /sign-in/callbacks/google-amazon                           controllers.Social.googleViaAmazonCallack
 GET           /sign-in/callbacks/facebook                                controllers.Social.facebookCallback
 POST          /sign-in/callbacks/apple                                   controllers.Social.appleCallback
 GET           /sign-out/leave                                            controllers.CognitoControl.signOut

@@ -2,14 +2,16 @@ package com.malliina.pics.auth
 
 import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.{Errors, PicRequest}
-import com.malliina.play.auth.{AccessToken, MissingCredentials}
+import com.malliina.play.auth.{AccessToken, CognitoUser, MissingCredentials, Verified}
 import com.malliina.play.controllers.AuthBundle
-import com.malliina.play.auth.CognitoUser
+import com.malliina.values.Email
 import controllers.{JWTAuth, PicsController, Social}
 import play.api.http.{HeaderNames, MediaRange}
 import play.api.mvc.{RequestHeader, Result, Results}
 
 import scala.concurrent.Future
+
+case class CognitoSocialUser(email: Email, verified: Verified)
 
 trait PicsAuthLike {
   def authenticate(rh: RequestHeader): Future[Either[Result, PicRequest]]

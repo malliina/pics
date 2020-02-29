@@ -10,7 +10,7 @@ import play.api.mvc._
 object JWTAuth {
   private val log = Logger(getClass)
 
-  val default = new JWTAuth(CognitoValidators.picsAccess)
+  val default = new JWTAuth(CognitoValidators.picsAccess, CognitoValidators.picsId)
 
   def failJwt(error: JWTError) = failSingle(SingleError.forJWT(error))
 
@@ -28,32 +28,45 @@ object JWTAuth {
     }
 }
 
-class JWTAuth(val validator: CognitoAccessValidator) {
-  def userOrAnon(rh: RequestHeader): Either[Result, PicRequest] =
+class JWTAuth(val ios: CognitoAccessValidator, android: CognitoIdValidator) {
+
+  /** Called when authenticating iOS/Android requests.
+    *
+    * @param rh request
+    * @return
+    */
+  def userOrAnon(rh: RequestHeader): Either[Result, PicRequest] = {
     auth(rh)
-      .map(e => e.map(u => PicRequest.forUser(u.username, rh)))
-      .getOrElse(Right(PicRequest.anon(rh)))
+      .map { e =>
+        e.map { u =>
+          PicRequest.forUser(u.username, rh)
+        }
+      }
+      .getOrElse { Right(PicRequest.anon(rh)) }
+  }
 
-  def jwtAuth(rh: RequestHeader): Either[Result, JWTUser] =
-    auth(rh).getOrElse(missingToken())
+  private def auth(rh: RequestHeader): Option[Either[Result, JWTUser]] = {
+    readToken(rh).map(token => validateToken(token))
+  }
 
-  def auth(rh: RequestHeader): Option[Either[Result, CognitoUser]] =
-    readToken(rh).map(validateToken)
+  /** User/pass login in iOS uses access tokens but social login in Android uses ID tokens.
+    *
+    * @param token access token or id token
+    */
+  def validateToken(token: TokenValue): Either[Result, CognitoUser] =
+    convertError(
+      token,
+      ios.validate(AccessToken(token.token)).orElse(android.validate(IdToken(token.token)))
+    )
 
-  def validateToken(token: AccessToken): Either[Result, CognitoUser] =
-    validator.validate(token).left.map { error =>
+  private def convertError[U](token: TokenValue, e: Either[JWTError, U]) =
+    e.left.map { error =>
       log.warn(s"JWT validation failed: '${error.message}'. Token: '$token'.")
       fail(SingleError.forJWT(error))
     }
 
-  def fail(err: SingleError) = JWTAuth.failSingle(err)
+  private def fail(err: SingleError) = JWTAuth.failSingle(err)
 
-  def readToken(rh: RequestHeader, expectedSchema: String = "Bearer"): Option[AccessToken] =
+  private def readToken(rh: RequestHeader, expectedSchema: String = "Bearer"): Option[TokenValue] =
     JWTAuth.readToken(rh, expectedSchema)
-
-  def missingToken() = {
-    val message = s"JWT token missing. Use the '$AUTHORIZATION' header."
-    log.warn(message)
-    Left(fail(SingleError(message)))
-  }
 }

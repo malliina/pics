@@ -132,9 +132,12 @@ class Social(conf: SocialConf, comps: ControllerComponents) extends AbstractCont
 
   private val amazonOauth =
     OAuthConf(routes.Social.amazonCallback(), cognitoHandler, conf.amazonConf, okClient)
-  val amazonValidator = CognitoCodeValidator(
+  val amazonValidator = cognitoValidator(IdentityProvider.LoginWithAmazon)
+  val googleViaAmazonValidator = cognitoValidator(IdentityProvider.IdentityGoogle)
+
+  def cognitoValidator(identityProvider: IdentityProvider) = CognitoCodeValidator(
     "pics.auth.eu-west-1.amazoncognito.com",
-    IdentityProvider.LoginWithAmazon,
+    identityProvider,
     CognitoValidators.picsId,
     amazonOauth
   )
@@ -158,6 +161,9 @@ class Social(conf: SocialConf, comps: ControllerComponents) extends AbstractCont
 
   def amazon = start(amazonValidator)
   def amazonCallback = callback(amazonValidator, Amazon)
+
+  def googleViaAmazon = start(googleViaAmazonValidator)
+  def googleViaAmazonCallack = callback(googleViaAmazonValidator, Amazon)
 
   def apple = start(appleValidator)
 

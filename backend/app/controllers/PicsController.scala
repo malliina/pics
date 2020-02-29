@@ -231,9 +231,6 @@ class PicsController(
 
   def renderVaried(rh: RequestHeader)(f: PartialFunction[MediaRange, Result]) = render(f)(rh)
 
-  private def findKeyAction(key: Key, storage: DataSource): Action[AnyContent] =
-    picAction(_ => storage.find(key), keyNotFound(key))
-
   private def picAction(
     find: RequestHeader => Future[Option[DataFile]],
     onNotFound: => Result
