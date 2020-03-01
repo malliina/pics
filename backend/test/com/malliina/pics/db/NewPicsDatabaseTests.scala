@@ -3,8 +3,9 @@ package com.malliina.pics.db
 import akka.actor.ActorSystem
 import com.dimafeng.testcontainers.{ForAllTestContainer, MySQLContainer}
 import com.malliina.pics.{Keys, PicOwner}
-import tests.{BaseSuite, TestConf}
+import tests.{BaseSuite, DbTest, TestConf}
 
+@DbTest
 class NewPicsDatabaseTests extends BaseSuite with ForAllTestContainer {
   override val container = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
 

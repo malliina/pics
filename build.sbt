@@ -1,4 +1,5 @@
 import com.malliina.sbt.filetree.DirMap
+import com.malliina.sbt.unix.LinuxKeys.ciBuild
 import play.sbt.PlayImport
 import sbt.Keys.scalaVersion
 import sbt._
@@ -6,6 +7,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{
   CrossType => PortableType,
   crossProject => portableProject
 }
+import sbtrelease.ReleaseStateTransformations.checkSnapshotDependencies
 
 import scala.sys.process.Process
 import scala.util.Try
@@ -149,7 +151,13 @@ val backend = project
       .ofProject(frontend) { modules =>
         (modules / "bootstrap").allPaths +++ (modules / "@fortawesome" / "fontawesome-free").allPaths
       }
-      .value
+      .value,
+    releaseProcess := Seq[ReleaseStep](
+      releaseStepTask(clean in Compile),
+      checkSnapshotDependencies,
+      releaseStepInputTask(testOnly, " * -- -l tests.DbTest"),
+      releaseStepTask(ciBuild)
+    )
   )
 
 val runApp = inputKey[Unit]("Runs the app")
