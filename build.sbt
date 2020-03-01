@@ -156,7 +156,7 @@ val backend = project
       releaseStepTask(clean in Compile),
       checkSnapshotDependencies,
 //      releaseStepInputTask(testOnly, " * -- -l tests.DbTest"),
-      releaseStepInputTask(testOnly, " tests.ImageTests"),
+//      releaseStepInputTask(testOnly, " tests.ImageTests"),
       releaseStepTask(ciBuild)
     )
   )
