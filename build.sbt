@@ -155,7 +155,8 @@ val backend = project
     releaseProcess := Seq[ReleaseStep](
       releaseStepTask(clean in Compile),
       checkSnapshotDependencies,
-      releaseStepInputTask(testOnly, " * -- -l tests.DbTest"),
+//      releaseStepInputTask(testOnly, " * -- -l tests.DbTest"),
+      releaseStepInputTask(testOnly, " tests.ImageTests"),
       releaseStepTask(ciBuild)
     )
   )
