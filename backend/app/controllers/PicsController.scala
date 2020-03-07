@@ -85,18 +85,20 @@ class PicsController(
 
   def signUp = Action { Ok(html.signUp()) }
 
-  def postSignIn = Action(parse.form(tokenForm)) { req =>
+  def postSignIn = Action.async(parse.form(tokenForm)) { req =>
     val token = req.body
     auth.authenticator
       .validateToken(token)
-      .fold(
-        _ => {
-          failLogin(LoginStrings.AuthFailed, req)
-        },
-        user => {
-          Redirect(reverse.list()).withSession(Social.SessionKey -> user.username.name)
-        }
-      )
+      .map { e =>
+        e.fold(
+          _ => {
+            failLogin(LoginStrings.AuthFailed, req)
+          },
+          user => {
+            Redirect(reverse.list()).withSession(Social.SessionKey -> user.username.name)
+          }
+        )
+      }
   }
 
   private def failLogin(message: String, rh: RequestHeader): Result = {

@@ -28,8 +28,8 @@ object Social {
   val SessionKey = "picsUser"
   val LastIdCookie = "picsLastId"
 
-  def buildOrFail(socialConf: SocialConf, comps: ControllerComponents) =
-    new Social(socialConf, comps)
+  def buildOrFail(socialConf: SocialConf, http: OkClient, comps: ControllerComponents) =
+    new Social(socialConf, http, comps)
 
   case class SocialConf(
     githubConf: AuthConf,
@@ -79,9 +79,9 @@ object Social {
   case object Apple extends AuthProvider("apple")
 }
 
-class Social(conf: SocialConf, comps: ControllerComponents) extends AbstractController(comps) {
+class Social(conf: SocialConf, http: OkClient, comps: ControllerComponents)
+  extends AbstractController(comps) {
   val reverse = routes.Social
-  val okClient = OkClient.default
   val successCall = routes.PicsController.list()
   val handler: AuthHandler = new AuthHandler {
     override def onAuthenticated(email: Email, req: RequestHeader): Result = {
@@ -131,18 +131,18 @@ class Social(conf: SocialConf, comps: ControllerComponents) extends AbstractCont
   )
 
   private val amazonOauth =
-    OAuthConf(routes.Social.amazonCallback(), cognitoHandler, conf.amazonConf, okClient)
+    OAuthConf(routes.Social.amazonCallback(), cognitoHandler, conf.amazonConf, http)
   val amazonValidator = cognitoValidator(IdentityProvider.LoginWithAmazon)
   val googleViaAmazonValidator = cognitoValidator(IdentityProvider.IdentityGoogle)
 
   def cognitoValidator(identityProvider: IdentityProvider) = CognitoCodeValidator(
     "pics.auth.eu-west-1.amazoncognito.com",
     identityProvider,
-    CognitoValidators.picsId,
+    Validators.picsId,
     amazonOauth
   )
 
-  def oauthConf(redirCall: Call, conf: AuthConf) = OAuthConf(redirCall, handler, conf, okClient)
+  def oauthConf(redirCall: Call, conf: AuthConf) = OAuthConf(redirCall, handler, conf, http)
 
   def microsoft = startHinted(microsoftValidator)
   def microsoftCallback = callback(microsoftValidator, Microsoft)
@@ -228,5 +228,5 @@ class Social(conf: SocialConf, comps: ControllerComponents) extends AbstractCont
       }
     }
 
-  def close(): Unit = okClient.close()
+//  def close(): Unit = http.close()
 }

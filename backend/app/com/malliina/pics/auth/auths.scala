@@ -2,7 +2,7 @@ package com.malliina.pics.auth
 
 import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.{Errors, PicRequest}
-import com.malliina.play.auth.{AccessToken, CognitoUser, MissingCredentials, Verified}
+import com.malliina.play.auth.{AccessToken, JWTUser, MissingCredentials, Verified}
 import com.malliina.play.controllers.AuthBundle
 import com.malliina.values.Email
 import controllers.{JWTAuth, PicsController, Social}
@@ -15,7 +15,7 @@ case class CognitoSocialUser(email: Email, verified: Verified)
 
 trait PicsAuthLike {
   def authenticate(rh: RequestHeader): Future[Either[Result, PicRequest]]
-  def validateToken(token: AccessToken): Either[Result, CognitoUser]
+  def validateToken(token: AccessToken): Future[Either[Result, JWTUser]]
   def unauth = Results.Unauthorized(Errors.single("Unauthorized."))
 }
 
@@ -50,10 +50,10 @@ class PicsAuthenticator(jwtAuth: JWTAuth, bundle: AuthBundle[PicRequest]) extend
     acceptedResult(accepted)
   }
 
-  override def validateToken(token: AccessToken): Either[Result, CognitoUser] =
+  override def validateToken(token: AccessToken): Future[Either[Result, JWTUser]] =
     jwtAuth.validateToken(token)
 
-  def authJwt(rh: RequestHeader) = fut(jwtAuth.userOrAnon(rh))
+  def authJwt(rh: RequestHeader) = jwtAuth.userOrAnon(rh)
 
   def authHtml(rh: RequestHeader): Future[Either[Result, PicRequest]] =
     bundle.authenticator.authenticate(rh).map { e =>

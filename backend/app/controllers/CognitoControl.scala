@@ -8,7 +8,7 @@ import com.malliina.play.auth.{
   CognitoIdentityConf,
   CognitoIdentityConfs,
   CognitoTokens,
-  CognitoValidators
+  Validators
 }
 import com.malliina.play.http.FullUrls
 import com.malliina.play.json.JsonMessages
@@ -84,7 +84,7 @@ class CognitoControl(conf: CognitoIdentityConf, actions: ActionBuilder[Request, 
                     BadRequest(JsonMessages.failure(msg))
                   },
                   tokens => {
-                    CognitoValidators.picsId
+                    Validators.picsId
                       .validate(tokens.idToken)
                       .fold(
                         err => {

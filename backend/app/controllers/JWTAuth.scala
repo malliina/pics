@@ -1,5 +1,7 @@
 package controllers
 
+import com.malliina.http.OkClient
+import com.malliina.pics.auth.{EmailUser, GoogleTokenAuth}
 import com.malliina.pics.{Errors, PicRequest, SingleError}
 import com.malliina.play.auth._
 import controllers.JWTAuth.log
@@ -7,10 +9,13 @@ import play.api.Logger
 import play.api.http.HeaderNames.AUTHORIZATION
 import play.api.mvc._
 
+import scala.concurrent.{ExecutionContext, Future}
+
 object JWTAuth {
   private val log = Logger(getClass)
 
-  val default = new JWTAuth(CognitoValidators.picsAccess, CognitoValidators.picsId)
+  def default(http: OkClient) =
+    new JWTAuth(Validators.picsAccess, Validators.picsId, Validators.google(http))
 
   def failJwt(error: JWTError) = failSingle(SingleError.forJWT(error))
 
@@ -28,24 +33,33 @@ object JWTAuth {
     }
 }
 
-class JWTAuth(val ios: CognitoAccessValidator, android: CognitoIdValidator) {
+class JWTAuth(
+  val ios: CognitoAccessValidator,
+  android: CognitoIdValidator,
+  google: GoogleTokenAuth
+) {
+  implicit val ec: ExecutionContext = google.ec
 
   /** Called when authenticating iOS/Android requests.
     *
     * @param rh request
     * @return
     */
-  def userOrAnon(rh: RequestHeader): Either[Result, PicRequest] = {
+  def userOrAnon(rh: RequestHeader): Future[Either[Result, PicRequest]] = {
     auth(rh)
-      .map { e =>
-        e.map { u =>
-          PicRequest.forUser(u.username, rh)
+      .map { f =>
+        f.map { e =>
+          e.map { u =>
+            PicRequest.forUser(u.username, rh)
+          }
         }
       }
-      .getOrElse { Right(PicRequest.anon(rh)) }
+      .getOrElse {
+        Future.successful(Right(PicRequest.anon(rh)))
+      }
   }
 
-  private def auth(rh: RequestHeader): Option[Either[Result, JWTUser]] = {
+  private def auth(rh: RequestHeader): Option[Future[Either[Result, JWTUser]]] = {
     readToken(rh).map(token => validateToken(token))
   }
 
@@ -53,16 +67,27 @@ class JWTAuth(val ios: CognitoAccessValidator, android: CognitoIdValidator) {
     *
     * @param token access token or id token
     */
-  def validateToken(token: TokenValue): Either[Result, CognitoUser] =
-    convertError(
-      token,
-      ios.validate(AccessToken(token.token)).orElse(android.validate(IdToken(token.token)))
-    )
+  def validateToken(token: TokenValue): Future[Either[Result, JWTUser]] = {
+    Future
+      .successful(
+        ios.validate(AccessToken(token.token)).orElse(android.validate(IdToken(token.token)))
+      )
+      .flatMap { e =>
+        e.fold(
+          err =>
+            google.validate(IdToken(token.token)).map { e =>
+              e.map(email => EmailUser(email))
+            },
+          ok => Future.successful(Right(ok))
+        )
+      }
+      .map { convertError(token, _) }
+  }
 
-  private def convertError[U](token: TokenValue, e: Either[JWTError, U]) =
+  private def convertError[U](token: TokenValue, e: Either[AuthError, U]) =
     e.left.map { error =>
       log.warn(s"JWT validation failed: '${error.message}'. Token: '$token'.")
-      fail(SingleError.forJWT(error))
+      fail(SingleError(error.message.message, error.key))
     }
 
   private def fail(err: SingleError) = JWTAuth.failSingle(err)

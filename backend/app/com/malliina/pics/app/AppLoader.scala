@@ -2,6 +2,7 @@ package com.malliina.pics.app
 
 import java.nio.file.Paths
 
+import com.malliina.http.OkClient
 import com.malliina.oauth.GoogleOAuthCredentials
 import com.malliina.pics.CSRFConf.{CsrfCookieName, CsrfHeaderName, CsrfTokenName, CsrfTokenNoCheck}
 import com.malliina.pics._
@@ -50,7 +51,7 @@ class AppComponents(context: Context, creds: Configuration => GoogleOAuthCredent
   ) {
   override lazy val httpErrorHandler = PicsErrorHandler
 
-  override def buildAuthenticator() = PicsAuthenticator(JWTAuth.default, PicsAuth.social)
+  override def buildAuthenticator() = PicsAuthenticator(JWTAuth.default(http), PicsAuth.social)
   override def buildPics() = MultiSizeHandler.default(materializer)
 }
 
@@ -74,6 +75,7 @@ abstract class BaseComponents(
   with HttpFiltersComponents
   with EhCacheComponents
   with AssetsComponents {
+  val http = OkClient.default
   override val configuration = LocalConf.localConf.withFallback(context.initialConfiguration)
   override lazy val httpFilters =
     Seq(new GzipFilter(), csrfFilter, securityHeadersFilter, allowedHostsFilter)
@@ -137,7 +139,7 @@ abstract class BaseComponents(
   val pics = new PicsController(html, service, sockets, auth, cache, controllerComponents)
   val cognitoControl = CognitoControl.pics(defaultActionBuilder)
   val picsAssets = new PicsAssets(assets)
-  lazy val social = Social.buildOrFail(socialConf, controllerComponents)
+  lazy val social = Social.buildOrFail(socialConf, http, controllerComponents)
   override lazy val router: Router =
     new Routes(httpErrorHandler, pics, sockets, picsAssets, social, cognitoControl)
 
@@ -145,7 +147,7 @@ abstract class BaseComponents(
     Future.successful {
       quill.close()
       conf.close()
-      social.close()
+      http.close()
     }
   }
 }

@@ -68,7 +68,7 @@ class AppleCodeValidator(val oauth: OAuthConf[Email], validator: AppleTokenValid
     val params = tokenParameters(code, FullUrls(redirCall, req))
     postForm[TokenResponse](staticConf.tokenEndpoint, params).flatMap { tokens =>
       http.getAs[JWTKeys](AppleCodeValidator.jwksUri).map { keys =>
-        validator.validate(IdToken(tokens.id_token), keys.keys, Instant.now()).flatMap { v =>
+        validator.validate(IdToken(tokens.id_token.token), keys.keys, Instant.now()).flatMap { v =>
           v.readString(EmailKey).map(Email.apply)
         }
       }

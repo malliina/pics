@@ -12,7 +12,7 @@ import sbtrelease.ReleaseStateTransformations.checkSnapshotDependencies
 import scala.sys.process.Process
 import scala.util.Try
 
-val utilPlayVersion = "5.4.0"
+val utilPlayVersion = "5.4.1"
 val scalaTestVersion = "3.0.8"
 val primitivesVersion = "1.13.0"
 val testContainersScalaVersion = "0.35.2"
