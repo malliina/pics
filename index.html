@@ -354,6 +354,7 @@
     ]
 }
 </code></pre>
+<p>The most recent images are first in the array.</p>
 <p>The following query parameters are supported:</p>
 <table>
 <thead>
@@ -420,12 +421,15 @@ supported:</p>
             "url": "https://pics.malliina.com/key1.jpg",
             "small": "https://pics.malliina.com/key1.jpg?s=s",
             "medium": "https://pics.malliina.com/key1.jpg?s=m",
-            "large": "https://pics.malliina.com/key1.jpg?s=l"
+            "large": "https://pics.malliina.com/key1.jpg?s=l",
+            "clientKey": "desire.jpg"
         }
     ]
 }
 </code></pre>
 <p>The <code>pics</code> array contains the added pics in chronological order with the most recent pic first.</p>
+<p>All keys are non-null except the optional <code>clientKey</code> which the pic uploader can choose to
+ provide when uploading the pic.</p>
 <h3 id="pics-removed">Pics removed</h3>
 <p>Sent when pics have been removed.</p>
 <pre><code>{
