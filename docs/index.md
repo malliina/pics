@@ -17,6 +17,8 @@ Returns a list of pics:
         ]
     }
 
+The most recent images are first in the array.
+
 The following query parameters are supported:
 
 | Key | Meaning | Example
@@ -60,12 +62,16 @@ supported:
                 "url": "https://pics.malliina.com/key1.jpg",
                 "small": "https://pics.malliina.com/key1.jpg?s=s",
                 "medium": "https://pics.malliina.com/key1.jpg?s=m",
-                "large": "https://pics.malliina.com/key1.jpg?s=l"
+                "large": "https://pics.malliina.com/key1.jpg?s=l",
+                "clientKey": "desire.jpg"
             }
         ]
     }
 
 The `pics` array contains the added pics in chronological order with the most recent pic first.
+
+All keys are non-null except the optional `clientKey` which the pic uploader can choose to
+ provide when uploading the pic.
 
 ### Pics removed
 
