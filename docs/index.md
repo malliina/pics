@@ -44,31 +44,38 @@ Returns HTTP 202 on success.
 ## WebSocket /sockets
 
 Listens to pic updates over a WebSocket connection. Any updates are formatted as JSON messages. Two message types are
-supported: pics added and pics removed.
+supported:
+
+- pics added
+- pics removed
 
 ### Pics added
 
     {
+        "event": "added",
         "pics": [
             {
                 "key": "key1.jpg",
                 "added": 1234567890,
                 "url": "https://pics.malliina.com/key1.jpg",
-                "small": "https://pics.malliina.com/key1.jpg/small",
-                "medium": "https://pics.malliina.com/key1.jpg/medium",
-                "large": "https://pics.malliina.com/key1.jpg/large"
+                "small": "https://pics.malliina.com/key1.jpg?s=s",
+                "medium": "https://pics.malliina.com/key1.jpg?s=m",
+                "large": "https://pics.malliina.com/key1.jpg?s=l"
             }
         ]
     }
+
+The `pics` array contains the added pics in chronological order with the most recent pic first.
 
 ### Pics removed
 
 Sent when pics have been removed.
 
     {
+        "event": "removed",
         "keys": [
-            "key1",
-            "key2"
+            "key1.jpg",
+            "key2.jpg"
         ]
     }
 

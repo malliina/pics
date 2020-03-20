@@ -3,7 +3,15 @@
 
 # pics
 
-This is a pic app.
+This is a pic app. Available at [pics.malliina.com](https://pics.malliina.com).
+
+## Deploying documentation
+
+To deploy the documentation site at [pics-docs.malliina.com](https://pics-docs.malliina.com):
+
+    mkdocs gh-deploy
+
+The documentation is hosted on GitHub Pages.
 
 ## API
 
