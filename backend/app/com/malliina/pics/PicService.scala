@@ -37,7 +37,6 @@ class PicService(val metaDatabase: MetaSource, val handler: MultiSizeHandler) {
     log.trace(
       s"Copied temp file '$tempFile' to '$renamedFile', size ${Files.size(tempFile)} bytes."
     )
-    //    val thumbFile = renamedFile resolveSibling s"$name-thumb.$ext"
     for {
       _ <- handler.handle(renamedFile, key)
       meta <- metaDatabase.saveMeta(key, by.name)

@@ -34,7 +34,7 @@ class ImageHandler(prefix: String, resizer: ImageResizer, val storage: DataSourc
 
 trait ImageHandlerLike {
 
-  /** Might fail with Exception, ImageParseException, ...
+  /** Might fail with Exception, ImageParseException, IllegalArgumentException, ...
     *
     * @param original orig image
     * @param key      desired key

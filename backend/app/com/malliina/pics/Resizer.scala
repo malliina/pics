@@ -27,14 +27,16 @@ class Resizer(maxWidth: Int, maxHeight: Int) {
         .map { bufferedImage =>
           val resized = resize(bufferedImage)
           val writerFound = ImageIO.write(resized, format, dest.toFile)
-          if (writerFound) Right(resized)
-          else
+          if (writerFound) {
+            Right(resized)
+          } else {
             Left(
               UnsupportedFormat(
                 format,
                 ImageIO.getWriterFormatNames.toList.map(_.toLowerCase).distinct
               )
             )
+          }
         }
         .getOrElse {
           Left(ImageReaderFailure(src))

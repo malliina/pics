@@ -1,6 +1,6 @@
 package controllers
 
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 import java.time.Instant
 
 import com.malliina.concurrent.Execution.cached
@@ -20,7 +20,7 @@ import play.api.data.Forms._
 import play.api.http._
 import play.api.libs.json.{Json, Writes}
 import play.api.mvc._
-
+import com.malliina.storage.StorageLong
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
@@ -268,6 +268,9 @@ class PicsController(
       .recover {
         case t: ImageFailure          => failResize(t, by)
         case ipa: ImageParseException => failResize(ResizeException(ipa), by)
+        case iae: IllegalArgumentException =>
+          log.warn("Failed to read image.", iae)
+          failResize(ImageReaderFailure(tempFile), by)
       }
   }
 
@@ -281,7 +284,9 @@ class PicsController(
       log.error(msg, ioe)
       internalError(msg)
     case ImageReaderFailure(file) =>
-      log.error(s"Unable to read image from file '$file'")
+      val size = Files.size(file).bytes
+      val isReadable = Files.isReadable(file)
+      log.error(s"Unable to read image from file '$file'. Size: $size, readable: $isReadable.")
       badRequest("Unable to read image.")
     case ResizeException(ipa) =>
       log.error(s"Unable to parse image by '${by.name}'.", ipa)
