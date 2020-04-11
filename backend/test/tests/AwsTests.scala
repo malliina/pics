@@ -6,13 +6,12 @@ import akka.util.ByteString
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.malliina.pics.s3.AsyncS3Bucket
-import org.scalatest.FunSuite
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider
 
 import scala.concurrent.Future
 import scala.jdk.CollectionConverters.ListHasAsScala
 
-class AwsTests extends FunSuite {
+class AwsTests extends munit.FunSuite {
   val bucketName = "malliina-pics-test-bucket2"
   val objectKey = "myKey"
   val testContent = "test content"
@@ -20,11 +19,11 @@ class AwsTests extends FunSuite {
   implicit val as = ActorSystem("test")
   implicit val ec = as.dispatcher
 
-  ignore("read profile") {
+  test("read profile".ignore) {
     ProfileCredentialsProvider.create("pimp").resolveCredentials()
   }
 
-  ignore("list images") {
+  test("list images".ignore) {
     val src = AsyncS3Bucket.Original
     src.load(0, 1000).foreach { key =>
       //      val content = src.get(key)
@@ -33,7 +32,7 @@ class AwsTests extends FunSuite {
     }
   }
 
-  ignore("create bucket, save file, delete bucket") {
+  test("create bucket, save file, delete bucket".ignore) {
     withBucket { aws =>
       aws.putObject(bucketName, objectKey, testContent)
 
@@ -44,50 +43,12 @@ class AwsTests extends FunSuite {
         val contentSource = StreamConverters.fromInputStream(() => obj.getObjectContent)
         val contentConcat: Future[ByteString] = contentSource.runFold(ByteString.empty)(_ ++ _)
         val content = await(contentConcat)
-        assert(content.utf8String === testContent)
+        assert(content.utf8String == testContent)
       }
 
       aws.deleteObject(bucketName, objectKey)
     }
   }
-
-//  ignore("resize original images") {
-//    def resize(resizer: ScrimageResizer, prefix: String): Path => Path = src => {
-//      val dest = Files.createTempFile(prefix, null)
-//      await(resizer.resizeFile(src, dest)).right
-//      dest
-//    }
-//
-//    val resizerSmall = resize(ScrimageResizer.Small, "small")
-//    val resizerMedium = resize(ScrimageResizer.Medium, "medium")
-//    val resizerLarge = resize(ScrimageResizer.Large, "large")
-//    val src = BucketFiles.Original
-//    val smalls = BucketFiles.Small
-//    val mediums = BucketFiles.Medium
-//    val larges = BucketFiles.Large
-//    val task = src.load(0, 1000).flatMap { metas =>
-//      val resizeTasks = metas.map { meta =>
-//        src.getStream(meta.key).flatMap { orig =>
-//          if (orig.isImage) {
-//            val origFile = Files.createTempFile("orig", null)
-//            orig.source.runWith(FileIO.toPath(origFile)).flatMap { _ =>
-//              for {
-//                _ <- smalls.saveBody(meta.key, resizerSmall(origFile))
-//                _ <- mediums.saveBody(meta.key, resizerMedium(origFile))
-//                _ <- larges.saveBody(meta.key, resizerLarge(origFile))
-//              } yield {
-//                println(s"Resized ${meta.key}")
-//              }
-//            }
-//          } else {
-//            fut(())
-//          }
-//        }
-//      }
-//      Future.sequence(resizeTasks)
-//    }
-//    await(task)
-//  }
 
   def withBucket[T](code: AmazonS3 => T) = {
     val aws: AmazonS3 = AmazonS3ClientBuilder.standard().withRegion(Regions.EU_WEST_1).build()

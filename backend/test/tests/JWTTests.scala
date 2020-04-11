@@ -4,7 +4,7 @@ import com.malliina.play.auth.{AccessToken, Expired, LiberalValidators}
 import com.nimbusds.jwt.JWTClaimsSet
 import org.scalatest.FunSuite
 
-class JWTTests extends FunSuite {
+class JWTTests extends munit.FunSuite {
   val validator = LiberalValidators.auth0
 
   test("expired JWT fails") {
@@ -16,7 +16,7 @@ class JWTTests extends FunSuite {
     assert(result.left.exists(_.isInstanceOf[Expired]))
   }
 
-  ignore("expired JWT fails 2") {
+  test("expired JWT fails 2".ignore) {
     val token = AccessToken(
       "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6Ik9UYzVSamM1TVVVM00wTTVNak0yT1VKRk5VTTFNakpCUmpjelJFVXdRVFl5TWtSRk1UZEJSQSJ9.eyJpc3MiOiJodHRwczovL21hbGxpaW5hLmV1LmF1dGgwLmNvbS8iLCJzdWIiOiJnb29nbGUtb2F1dGgyfDExMjk2NjE3MjA5OTY1MDE1MjMzNyIsImF1ZCI6WyJodHRwczovL3BpY3MubWFsbGlpbmEuY29tIiwiaHR0cHM6Ly9tYWxsaWluYS5ldS5hdXRoMC5jb20vdXNlcmluZm8iXSwiaWF0IjoxNTExOTkwMzU1LCJleHAiOjE1MTIwNzY3NTUsImF6cCI6IjNiZ0hZNThrVUxxa25IOXRRS0lrM3k2aENYRUZ1aVJrIiwic2NvcGUiOiJyZWFkOnBob3RvcyB3cml0ZTpwaG90b3Mgb3BlbmlkIn0.C8Zstb5cFsW_d-t7U6RRSro-zGLl7FAX-owChN9D8kL38ES784adqZgofAV3la5M4XMtAFwQF0zHX-m-iLq2ydB4XEQDLSQQqSF8GwoRp0n9Db10e-iqwjAa5XgzIAwF727eO1uy47xbNwQek2Ed60NaCl4CK47x06q-ZMkDjz28L_Lcnt5dxkyxOtTDqico2JuFVhngyp3x9QkaFUb3VSAeM55rkB2UgMz0xtDxjjGFqvZrBedMQpL_AfK8yF9EgSf-Gm7Km6veMliDSG3Z5Zfjdn-NFQTb0FPlF50TSayKA8_J1hjQQ8FDYzFLHLFFa10DbUmsXnG5xv61i0QMcg"
     )
@@ -24,13 +24,13 @@ class JWTTests extends FunSuite {
     assert(result.isRight)
   }
 
-  ignore("create token") {
+  test("create token".ignore) {
     val asJson = new JWTClaimsSet.Builder()
       .issuer("mle")
       .audience("world")
       .claim("scopes", Array("read", "write"))
       .build()
       .toJSONObject
-    assert(asJson.getAsString("aud") === "world")
+    assert(asJson.getAsString("aud") == "world")
   }
 }

@@ -10,7 +10,7 @@ import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
 
 class HttpTests extends BaseSuite {
-  ignore("list pics") {
+  test("list pics".ignore) {
     implicit val as = ActorSystem("test")
     implicit val ec = as.dispatcher
     val client = StandaloneAhcWSClient()

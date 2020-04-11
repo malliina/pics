@@ -5,7 +5,7 @@ import com.malliina.play.auth.JWTKeys
 import tests.BaseSuite
 
 class AppleTests extends BaseSuite {
-  ignore("read apple conf") {
+  test("read apple conf".ignore) {
     val http = OkClient.default
     val keys = http.getAs[JWTKeys](AppleCodeValidator.jwksUri)
     val ks = await(keys)

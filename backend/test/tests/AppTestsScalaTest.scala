@@ -1,16 +1,18 @@
 package tests
 
-import com.dimafeng.testcontainers.{ForAllTestContainer, MySQLContainer}
+import java.io.File
+
+import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.oauth.GoogleOAuthCredentials
 import com.malliina.pics._
 import com.malliina.pics.app.{AppConf, BaseComponents}
 import com.malliina.pics.auth.PicsAuthLike
 import com.malliina.pics.db.Conf
-import com.malliina.play.auth.{AccessToken, AuthConf, CognitoUser, JWTUser}
+import com.malliina.play.auth.{AccessToken, AuthConf, JWTUser}
 import controllers.Social.SocialConf
-import org.scalatest.FunSuite
 import play.api.ApplicationLoader.Context
 import play.api.mvc.{RequestHeader, Result}
+import play.api.{ApplicationLoader, Environment, Mode, Play}
 
 import scala.concurrent.Future
 
@@ -45,15 +47,45 @@ class TestComps(context: Context, creds: GoogleOAuthCredentials, database: Conf)
   override lazy val socialConf: SocialConf = fakeSocialConf
 }
 
-abstract class TestAppSuite
-  extends FunSuite
-  with tests.OneAppPerSuite2[BaseComponents]
-  with ForAllTestContainer {
-  override val container = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
-  override def createComponents(context: Context): BaseComponents = {
-    container.start()
-    new TestComps(context, GoogleOAuthCredentials("id", "secret", "scope"), TestConf(container))
+trait MUnitAppSuite { self: munit.Suite =>
+  val app: Fixture[TestComps] = new Fixture[TestComps]("pics-app") {
+    private var container: Option[MySQLContainer] = None
+    private var comps: TestComps = null
+    def apply() = comps
+    override def beforeAll(): Unit = {
+      val db = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
+      db.start()
+      container = Option(db)
+      comps = new TestComps(
+        TestConf.createTestAppContext,
+        GoogleOAuthCredentials("id", "secret", "scope"),
+        TestConf(db)
+      )
+      Play.start(comps.application)
+    }
+    override def afterAll(): Unit = {
+      Play.stop(comps.application)
+      container.foreach(_.stop())
+    }
   }
+
+  override def munitFixtures = Seq(app)
+}
+
+trait MUnitDatabaseSuite { self: munit.Suite =>
+  val db: Fixture[MySQLContainer] = new Fixture[MySQLContainer]("database") {
+    var container: MySQLContainer = null
+    def apply() = container
+    override def beforeAll(): Unit = {
+      container = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
+      container.start()
+    }
+    override def afterAll(): Unit = {
+      container.stop()
+    }
+  }
+
+  override def munitFixtures = Seq(db)
 }
 
 object TestConf {
@@ -63,4 +95,11 @@ object TestConf {
     container.password,
     container.driverClassName
   )
+
+  def createTestAppContext: Context = {
+    val classLoader = ApplicationLoader.getClass.getClassLoader
+    val env =
+      new Environment(new File("."), classLoader, Mode.Test)
+    Context.create(env)
+  }
 }

@@ -5,17 +5,17 @@ import java.nio.file.{Files, Paths}
 import com.malliina.pics.{ContentType, Resizer, ScrimageResizer}
 import com.malliina.storage.StorageInt
 import javax.imageio.ImageIO
-import org.scalatest.FunSuite
 
-class ImageTests extends FunSuite {
+class ImageTests extends munit.FunSuite {
   val picDir = Paths.get("files")
   val original = picDir.resolve("original.jpg")
+  val origLarge = picDir.resolve("demo-original.jpeg")
 
   test("file content type") {
     assert(ContentType.parse("image.jpg").contains(ContentType.ImageJpeg))
   }
 
-  ignore("Files.probeContentType does not work") {
+  test("Files.probeContentType does not work".ignore) {
     // actually this might work, depending on the environment, but not on MacOS
     assert(Option(Files.probeContentType(original)).isEmpty)
   }
@@ -34,16 +34,14 @@ class ImageTests extends FunSuite {
     assert(outcome.isRight)
   }
 
-  ignore("resize to medium") {
+  test("resize to medium".ignore) {
     val orig = Paths get "original.jpeg"
     val resizer = Resizer.Medium1440x1080
     val result = resizer.resizeFromFile(orig, picDir.resolve("demo.jpeg"))
     assert(result.isRight)
   }
 
-  val origLarge = picDir.resolve("demo-original.jpeg")
-
-  ignore("resize to small") {
+  test("resize to small".ignore) {
     val resizer = ScrimageResizer.Small
     val result = resizeWith(resizer, "demo-scrimage-small.jpeg")
     assert(result.isRight)
@@ -51,7 +49,7 @@ class ImageTests extends FunSuite {
     assert(size < 100.kilos)
   }
 
-  ignore("resize to medium scrimage") {
+  test("resize to medium scrimage".ignore) {
     val resizer = ScrimageResizer.Medium
     val result = resizeWith(resizer, "demo-scrimage-normal.jpeg")
     assert(result.isRight)
@@ -59,7 +57,7 @@ class ImageTests extends FunSuite {
     assert(size < 200.kilos)
   }
 
-  ignore("resize to large scrimage") {
+  test("resize to large scrimage".ignore) {
     val resizer = ScrimageResizer.Large
     val result = resizeWith(resizer, "demo-scrimage-large.jpeg")
     assert(result.isRight)

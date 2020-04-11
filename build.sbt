@@ -109,15 +109,14 @@ val backend = project
       "io.getquill" %% "quill-jdbc" % "3.5.0",
       "org.flywaydb" % "flyway-core" % "6.1.1",
       "mysql" % "mysql-connector-java" % "5.1.48",
-      "com.malliina" %% "scrimage-core" % "2.1.10",
+      "com.sksamuel.scrimage" % "scrimage-core" % "4.0.3",
       "com.malliina" %% "logstreams-client" % "1.8.1",
       utilPlayDep,
-      utilPlayDep % Test classifier "tests",
-      "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
+      "org.scalameta" %% "munit" % "0.7.2" % Test,
       "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test,
-      "com.dimafeng" %% "testcontainers-scala-scalatest" % testContainersScalaVersion % Test,
       "com.dimafeng" %% "testcontainers-scala-mysql" % testContainersScalaVersion % Test
     ),
+    testFrameworks += new TestFramework("munit.Framework"),
     // pipelineStages in Assets := Seq(digest, gzip)
     name in Linux := "pics",
     packageName in Linux := (name in Linux).value,

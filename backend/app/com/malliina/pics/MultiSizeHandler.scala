@@ -3,7 +3,7 @@ package com.malliina.pics
 import akka.stream.Materializer
 import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.s3.AsyncS3Bucket
-import com.sksamuel.scrimage.Image
+import com.sksamuel.scrimage.ImmutableImage
 
 import scala.concurrent.Future
 
@@ -43,7 +43,7 @@ class MultiSizeHandler(
     case PicSize.Original => originals
   }
 
-  override def handleImage(image: Image, key: Key) = {
+  override def handleImage(image: ImmutableImage, key: Key) = {
     val work = Future.traverse(handlers)(_.handleImage(image, key))
     work.flatMap { paths =>
       paths.headOption

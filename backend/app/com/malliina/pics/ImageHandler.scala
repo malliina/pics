@@ -4,7 +4,7 @@ import java.nio.file.{Files, Path}
 
 import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.ImageHandler.log
-import com.sksamuel.scrimage.Image
+import com.sksamuel.scrimage.ImmutableImage
 import play.api.Logger
 
 import scala.concurrent.Future
@@ -21,7 +21,7 @@ class ImageHandler(prefix: String, resizer: ImageResizer, val storage: DataSourc
 
   def createTempFile = Files.createTempFile(prefix, null)
 
-  def handleImage(image: Image, key: Key): Future[Path] = {
+  def handleImage(image: ImmutableImage, key: Key): Future[Path] = {
     log.info(s"Handling $prefix of '$key'...")
     val dest = createTempFile
     resizer.resize(image, dest).flatMap { e =>
@@ -41,11 +41,11 @@ trait ImageHandlerLike {
     * @return
     */
   def handle(original: Path, key: Key): Future[Path] =
-    Future(Image.fromPath(original)).flatMap { image =>
+    Future(ImmutableImage.loader().fromPath(original)).flatMap { image =>
       handleImage(image, key)
     }
 
-  def handleImage(image: Image, key: Key): Future[Path]
+  def handleImage(image: ImmutableImage, key: Key): Future[Path]
 
   def remove(key: Key): Future[PicResult]
 }
