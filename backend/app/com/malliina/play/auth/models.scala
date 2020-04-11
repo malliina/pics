@@ -10,5 +10,5 @@ object ClientSecret extends StringCompanion[ClientSecret]
 
 case class Issuer(value: String) extends WrappedString
 object Issuer extends StringCompanion[Issuer] {
-  val apple = Issuer("https://appleid.apple.com")
+  val apple: Issuer = Issuer("https://appleid.apple.com")
 }
