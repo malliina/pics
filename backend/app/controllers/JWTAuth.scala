@@ -4,6 +4,7 @@ import com.malliina.http.OkClient
 import com.malliina.pics.auth.{EmailUser, GoogleTokenAuth}
 import com.malliina.pics.{Errors, PicRequest, SingleError}
 import com.malliina.play.auth._
+import com.malliina.values.{AccessToken, IdToken, TokenValue}
 import controllers.JWTAuth.log
 import play.api.Logger
 import play.api.http.HeaderNames.AUTHORIZATION
@@ -70,12 +71,12 @@ class JWTAuth(
   def validateToken(token: TokenValue): Future[Either[Result, JWTUser]] = {
     Future
       .successful(
-        ios.validate(AccessToken(token.token)).orElse(android.validate(IdToken(token.token)))
+        ios.validate(AccessToken(token.value)).orElse(android.validate(IdToken(token.value)))
       )
       .flatMap { e =>
         e.fold(
           err =>
-            google.validate(IdToken(token.token)).map { e =>
+            google.validate(IdToken(token.value)).map { e =>
               e.map(email => EmailUser(email))
             },
           ok => Future.successful(Right(ok))

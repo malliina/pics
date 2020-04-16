@@ -12,11 +12,10 @@ import sbtrelease.ReleaseStateTransformations.checkSnapshotDependencies
 import scala.sys.process.Process
 import scala.util.Try
 
-val utilPlayVersion = "5.4.1"
-val scalaTestVersion = "3.0.8"
-val primitivesVersion = "1.13.0"
+val utilPlayVersion = "5.7.0"
+val primitivesVersion = "1.15.0"
+val munitVersion = "0.7.2"
 val testContainersScalaVersion = "0.35.2"
-
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
 val commonSettings = Seq(
@@ -26,7 +25,7 @@ val commonSettings = Seq(
     Resolver.bintrayRepo("malliina", "maven")
   ),
   libraryDependencies ++= Seq(
-    "com.lihaoyi" %%% "scalatags" % "0.8.5",
+    "com.lihaoyi" %%% "scalatags" % "0.8.6",
     "com.typesafe.play" %%% "play-json" % "2.8.1",
     "com.malliina" %%% "primitives" % primitivesVersion,
     "com.malliina" %%% "util-html" % utilPlayVersion
@@ -50,8 +49,9 @@ val frontend = project
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "0.9.7",
       "be.doeraene" %%% "scalajs-jquery" % "0.9.5",
-      "org.scalatest" %%% "scalatest" % scalaTestVersion % Test
+      "org.scalameta" %%% "munit" % munitVersion % Test
     ),
+    testFrameworks += new TestFramework("munit.Framework"),
     version in webpack := "4.41.6",
     emitSourceMaps := false,
     webpackEmitSourceMaps := false,
@@ -106,14 +106,13 @@ val backend = project
       PlayImport.ehcache,
       PlayImport.ws,
       "com.malliina" %% "play-social" % utilPlayVersion,
-      "io.getquill" %% "quill-jdbc" % "3.5.0",
+      "io.getquill" %% "quill-jdbc" % "3.5.1",
       "org.flywaydb" % "flyway-core" % "6.1.1",
       "mysql" % "mysql-connector-java" % "5.1.48",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.3",
       "com.malliina" %% "logstreams-client" % "1.8.1",
       utilPlayDep,
-      "org.scalameta" %% "munit" % "0.7.2" % Test,
-      "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test,
+      "org.scalameta" %% "munit" % munitVersion % Test,
       "com.dimafeng" %% "testcontainers-scala-mysql" % testContainersScalaVersion % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),

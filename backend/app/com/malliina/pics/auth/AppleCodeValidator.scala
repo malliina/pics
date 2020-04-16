@@ -6,7 +6,7 @@ import com.malliina.http.FullUrl
 import com.malliina.oauth.TokenResponse
 import com.malliina.play.auth.StaticCodeValidator.StaticConf
 import com.malliina.play.auth._
-import com.malliina.values.{Email, ErrorMessage}
+import com.malliina.values.{Email, ErrorMessage, IdToken}
 import play.api.mvc.{RequestHeader, Result}
 import com.malliina.play.auth.OAuthKeys.{
   ClientId => ClientIdKey,
@@ -31,7 +31,8 @@ object AppleResponse {
 }
 
 object AppleTokenValidator {
-  def apply(clientIds: Seq[ClientId]) = new AppleTokenValidator(clientIds, Seq(Issuer.apple))
+  val appleIssuer = Issuer("https://appleid.apple.com")
+  def apply(clientIds: Seq[ClientId]) = new AppleTokenValidator(clientIds, Seq(appleIssuer))
 }
 
 class AppleTokenValidator(clientIds: Seq[ClientId], issuers: Seq[Issuer])

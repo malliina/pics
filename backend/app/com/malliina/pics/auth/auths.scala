@@ -2,9 +2,9 @@ package com.malliina.pics.auth
 
 import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.{Errors, PicRequest}
-import com.malliina.play.auth.{AccessToken, JWTUser, MissingCredentials, Verified}
+import com.malliina.play.auth.{JWTUser, MissingCredentials, Verified}
 import com.malliina.play.controllers.AuthBundle
-import com.malliina.values.Email
+import com.malliina.values.{AccessToken, Email}
 import controllers.{JWTAuth, PicsController, Social}
 import play.api.http.{HeaderNames, MediaRange}
 import play.api.mvc.{RequestHeader, Result, Results}

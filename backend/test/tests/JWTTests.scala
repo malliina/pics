@@ -1,8 +1,8 @@
 package tests
 
-import com.malliina.play.auth.{AccessToken, Expired, LiberalValidators}
+import com.malliina.play.auth.{Expired, LiberalValidators}
+import com.malliina.values.AccessToken
 import com.nimbusds.jwt.JWTClaimsSet
-import org.scalatest.FunSuite
 
 class JWTTests extends munit.FunSuite {
   val validator = LiberalValidators.auth0

@@ -8,7 +8,8 @@ import com.malliina.pics._
 import com.malliina.pics.app.{AppConf, BaseComponents}
 import com.malliina.pics.auth.PicsAuthLike
 import com.malliina.pics.db.Conf
-import com.malliina.play.auth.{AccessToken, AuthConf, JWTUser}
+import com.malliina.play.auth.{AuthConf, JWTUser}
+import com.malliina.values.AccessToken
 import controllers.Social.SocialConf
 import play.api.ApplicationLoader.Context
 import play.api.mvc.{RequestHeader, Result}

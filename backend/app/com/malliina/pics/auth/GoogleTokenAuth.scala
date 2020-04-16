@@ -1,8 +1,8 @@
 package com.malliina.pics.auth
 
 import com.malliina.http.OkClient
-import com.malliina.play.auth.{Auth, AuthError, IdToken, InvalidClaims, KeyClient}
-import com.malliina.values.{Email, ErrorMessage}
+import com.malliina.play.auth.{Auth, AuthError, InvalidClaims, KeyClient}
+import com.malliina.values.{Email, ErrorMessage, IdToken}
 import play.api.mvc.RequestHeader
 
 import scala.concurrent.{ExecutionContext, Future}

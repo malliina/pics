@@ -6,9 +6,8 @@ import play.api.http.Writeable
 import play.api.mvc.Request
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import tests.{DbTest, MUnitAppSuite, TestAuthenticator, await}
+import tests.{MUnitAppSuite, TestAuthenticator, await}
 
-@DbTest
 class PicsTests extends munit.FunSuite with MUnitAppSuite {
   test("version endpoint returns ok for acceptable Accept header") {
     val result = makeRequest(

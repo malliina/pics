@@ -1,11 +1,9 @@
 package com.malliina.pics.db
 
 import akka.actor.ActorSystem
-import com.dimafeng.testcontainers.{ForAllTestContainer, MySQLContainer}
 import com.malliina.pics.{Keys, PicOwner}
-import tests.{BaseSuite, DbTest, MUnitDatabaseSuite, TestConf}
+import tests.{BaseSuite, MUnitDatabaseSuite, TestConf}
 
-@DbTest
 class NewPicsDatabaseTests extends BaseSuite with MUnitDatabaseSuite {
   test("can CRUD pic meta") {
     val container = db()

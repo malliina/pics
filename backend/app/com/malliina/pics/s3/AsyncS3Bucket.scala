@@ -27,6 +27,7 @@ object AsyncS3Bucket {
   def apply(bucket: BucketName): AsyncS3Bucket = {
     val creds = AwsCredentialsProviderChain.of(
       ProfileCredentialsProvider.create("pimp"),
+      ProfileCredentialsProvider.create("fritid"),
       DefaultCredentialsProvider.create()
     )
     val client = S3AsyncClient

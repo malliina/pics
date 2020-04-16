@@ -8,9 +8,9 @@ import com.malliina.html.UserFeedback
 import com.malliina.pics._
 import com.malliina.pics.auth.PicsAuth
 import com.malliina.pics.html.PicsHtml
-import com.malliina.play.auth.AccessToken
 import com.malliina.play.controllers._
 import com.malliina.play.http.Proxies
+import com.malliina.values.AccessToken
 import com.sksamuel.scrimage.ImageParseException
 import controllers.PicsController._
 import play.api.Logger
