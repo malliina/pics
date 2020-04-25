@@ -2,7 +2,7 @@ scalaVersion := "2.12.10"
 
 Seq(
   "com.malliina" % "play-live-reload" % "0.0.26",
-  "com.malliina" % "sbt-nodejs" % "0.15.7",
+  "com.malliina" % "sbt-nodejs" % "0.16.1",
   "com.malliina" % "sbt-packager" % "2.8.4",
   "com.malliina" % "sbt-filetree" % "0.4.1",
   "com.typesafe.sbt" % "sbt-gzip" % "1.0.2",
