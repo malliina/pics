@@ -12,18 +12,15 @@ import sbtrelease.ReleaseStateTransformations.checkSnapshotDependencies
 import scala.sys.process.Process
 import scala.util.Try
 
-val utilPlayVersion = "5.7.0"
+val utilPlayVersion = "5.8.0"
 val primitivesVersion = "1.15.0"
-val munitVersion = "0.7.2"
-val testContainersScalaVersion = "0.35.2"
+val munitVersion = "0.7.3"
+val testContainersScalaVersion = "0.36.1"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
 val commonSettings = Seq(
   organization := "com.malliina",
   scalaVersion := "2.13.1",
-  resolvers ++= Seq(
-    Resolver.bintrayRepo("malliina", "maven")
-  ),
   libraryDependencies ++= Seq(
     "com.lihaoyi" %%% "scalatags" % "0.8.6",
     "com.typesafe.play" %%% "play-json" % "2.8.1",
@@ -102,7 +99,7 @@ val backend = project
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-text" % "1.8",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.693",
-      "software.amazon.awssdk" % "s3" % "2.10.35",
+      "software.amazon.awssdk" % "s3" % "2.13.3",
       PlayImport.ehcache,
       PlayImport.ws,
       "com.malliina" %% "play-social" % utilPlayVersion,
@@ -110,7 +107,7 @@ val backend = project
       "org.flywaydb" % "flyway-core" % "6.1.1",
       "mysql" % "mysql-connector-java" % "5.1.48",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.3",
-      "com.malliina" %% "logstreams-client" % "1.8.1",
+      "com.malliina" %% "logstreams-client" % "1.8.2",
       utilPlayDep,
       "org.scalameta" %% "munit" % munitVersion % Test,
       "com.dimafeng" %% "testcontainers-scala-mysql" % testContainersScalaVersion % Test
