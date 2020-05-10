@@ -15,11 +15,11 @@ To deploy the documentation site:
 
     mkdocs gh-deploy
 
-The documentation is hosted on GitHub Pages.
+GitHub Pages hosts the documentation.
 
 ## Backups
 
-To backup pics from S3 to a local zip file, execute PowerShell script [PicsBackup.ps1](backups/PicsBackup.ps1):
+To back up pics from S3 to a local zip file, execute PowerShell script [PicsBackup.ps1](backups/PicsBackup.ps1):
 
     cd backups
     .\PicsBackup.ps1
