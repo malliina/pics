@@ -12,17 +12,17 @@ import sbtrelease.ReleaseStateTransformations.checkSnapshotDependencies
 import scala.sys.process.Process
 import scala.util.Try
 
-val utilPlayVersion = "5.8.0"
-val primitivesVersion = "1.15.0"
-val munitVersion = "0.7.3"
-val testContainersScalaVersion = "0.36.1"
+val utilPlayVersion = "5.9.0"
+val primitivesVersion = "1.16.0"
+val munitVersion = "0.7.6"
+val testContainersScalaVersion = "0.37.0"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
 val commonSettings = Seq(
   organization := "com.malliina",
-  scalaVersion := "2.13.1",
+  scalaVersion := "2.13.2",
   libraryDependencies ++= Seq(
-    "com.lihaoyi" %%% "scalatags" % "0.8.6",
+    "com.lihaoyi" %%% "scalatags" % "0.9.1",
     "com.typesafe.play" %%% "play-json" % "2.8.1",
     "com.malliina" %%% "primitives" % primitivesVersion,
     "com.malliina" %%% "util-html" % utilPlayVersion

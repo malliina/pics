@@ -46,7 +46,7 @@ class JWTAuth(
     * @param rh request
     * @return
     */
-  def userOrAnon(rh: RequestHeader): Future[Either[Result, PicRequest]] = {
+  def userOrAnon(rh: RequestHeader): Future[Either[Result, PicRequest]] =
     auth(rh)
       .map { f =>
         f.map { e =>
@@ -58,17 +58,15 @@ class JWTAuth(
       .getOrElse {
         Future.successful(Right(PicRequest.anon(rh)))
       }
-  }
 
-  private def auth(rh: RequestHeader): Option[Future[Either[Result, JWTUser]]] = {
+  private def auth(rh: RequestHeader): Option[Future[Either[Result, JWTUser]]] =
     readToken(rh).map(token => validateToken(token))
-  }
 
   /** User/pass login in iOS uses access tokens but social login in Android uses ID tokens.
     *
     * @param token access token or id token
     */
-  def validateToken(token: TokenValue): Future[Either[Result, JWTUser]] = {
+  def validateToken(token: TokenValue): Future[Either[Result, JWTUser]] =
     Future
       .successful(
         ios.validate(AccessToken(token.value)).orElse(android.validate(IdToken(token.value)))
@@ -77,13 +75,14 @@ class JWTAuth(
         e.fold(
           err =>
             google.validate(IdToken(token.value)).map { e =>
-              e.map(email => EmailUser(email))
+              e.map { email =>
+                EmailUser(email)
+              }
             },
           ok => Future.successful(Right(ok))
         )
       }
       .map { convertError(token, _) }
-  }
 
   private def convertError[U](token: TokenValue, e: Either[AuthError, U]) =
     e.left.map { error =>
