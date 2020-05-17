@@ -12,9 +12,12 @@ import sbtrelease.ReleaseStateTransformations.checkSnapshotDependencies
 import scala.sys.process.Process
 import scala.util.Try
 
-val utilPlayVersion = "5.9.0"
+val utilPlayVersion = "5.10.0"
 val primitivesVersion = "1.16.0"
-val munitVersion = "0.7.6"
+val munitVersion = "0.7.7"
+val scalatagsVersion = "0.9.1"
+val awsSdkVersion = "1.11.784"
+val awsSdk2Version = "2.13.18"
 val testContainersScalaVersion = "0.37.0"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
@@ -22,7 +25,7 @@ val commonSettings = Seq(
   organization := "com.malliina",
   scalaVersion := "2.13.2",
   libraryDependencies ++= Seq(
-    "com.lihaoyi" %%% "scalatags" % "0.9.1",
+    "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
     "com.typesafe.play" %%% "play-json" % "2.8.1",
     "com.malliina" %%% "primitives" % primitivesVersion,
     "com.malliina" %%% "util-html" % utilPlayVersion
@@ -44,35 +47,35 @@ val frontend = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.9.7",
+      "org.scala-js" %%% "scalajs-dom" % "0.9.8",
       "be.doeraene" %%% "scalajs-jquery" % "0.9.5",
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
-    version in webpack := "4.41.6",
+    version in webpack := "4.43.0",
     emitSourceMaps := false,
     webpackEmitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
     npmDependencies in Compile ++= Seq(
-      "@fortawesome/fontawesome-free" -> "5.12.1",
-      "bootstrap" -> "4.4.1",
-      "jquery" -> "3.4.1",
+      "@fortawesome/fontawesome-free" -> "5.13.0",
+      "bootstrap" -> "4.5.0",
+      "jquery" -> "3.5.1",
       "popper.js" -> "1.16.1"
     ),
     npmDevDependencies in Compile ++= Seq(
-      "autoprefixer" -> "9.7.4",
+      "autoprefixer" -> "9.8.0",
       "cssnano" -> "4.1.10",
-      "css-loader" -> "3.4.2",
-      "file-loader" -> "5.0.2",
+      "css-loader" -> "3.5.3",
+      "file-loader" -> "6.0.0",
       "less" -> "3.11.1",
-      "less-loader" -> "5.0.0",
+      "less-loader" -> "6.1.0",
       "mini-css-extract-plugin" -> "0.9.0",
       "postcss-import" -> "12.0.1",
       "postcss-loader" -> "3.0.0",
       "postcss-preset-env" -> "6.7.0",
-      "style-loader" -> "1.1.3",
-      "url-loader" -> "3.0.0",
+      "style-loader" -> "1.2.1",
+      "url-loader" -> "4.1.0",
       "webpack-merge" -> "4.2.2"
     ),
     webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.dev.config.js"),
@@ -98,8 +101,8 @@ val backend = project
     pipelineStages in Assets := Seq(scalaJSPipeline),
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-text" % "1.8",
-      "com.amazonaws" % "aws-java-sdk-s3" % "1.11.693",
-      "software.amazon.awssdk" % "s3" % "2.13.3",
+      "com.amazonaws" % "aws-java-sdk-s3" % awsSdkVersion,
+      "software.amazon.awssdk" % "s3" % awsSdk2Version,
       PlayImport.ehcache,
       PlayImport.ws,
       "com.malliina" %% "play-social" % utilPlayVersion,

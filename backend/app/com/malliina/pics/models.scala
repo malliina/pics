@@ -127,9 +127,11 @@ object PicsWriteables {
   implicit val html = Writeable.writeableOf_JsValue.map[Pics](ps => Json.toJson(ps))
 }
 
-case class BucketName(name: String)
+case class BucketName(name: String) extends AnyVal {
+  override def toString = name
+}
 
-case class ContentType(contentType: String) {
+case class ContentType(contentType: String) extends AnyVal {
   def isImage = contentType startsWith "image"
 }
 
