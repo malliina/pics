@@ -12,12 +12,12 @@ import sbtrelease.ReleaseStateTransformations.checkSnapshotDependencies
 import scala.sys.process.Process
 import scala.util.Try
 
-val utilPlayVersion = "5.10.0"
-val primitivesVersion = "1.16.0"
+val utilPlayVersion = "5.11.0"
+val primitivesVersion = "1.17.0"
 val munitVersion = "0.7.7"
 val scalatagsVersion = "0.9.1"
 val awsSdkVersion = "1.11.784"
-val awsSdk2Version = "2.13.18"
+val awsSdk2Version = "2.13.26"
 val testContainersScalaVersion = "0.37.0"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
@@ -26,7 +26,7 @@ val commonSettings = Seq(
   scalaVersion := "2.13.2",
   libraryDependencies ++= Seq(
     "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
-    "com.typesafe.play" %%% "play-json" % "2.8.1",
+    "com.typesafe.play" %%% "play-json" % "2.9.0",
     "com.malliina" %%% "primitives" % primitivesVersion,
     "com.malliina" %%% "util-html" % utilPlayVersion
   )
@@ -47,13 +47,12 @@ val frontend = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.9.8",
-      "be.doeraene" %%% "scalajs-jquery" % "0.9.5",
+      "org.scala-js" %%% "scalajs-dom" % "1.0.0",
+      "be.doeraene" %%% "scalajs-jquery" % "1.0.0",
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     version in webpack := "4.43.0",
-    emitSourceMaps := false,
     webpackEmitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
@@ -108,9 +107,9 @@ val backend = project
       "com.malliina" %% "play-social" % utilPlayVersion,
       "io.getquill" %% "quill-jdbc" % "3.5.1",
       "org.flywaydb" % "flyway-core" % "6.1.1",
-      "mysql" % "mysql-connector-java" % "5.1.48",
+      "mysql" % "mysql-connector-java" % "5.1.49",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.3",
-      "com.malliina" %% "logstreams-client" % "1.8.2",
+      "com.malliina" %% "logstreams-client" % "1.10.1",
       utilPlayDep,
       "org.scalameta" %% "munit" % munitVersion % Test,
       "com.dimafeng" %% "testcontainers-scala-mysql" % testContainersScalaVersion % Test

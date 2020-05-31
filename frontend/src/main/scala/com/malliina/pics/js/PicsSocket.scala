@@ -12,10 +12,7 @@ import scala.scalajs.js.timers._
 
 @js.native
 trait Popovers extends js.Object {
-  @js.native
   def popover(): Unit = js.native
-
-  @js.native
   def popover(in: String): Unit = js.native
 }
 
