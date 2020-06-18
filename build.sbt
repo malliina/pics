@@ -1,13 +1,6 @@
 import com.malliina.sbt.filetree.DirMap
 import com.malliina.sbt.unix.LinuxKeys.ciBuild
 import play.sbt.PlayImport
-import sbt.Keys.scalaVersion
-import sbt._
-import sbtcrossproject.CrossPlugin.autoImport.{
-  CrossType => PortableType,
-  crossProject => portableProject
-}
-import sbtrelease.ReleaseStateTransformations.checkSnapshotDependencies
 
 import scala.sys.process.Process
 import scala.util.Try
@@ -81,6 +74,8 @@ val frontend = project
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.prod.config.js")
   )
 
+val prodPort = 9000
+
 val backend = project
   .in(file("backend"))
   .enablePlugins(
@@ -106,6 +101,7 @@ val backend = project
       PlayImport.ws,
       "com.malliina" %% "play-social" % utilPlayVersion,
       "io.getquill" %% "quill-jdbc" % "3.5.1",
+//      "io.getquill" %% "quill-jasync-mysql" % "3.5.2-SNAPSHOT",
       "org.flywaydb" % "flyway-core" % "6.1.1",
       "mysql" % "mysql-connector-java" % "5.1.49",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.3",
@@ -122,10 +118,11 @@ val backend = project
     httpsPort in Linux := Option("8459"),
     maintainer := "Michael Skogberg <malliina123@gmail.com>",
     javaOptions in Universal ++= {
-      val linuxName = (name in Linux).value
       Seq(
-        s"-Dconfig.file=/etc/$linuxName/production.conf",
-        s"-Dlogger.file=/etc/$linuxName/logback-prod.xml"
+        "-J-Xmx1024m",
+        "-Dpidfile.path=/dev/null",
+        s"-Dhttp.port=$prodPort",
+        "-Dlogger.resource=logback-prod.xml"
       )
     },
     packageSummary in Linux := "This is the pics summary.",
@@ -155,7 +152,14 @@ val backend = project
 //      releaseStepInputTask(testOnly, " * -- -l tests.DbTest"),
 //      releaseStepInputTask(testOnly, " tests.ImageTests"),
       releaseStepTask(ciBuild)
-    )
+    ),
+    httpPort in Linux := Option(s"$prodPort"),
+    dockerVersion := Option(DockerVersion(19, 3, 5, None)),
+    dockerBaseImage := "openjdk:11",
+    daemonUser in Docker := "pics",
+    version in Docker := gitHash,
+    dockerRepository := Option("malliinacr.azurecr.io"),
+    dockerExposedPorts ++= Seq(prodPort)
   )
 
 val runApp = inputKey[Unit]("Runs the app")

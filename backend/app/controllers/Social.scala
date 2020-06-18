@@ -37,28 +37,27 @@ object Social {
     googleConf: AuthConf,
     facebookConf: AuthConf,
     twitterConf: AuthConf,
-    amazonConf: AuthConf = AuthConf("2rnqepv44epargdosba6nlg2t9", "unused"),
+    amazonConf: AuthConf,
     apple: AuthConf
   )
 
   object SocialConf {
     def apply(conf: Configuration): SocialConf = {
-      val apple = AuthConf(
-        conf.get[String]("pics.apple.client.id"),
-        conf.get[String]("pics.apple.client.secret")
+      val parent = conf.get[Configuration]("pics")
+      def creds(node: String) = readCredentials(parent.get[Configuration](node))
+      SocialConf(
+        creds("github"),
+        creds("microsoft"),
+        creds("google"),
+        creds("facebook"),
+        creds("twitter"),
+        creds("amazon"),
+        creds("apple")
       )
-      Try(read(AuthConfReader.env, apple)).getOrElse(read(AuthConfReader.conf(conf), apple))
     }
 
-    def read(reader: AuthConfReader, apple: AuthConf) =
-      SocialConf(
-        reader.github,
-        reader.microsoft,
-        reader.google,
-        reader.facebook,
-        reader.twitter,
-        apple = apple
-      )
+    def readCredentials(conf: Configuration) =
+      AuthConf(conf.get[String]("id"), conf.get[String]("secret"))
   }
 
   sealed abstract class AuthProvider(val name: String)
