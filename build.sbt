@@ -167,7 +167,7 @@ val backend = project
     dockerBaseImage := "openjdk:11",
     daemonUser in Docker := "pics",
     version in Docker := gitHash,
-    dockerRepository := Option("malliinacr.azurecr.io"),
+    dockerRepository := Option("malliinapics.azurecr.io"),
     dockerExposedPorts ++= Seq(prodPort),
     packageName in Docker := "pics"
   )
