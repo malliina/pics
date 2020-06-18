@@ -176,6 +176,9 @@ val pics = project
   )
 
 def gitHash: String =
-  Try(Process("git rev-parse --short HEAD").lineStream.head).toOption.getOrElse("unknown")
+  sys.env
+    .get("GITHUB_SHA")
+    .orElse(Try(Process("git rev-parse --short HEAD").lineStream.head).toOption)
+    .getOrElse("unknown")
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
