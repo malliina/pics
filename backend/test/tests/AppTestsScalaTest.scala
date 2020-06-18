@@ -39,13 +39,9 @@ object TestAuthenticator extends PicsAuthLike {
 class TestComps(context: Context, creds: GoogleOAuthCredentials, database: Conf)
   extends BaseComponents(context, _ => creds, _ => AppConf(database)) {
   override def buildAuthenticator() = TestAuthenticator
-
   override def buildPics() = MultiSizeHandler.clones(TestHandler)
 
-  val fakeConf = AuthConf("", "")
-  val fakeSocialConf =
-    SocialConf(fakeConf, fakeConf, fakeConf, fakeConf, fakeConf, apple = fakeConf)
-  override lazy val socialConf: SocialConf = fakeSocialConf
+  override lazy val socialConf: SocialConf = SocialConf(configuration)
 }
 
 trait MUnitAppSuite { self: munit.Suite =>

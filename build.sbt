@@ -1,6 +1,15 @@
 import com.malliina.sbt.filetree.DirMap
 import com.malliina.sbt.unix.LinuxKeys.ciBuild
 import play.sbt.PlayImport
+import com.typesafe.sbt.packager.docker.DockerVersion
+
+import sbt.Keys.scalaVersion
+import sbt._
+import sbtcrossproject.CrossPlugin.autoImport.{
+  CrossType => PortableType,
+  crossProject => portableProject
+}
+import sbtrelease.ReleaseStateTransformations.checkSnapshotDependencies
 
 import scala.sys.process.Process
 import scala.util.Try
@@ -146,13 +155,13 @@ val backend = project
         (modules / "bootstrap").allPaths +++ (modules / "@fortawesome" / "fontawesome-free").allPaths
       }
       .value,
-    releaseProcess := Seq[ReleaseStep](
-      releaseStepTask(clean in Compile),
-      checkSnapshotDependencies,
-//      releaseStepInputTask(testOnly, " * -- -l tests.DbTest"),
-//      releaseStepInputTask(testOnly, " tests.ImageTests"),
-      releaseStepTask(ciBuild)
-    ),
+//    releaseProcess := Seq[ReleaseStep](
+//      releaseStepTask(clean in Compile),
+//      checkSnapshotDependencies,
+////      releaseStepInputTask(testOnly, " * -- -l tests.DbTest"),
+////      releaseStepInputTask(testOnly, " tests.ImageTests"),
+//      releaseStepTask(ciBuild)
+//    ),
     httpPort in Linux := Option(s"$prodPort"),
     dockerVersion := Option(DockerVersion(19, 3, 5, None)),
     dockerBaseImage := "openjdk:11",
