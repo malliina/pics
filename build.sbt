@@ -155,13 +155,6 @@ val backend = project
         (modules / "bootstrap").allPaths +++ (modules / "@fortawesome" / "fontawesome-free").allPaths
       }
       .value,
-//    releaseProcess := Seq[ReleaseStep](
-//      releaseStepTask(clean in Compile),
-//      checkSnapshotDependencies,
-////      releaseStepInputTask(testOnly, " * -- -l tests.DbTest"),
-////      releaseStepInputTask(testOnly, " tests.ImageTests"),
-//      releaseStepTask(ciBuild)
-//    ),
     httpPort in Linux := Option(s"$prodPort"),
     dockerVersion := Option(DockerVersion(19, 3, 5, None)),
     dockerBaseImage := "openjdk:11",
