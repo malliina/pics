@@ -168,7 +168,8 @@ val backend = project
     daemonUser in Docker := "pics",
     version in Docker := gitHash,
     dockerRepository := Option("malliinacr.azurecr.io"),
-    dockerExposedPorts ++= Seq(prodPort)
+    dockerExposedPorts ++= Seq(prodPort),
+    packageName in Docker := "pics"
   )
 
 val runApp = inputKey[Unit]("Runs the app")
