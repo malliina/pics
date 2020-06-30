@@ -56,7 +56,7 @@ object Social {
     }
 
     def readCredentials(conf: Configuration) =
-      AuthConf(conf.get[String]("id"), conf.get[String]("secret"))
+      AuthConf(conf.get[String]("client.id"), conf.get[String]("client.secret"))
   }
 
   sealed abstract class AuthProvider(val name: String)
