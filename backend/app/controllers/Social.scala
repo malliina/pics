@@ -14,7 +14,6 @@ import play.api.{Configuration, Logger}
 
 import scala.concurrent.Future
 import scala.concurrent.duration.{Duration, DurationInt}
-import scala.util.Try
 
 object Social {
   private val log = Logger(getClass)
@@ -44,7 +43,7 @@ object Social {
   object SocialConf {
     def apply(conf: Configuration): SocialConf = {
       val parent = conf.get[Configuration]("pics")
-      def creds(node: String) = readCredentials(parent.get[Configuration](node))
+      def creds(node: String) = readCredentials(parent.get[Configuration](s"$node.client"))
       SocialConf(
         creds("github"),
         creds("microsoft"),
@@ -76,6 +75,7 @@ object Social {
   case object Facebook extends AuthProvider("facebook")
   case object GitHub extends AuthProvider("github")
   case object Apple extends AuthProvider("apple")
+
 }
 
 class Social(conf: SocialConf, http: OkClient, comps: ControllerComponents)

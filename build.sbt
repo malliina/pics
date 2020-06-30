@@ -1,15 +1,12 @@
 import com.malliina.sbt.filetree.DirMap
-import com.malliina.sbt.unix.LinuxKeys.ciBuild
-import play.sbt.PlayImport
 import com.typesafe.sbt.packager.docker.DockerVersion
-
+import play.sbt.PlayImport
 import sbt.Keys.scalaVersion
 import sbt._
 import sbtcrossproject.CrossPlugin.autoImport.{
   CrossType => PortableType,
   crossProject => portableProject
 }
-import sbtrelease.ReleaseStateTransformations.checkSnapshotDependencies
 
 import scala.sys.process.Process
 import scala.util.Try
@@ -109,8 +106,8 @@ val backend = project
       PlayImport.ehcache,
       PlayImport.ws,
       "com.malliina" %% "play-social" % utilPlayVersion,
-      "io.getquill" %% "quill-jdbc" % "3.5.1",
-//      "io.getquill" %% "quill-jasync-mysql" % "3.5.2-SNAPSHOT",
+      "io.getquill" %% "quill-jdbc" % "3.5.2",
+      "io.getquill" %% "quill-jasync-mysql" % "3.5.2",
       "org.flywaydb" % "flyway-core" % "6.1.1",
       "mysql" % "mysql-connector-java" % "5.1.49",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.3",

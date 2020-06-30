@@ -3,7 +3,6 @@ package com.malliina.pics.app
 import java.nio.file.Paths
 
 import com.malliina.http.OkClient
-import com.malliina.oauth.GoogleOAuthCredentials
 import com.malliina.pics.CSRFConf.{CsrfCookieName, CsrfHeaderName, CsrfTokenName, CsrfTokenNoCheck}
 import com.malliina.pics._
 import com.malliina.pics.auth.{PicsAuth, PicsAuthLike, PicsAuthenticator}
@@ -34,19 +33,11 @@ object LocalConf {
   val localConf = Configuration(ConfigFactory.parseFile(localConfFile.toFile))
 }
 
-class AppLoader
-  extends DefaultApp(
-    ctx =>
-      new AppComponents(
-        ctx,
-        conf => GoogleOAuthCredentials(conf).fold(err => throw new Exception(err.message), identity)
-      )
-  )
+class AppLoader extends DefaultApp(ctx => new AppComponents(ctx))
 
-class AppComponents(context: Context, creds: Configuration => GoogleOAuthCredentials)
+class AppComponents(context: Context)
   extends BaseComponents(
     context,
-    creds,
     c => Conf.fromConf(c).fold(err => throw new Exception(err), c => AppConf(c))
   ) {
   override lazy val httpErrorHandler = PicsErrorHandler
@@ -69,7 +60,6 @@ object AppConf {
 
 abstract class BaseComponents(
   context: Context,
-  creds: Configuration => GoogleOAuthCredentials,
   dbConf: Configuration => AppConf
 ) extends BuiltInComponentsFromContext(context)
   with HttpFiltersComponents
@@ -129,7 +119,7 @@ abstract class BaseComponents(
 
   val html = PicsHtml.build(mode == Mode.Prod)
   val conf = dbConf(configuration)
-  val quill = NewPicsDatabase.withMigrations(actorSystem, conf.database)
+  val quill = NewPicsDatabase.withMigrations(conf.database, executionContext)
   val service = PicService(quill, buildPics())
   val cache = new Cached(defaultCacheApi)
   override lazy val httpErrorHandler = PicsErrorHandler

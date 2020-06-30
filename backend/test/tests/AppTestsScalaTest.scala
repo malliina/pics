@@ -36,8 +36,8 @@ object TestAuthenticator extends PicsAuthLike {
     Future.successful(Left(unauth))
 }
 
-class TestComps(context: Context, creds: GoogleOAuthCredentials, database: Conf)
-  extends BaseComponents(context, _ => creds, _ => AppConf(database)) {
+class TestComps(context: Context, database: Conf)
+  extends BaseComponents(context, _ => AppConf(database)) {
   override def buildAuthenticator() = TestAuthenticator
   override def buildPics() = MultiSizeHandler.clones(TestHandler)
 
@@ -55,7 +55,6 @@ trait MUnitAppSuite { self: munit.Suite =>
       container = Option(db)
       comps = new TestComps(
         TestConf.createTestAppContext,
-        GoogleOAuthCredentials("id", "secret", "scope"),
         TestConf(db)
       )
       Play.start(comps.application)
