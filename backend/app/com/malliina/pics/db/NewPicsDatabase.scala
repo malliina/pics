@@ -8,7 +8,7 @@ import akka.actor.ActorSystem
 import com.malliina.pics.db.NewPicsDatabase.{fail, log}
 import com.malliina.pics.{Key, KeyMeta, MetaSource, PicOwner}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
-import io.getquill.{MysqlEscape, MysqlJdbcContext, NamingStrategy, SnakeCase}
+import io.getquill._
 import org.flywaydb.core.Flyway
 import play.api.Logger
 

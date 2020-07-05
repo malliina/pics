@@ -44,7 +44,7 @@ object Social {
   object SocialConf {
     def apply(conf: Configuration): SocialConf = {
       val parent = conf.get[Configuration]("pics")
-      def creds(node: String) = readCredentials(parent.get[Configuration](node))
+      def creds(node: String) = readCredentials(parent.get[Configuration](s"$node.client"))
       SocialConf(
         creds("github"),
         creds("microsoft"),
@@ -57,7 +57,7 @@ object Social {
     }
 
     def readCredentials(conf: Configuration) =
-      AuthConf(conf.get[String]("client.id"), conf.get[String]("client.secret"))
+      AuthConf(conf.get[String]("id"), conf.get[String]("secret"))
   }
 
   sealed abstract class AuthProvider(val name: String)
