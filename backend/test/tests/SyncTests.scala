@@ -7,7 +7,7 @@ import com.malliina.pics.s3.AsyncS3Bucket
 
 class SyncTests extends munit.FunSuite {
   test("can sync".ignore) {
-    val pics = NewPicsDatabase.mysqlFromEnvOrFail(Execution.cached)
-    await(Syncer.sync(AsyncS3Bucket.Original, pics))
+//    val pics = NewPicsDatabase.mysqlFromEnvOrFail(Execution.cached)
+//    await(Syncer.sync(AsyncS3Bucket.Original, pics))
   }
 }

@@ -41,7 +41,6 @@ class AppComponents(context: Context)
     c => Conf.fromConf(c).fold(err => throw new Exception(err), c => AppConf(c))
   ) {
   override lazy val httpErrorHandler = PicsErrorHandler
-
   override def buildAuthenticator() = PicsAuthenticator(JWTAuth.default(http), PicsAuth.social)
   override def buildPics() = MultiSizeHandler.default(materializer)
 }
@@ -119,7 +118,7 @@ abstract class BaseComponents(
 
   val html = PicsHtml.build(mode == Mode.Prod)
   val conf = dbConf(configuration)
-  val quill = NewPicsDatabase.withMigrations(conf.database, executionContext)
+  val quill = NewPicsDatabase.withMigrations(actorSystem, conf.database)
   val service = PicService(quill, buildPics())
   val cache = new Cached(defaultCacheApi)
   override lazy val httpErrorHandler = PicsErrorHandler
