@@ -8,6 +8,7 @@
     <logger name="play" level="OFF"/>
     <logger name="application" level="OFF"/>
     <logger name="com" level="OFF"/>
+    <logger name="io.getquill" level="OFF"/>
     <root level="OFF">
         <appender-ref ref="STDOUT"/>
     </root>

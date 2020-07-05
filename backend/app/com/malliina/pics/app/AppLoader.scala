@@ -3,7 +3,6 @@ package com.malliina.pics.app
 import java.nio.file.Paths
 
 import com.malliina.http.OkClient
-import com.malliina.oauth.GoogleOAuthCredentials
 import com.malliina.pics.CSRFConf.{CsrfCookieName, CsrfHeaderName, CsrfTokenName, CsrfTokenNoCheck}
 import com.malliina.pics._
 import com.malliina.pics.auth.{PicsAuth, PicsAuthLike, PicsAuthenticator}
@@ -34,23 +33,14 @@ object LocalConf {
   val localConf = Configuration(ConfigFactory.parseFile(localConfFile.toFile))
 }
 
-class AppLoader
-  extends DefaultApp(
-    ctx =>
-      new AppComponents(
-        ctx,
-        conf => GoogleOAuthCredentials(conf).fold(err => throw new Exception(err.message), identity)
-      )
-  )
+class AppLoader extends DefaultApp(ctx => new AppComponents(ctx))
 
-class AppComponents(context: Context, creds: Configuration => GoogleOAuthCredentials)
+class AppComponents(context: Context)
   extends BaseComponents(
     context,
-    creds,
     c => Conf.fromConf(c).fold(err => throw new Exception(err), c => AppConf(c))
   ) {
   override lazy val httpErrorHandler = PicsErrorHandler
-
   override def buildAuthenticator() = PicsAuthenticator(JWTAuth.default(http), PicsAuth.social)
   override def buildPics() = MultiSizeHandler.default(materializer)
 }
@@ -69,7 +59,6 @@ object AppConf {
 
 abstract class BaseComponents(
   context: Context,
-  creds: Configuration => GoogleOAuthCredentials,
   dbConf: Configuration => AppConf
 ) extends BuiltInComponentsFromContext(context)
   with HttpFiltersComponents

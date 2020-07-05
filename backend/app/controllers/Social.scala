@@ -14,7 +14,6 @@ import play.api.{Configuration, Logger}
 
 import scala.concurrent.Future
 import scala.concurrent.duration.{Duration, DurationInt}
-import scala.util.Try
 
 object Social {
   private val log = Logger(getClass)
@@ -76,6 +75,7 @@ object Social {
   case object Facebook extends AuthProvider("facebook")
   case object GitHub extends AuthProvider("github")
   case object Apple extends AuthProvider("apple")
+
 }
 
 class Social(conf: SocialConf, http: OkClient, comps: ControllerComponents)

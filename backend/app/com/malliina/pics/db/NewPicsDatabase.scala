@@ -25,8 +25,6 @@ object NewPicsDatabase {
   def apply(ds: HikariDataSource, ec: ExecutionContext): NewPicsDatabase =
     new NewPicsDatabase(ds)(ec)
 
-  def mysqlFromEnvOrFail(as: ActorSystem) = withMigrations(as, Conf.fromEnvOrFail())
-
   def withMigrations(as: ActorSystem, conf: Conf) = {
     val flyway = Flyway.configure.dataSource(conf.url, conf.user, conf.pass).load()
     flyway.migrate()
