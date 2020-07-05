@@ -9,6 +9,7 @@
     <logger name="application" level="INFO"/>
     <logger name="com" level="INFO"/>
     <logger name="io.getquill" level="DEBUG"/>
+    <logger name="com.github.jasync" level="DEBUG"/>
     <root level="INFO">
         <appender-ref ref="STDOUT"/>
     </root>

@@ -41,7 +41,6 @@ class AppComponents(context: Context)
     c => Conf.fromConf(c).fold(err => throw new Exception(err), c => AppConf(c))
   ) {
   override lazy val httpErrorHandler = PicsErrorHandler
-
   override def buildAuthenticator() = PicsAuthenticator(JWTAuth.default(http), PicsAuth.social)
   override def buildPics() = MultiSizeHandler.default(materializer)
 }

@@ -4,7 +4,7 @@ import java.io.Closeable
 import java.time.Instant
 import java.util.Date
 
-import com.github.jasync.sql.db.ConnectionPoolConfiguration
+import com.github.jasync.sql.db.ConnectionPoolConfigurationBuilder
 import com.github.jasync.sql.db.mysql.MySQLConnectionBuilder
 import com.malliina.pics.db.NewPicsDatabase.{DatabaseContext, fail, log}
 import com.malliina.pics.{Key, KeyMeta, MetaSource, PicOwner}
@@ -17,17 +17,15 @@ import scala.concurrent.{ExecutionContext, Future}
 object NewPicsDatabase {
   private val log = Logger(getClass)
 
-  private val regex = "jdbc:mysql://([\\.0-9a-zA-Z-]+):?([0-9]*)/([0-9a-zA-Z-]+)".r
-
-  def mysqlFromEnvOrFail(ec: ExecutionContext) = withMigrations(Conf.fromEnvOrFail(), ec)
-
   def apply(conf: Conf, ec: ExecutionContext): NewPicsDatabase = {
-    val m = regex.findFirstMatchIn(conf.url).get
-    val host = m.group(1)
-    val port = m.group(2).toIntOption.getOrElse(3306)
-    val name = m.group(3)
-    val config = new ConnectionPoolConfiguration(host, port, name, conf.user, conf.pass)
-    val pool = MySQLConnectionBuilder.createConnectionPool(config)
+    val pool = MySQLConnectionBuilder.createConnectionPool(
+      conf.url,
+      (c: ConnectionPoolConfigurationBuilder) => {
+        c.setUsername(conf.user)
+        c.setPassword(conf.pass)
+        kotlin.Unit.INSTANCE
+      }
+    )
     val ctx: MysqlJAsyncContext[CompositeNamingStrategy2[SnakeCase.type, MysqlEscape.type]] =
       new MysqlJAsyncContext(NamingStrategy(SnakeCase, MysqlEscape), pool)
     new NewPicsDatabase(ctx)(ec)
