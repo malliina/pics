@@ -17,6 +17,10 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - uses: actions/setup-java@v1
+        with:
+          java-version: '11.0.7'
+
       - uses: azure/docker-login@v1
         with:
           login-server: malliinapics.azurecr.io
@@ -27,7 +31,7 @@ jobs:
           sbt "project backend" docker:publish
 
       - name: 'Deploy to Azure'
-        uses: azure/webapps-container-deploy@v1
+        uses: azure/webapps-deploy@v2
         with:
           app-name: 'malliinapics'
           images: 'malliinapics.azurecr.io/pics:${{ github.sha }}'
