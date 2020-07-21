@@ -1,4 +1,4 @@
-scalaVersion := "2.12.11"
+scalaVersion := "2.12.12"
 
 Seq(
   "com.malliina" % "play-live-reload" % "0.1.0",
