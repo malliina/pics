@@ -12,6 +12,7 @@ import io.getquill._
 import org.flywaydb.core.Flyway
 import play.api.Logger
 
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 
 object NewPicsDatabase {
@@ -37,6 +38,8 @@ object NewPicsDatabase {
     hikari.setJdbcUrl(conf.url)
     hikari.setUsername(conf.user)
     hikari.setPassword(conf.pass)
+    hikari.setMaxLifetime(60.seconds.toMillis)
+    hikari.setMaximumPoolSize(5)
     log info s"Connecting to '${conf.url}'..."
     new HikariDataSource(hikari)
   }
