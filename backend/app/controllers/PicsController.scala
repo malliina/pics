@@ -296,15 +296,10 @@ class PicsController(
   def keyNotFound(key: Key) = onNotFound(s"Not found: '$key'.")
 
   def onNotFound(message: String) = NotFound(reasonJson(message))
-
   def badGateway(reason: String) = BadGateway(reasonJson(reason))
-
   def badRequest(reason: String) = BadRequest(reasonJson(reason))
-
   def unauthorized(reason: String) = Unauthorized(reasonJson(reason))
-
   def internalError(reason: String) = InternalServerError(reasonJson(reason))
-
   def reasonJson(reason: String) = Errors.single(reason)
 
   // cannot cache streamed entities

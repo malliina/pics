@@ -121,10 +121,17 @@ class PicsHtml(scripts: Seq[String], absoluteScripts: Seq[FullUrl]) extends Base
         "This privacy policy describes how your information is used and stored when you use this app."
       ),
       p(
-        "The purpose of using and storing your information is to enable app functionality and optimize your user experience. Your information is not used for any other purposes than enabling application features. Your information is not shared with third parties."
+        "The purpose of using and storing your information is to enable app functionality and optimize your user experience. Your information is only used to enable application functionality."
+      ),
+      p("Your information is not shared with third parties. The app includes no ads."),
+      p(
+        "Should you choose to authenticate, your email address is associated with any subsequent images you take while authenticated. The email address is only used to persist image ownership information. No other personal or sensitive information is stored."
       ),
       p(
-        "Network communications: This app may communicate with other networked servers. The communication enables the transfer of images to and from your devices."
+        "Images are taken with the native camera APIs provided by the platform, which may embed additional data to image files."
+      ),
+      p(
+        "Network communications: This app may communicate with other networked servers. The communication facilitates the transfer of images to and from your devices so that you can view public images and view your own images on multiple devices."
       ),
       p("Network requests may be logged by server software.")
     )
