@@ -1,15 +1,12 @@
 package com.malliina.pics.db
 
-import akka.actor.ActorSystem
 import com.malliina.pics.{Keys, PicOwner}
-import tests.{BaseSuite, MUnitDatabaseSuite, TestConf}
+import tests.{BaseSuite, DoobieSuite}
 
-class NewPicsDatabaseTests extends BaseSuite with MUnitDatabaseSuite {
+class DoobiePicsDatabaseTests extends BaseSuite with DoobieSuite {
   test("can CRUD pic meta") {
-    val as = ActorSystem("test")
-    val container = db()
-    val conf = TestConf(container)
-    val picsDatabase = NewPicsDatabase.withMigrations(as, conf)
+    val data = doobie()
+    val picsDatabase = DoobiePicsDatabase(data)
     val user = PicOwner("testuser")
     val key = Keys.randomish()
     val _ = await(picsDatabase.saveMeta(key, user))
@@ -18,6 +15,5 @@ class NewPicsDatabaseTests extends BaseSuite with MUnitDatabaseSuite {
     assert(await(picsDatabase.contains(key)))
     await(picsDatabase.remove(key, user))
     assert(!await(picsDatabase.contains(key)))
-    as.terminate()
   }
 }

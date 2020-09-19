@@ -3,19 +3,19 @@ package tests
 import java.io.File
 
 import com.dimafeng.testcontainers.MySQLContainer
-import com.malliina.oauth.GoogleOAuthCredentials
 import com.malliina.pics._
-import com.malliina.pics.app.{AppConf, BaseComponents}
+import com.malliina.pics.app.{AppConf, BaseComponents, LocalConf}
 import com.malliina.pics.auth.PicsAuthLike
-import com.malliina.pics.db.Conf
-import com.malliina.play.auth.{AuthConf, JWTUser}
+import com.malliina.pics.db.{Conf, DoobieDatabase}
+import com.malliina.play.auth.JWTUser
 import com.malliina.values.AccessToken
 import controllers.Social.SocialConf
 import play.api.ApplicationLoader.Context
 import play.api.mvc.{RequestHeader, Result}
-import play.api.{ApplicationLoader, Environment, Mode, Play}
+import play.api._
 
 import scala.concurrent.Future
+import scala.util.Try
 
 object TestHandler extends ImageHandler("test", AsIsResizer, TestPics)
 
@@ -44,44 +44,62 @@ class TestComps(context: Context, database: Conf)
   override lazy val socialConf: SocialConf = SocialConf(configuration)
 }
 
-trait MUnitAppSuite { self: munit.Suite =>
-  val app: Fixture[TestComps] = new Fixture[TestComps]("pics-app") {
-    private var container: Option[MySQLContainer] = None
-    private var comps: TestComps = null
-    def apply() = comps
+trait MUnitDatabaseSuite { self: munit.Suite =>
+  val db: Fixture[Conf] = new Fixture[Conf]("database") {
+    var container: Option[MySQLContainer] = None
+    var conf: Option[Conf] = None
+    def apply() = conf.get
     override def beforeAll(): Unit = {
-      val db = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
-      db.start()
-      container = Option(db)
-      comps = new TestComps(
-        TestConf.createTestAppContext,
-        TestConf(db)
-      )
-      Play.start(comps.application)
+      val localTestDb =
+        Try(LocalConf.localConf.get[Configuration]("pics.testdb")).toEither.flatMap { c =>
+          Conf.fromDatabaseConf(c)
+        }
+      val testDb = localTestDb.getOrElse {
+        val c = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
+        c.start()
+        container = Option(c)
+        TestConf(c)
+      }
+      conf = Option(testDb)
     }
     override def afterAll(): Unit = {
-      Play.stop(comps.application)
       container.foreach(_.stop())
     }
   }
 
-  override def munitFixtures = Seq(app)
+  override def munitFixtures: Seq[Fixture[_]] = Seq(db)
 }
 
-trait MUnitDatabaseSuite { self: munit.Suite =>
-  val db: Fixture[MySQLContainer] = new Fixture[MySQLContainer]("database") {
-    var container: MySQLContainer = null
-    def apply() = container
+trait MUnitAppSuite extends MUnitDatabaseSuite { self: munit.Suite =>
+  val app: Fixture[TestComps] = new Fixture[TestComps]("pics-app") {
+    private var comps: Option[TestComps] = None
+    def apply() = comps.get
     override def beforeAll(): Unit = {
-      container = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
-      container.start()
+      val c = new TestComps(TestConf.createTestAppContext, db())
+      comps = Option(c)
+      Play.start(c.application)
     }
     override def afterAll(): Unit = {
-      container.stop()
+      comps.foreach(c => Play.stop(c.application))
     }
   }
 
-  override def munitFixtures = Seq(db)
+  override def munitFixtures = Seq(db, app)
+}
+
+trait DoobieSuite extends MUnitDatabaseSuite { self: munit.Suite =>
+  val doobie: Fixture[DoobieDatabase] = new Fixture[DoobieDatabase]("doobie") {
+    var database: Option[DoobieDatabase] = None
+    def apply() = database.get
+    override def beforeAll(): Unit = {
+      database = Option(DoobieDatabase.withMigrations(db(), munitExecutionContext))
+    }
+    override def afterAll(): Unit = {
+      database.foreach(_.close())
+    }
+  }
+
+  override def munitFixtures: Seq[Fixture[_]] = Seq(db, doobie)
 }
 
 object TestConf {

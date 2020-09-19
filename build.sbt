@@ -102,15 +102,15 @@ val backend = project
     scalaJSProjects := Seq(frontend),
     pipelineStages := Seq(digest, gzip),
     pipelineStages in Assets := Seq(scalaJSPipeline),
-    libraryDependencies ++= Seq(
+    libraryDependencies ++= Seq("doobie-core", "doobie-hikari").map { d =>
+      "org.tpolecat" %% d % "0.9.2"
+    } ++ Seq(
       "org.apache.commons" % "commons-text" % "1.8",
       "com.amazonaws" % "aws-java-sdk-s3" % awsSdkVersion,
       "software.amazon.awssdk" % "s3" % awsSdk2Version,
       PlayImport.ehcache,
       PlayImport.ws,
       "com.malliina" %% "play-social" % utilPlayVersion,
-      "io.getquill" %% "quill-jdbc" % "3.5.2",
-//      "io.getquill" %% "quill-jasync-mysql" % "3.5.2",
       "org.flywaydb" % "flyway-core" % "6.1.1",
       "mysql" % "mysql-connector-java" % "5.1.49",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.3",

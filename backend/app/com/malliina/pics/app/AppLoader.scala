@@ -6,7 +6,7 @@ import com.malliina.http.OkClient
 import com.malliina.pics.CSRFConf.{CsrfCookieName, CsrfHeaderName, CsrfTokenName, CsrfTokenNoCheck}
 import com.malliina.pics._
 import com.malliina.pics.auth.{PicsAuth, PicsAuthLike, PicsAuthenticator}
-import com.malliina.pics.db.{Conf, NewPicsDatabase}
+import com.malliina.pics.db.{Conf, DoobieDatabase, DoobiePicsDatabase}
 import com.malliina.pics.html.PicsHtml
 import com.malliina.play.app.DefaultApp
 import com.typesafe.config.ConfigFactory
@@ -15,7 +15,7 @@ import controllers._
 import play.api.ApplicationLoader.Context
 import play.api.cache.Cached
 import play.api.cache.ehcache.EhCacheComponents
-import play.api.http.HttpConfiguration
+import play.api.http.{HttpConfiguration, HttpErrorHandler}
 import play.api.routing.Router
 import play.api.{BuiltInComponentsFromContext, Configuration, Mode}
 import play.filters.HttpFiltersComponents
@@ -52,7 +52,7 @@ trait AppConf {
 
 object AppConf {
   def apply(conf: Conf) = new AppConf {
-    override def database = conf
+    override def database: Conf = conf
     override def close(): Unit = ()
   }
 }
@@ -118,23 +118,24 @@ abstract class BaseComponents(
 
   val html = PicsHtml.build(mode == Mode.Prod)
   val conf = dbConf(configuration)
-  val quill = NewPicsDatabase.withMigrations(actorSystem, conf.database)
-  val service = PicService(quill, buildPics())
+  val db = DoobieDatabase.withMigrations(conf.database, executionContext)
+  val picsDatabase = DoobiePicsDatabase(db)
+  val service = PicService(picsDatabase, buildPics())
   val cache = new Cached(defaultCacheApi)
-  override lazy val httpErrorHandler = PicsErrorHandler
+  override lazy val httpErrorHandler: HttpErrorHandler = PicsErrorHandler
   val authenticator = buildAuthenticator()
   val auth = new PicsAuth(authenticator, materializer, defaultActionBuilder)
   val sockets = Sockets(auth, actorSystem, materializer)
   val pics = new PicsController(html, service, sockets, auth, cache, controllerComponents)
   val cognitoControl = CognitoControl.pics(defaultActionBuilder)
   val picsAssets = new PicsAssets(assets)
-  lazy val social = Social.buildOrFail(socialConf, http, controllerComponents)
-  override lazy val router: Router =
+  val social = Social.buildOrFail(socialConf, http, controllerComponents)
+  override val router: Router =
     new Routes(httpErrorHandler, pics, sockets, picsAssets, social, cognitoControl)
 
   applicationLifecycle.addStopHook { () =>
     Future.successful {
-      quill.close()
+      db.close()
       conf.close()
       http.close()
     }

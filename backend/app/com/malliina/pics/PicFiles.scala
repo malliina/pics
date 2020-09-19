@@ -60,7 +60,7 @@ trait DataSource extends SourceLike {
   def saveBody(key: Key, file: Path): Future[StorageSize]
 }
 
-trait MetaSource extends SourceLike with Closeable {
+trait MetaSource extends SourceLike {
   def load(from: Int, until: Int, user: PicOwner): Future[Seq[KeyMeta]]
   def saveMeta(key: Key, owner: PicOwner): Future[KeyMeta]
   def putMetaIfNotExists(meta: KeyMeta): Future[Int]
