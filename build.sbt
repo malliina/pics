@@ -16,19 +16,18 @@ import scala.util.Try
 
 val utilPlayVersion = "5.11.0"
 val primitivesVersion = "1.17.0"
-val munitVersion = "0.7.7"
+val munitVersion = "0.7.12"
 val scalatagsVersion = "0.9.1"
-val awsSdkVersion = "1.11.784"
-val awsSdk2Version = "2.13.26"
-val testContainersScalaVersion = "0.37.0"
+val awsSdk2Version = "2.14.21"
+val testContainersScalaVersion = "0.38.3"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 
 val commonSettings = Seq(
   organization := "com.malliina",
-  scalaVersion := "2.13.2",
+  scalaVersion := "2.13.3",
   libraryDependencies ++= Seq(
     "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
-    "com.typesafe.play" %%% "play-json" % "2.9.0",
+    "com.typesafe.play" %%% "play-json" % "2.9.1",
     "com.malliina" %%% "primitives" % primitivesVersion,
     "com.malliina" %%% "util-html" % utilPlayVersion
   )
@@ -49,35 +48,35 @@ val frontend = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "1.0.0",
+      "org.scala-js" %%% "scalajs-dom" % "1.1.0",
       "be.doeraene" %%% "scalajs-jquery" % "1.0.0",
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
-    version in webpack := "4.43.0",
+    version in webpack := "4.44.2",
     webpackEmitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
     npmDependencies in Compile ++= Seq(
-      "@fortawesome/fontawesome-free" -> "5.13.0",
-      "bootstrap" -> "4.5.0",
+      "@fortawesome/fontawesome-free" -> "5.14.0",
+      "bootstrap" -> "4.5.2",
       "jquery" -> "3.5.1",
       "popper.js" -> "1.16.1"
     ),
     npmDevDependencies in Compile ++= Seq(
-      "autoprefixer" -> "9.8.0",
+      "autoprefixer" -> "10.0.0",
       "cssnano" -> "4.1.10",
-      "css-loader" -> "3.5.3",
-      "file-loader" -> "6.0.0",
-      "less" -> "3.11.1",
-      "less-loader" -> "6.1.0",
-      "mini-css-extract-plugin" -> "0.9.0",
+      "css-loader" -> "4.3.0",
+      "file-loader" -> "6.1.0",
+      "less" -> "3.12.2",
+      "less-loader" -> "7.0.1",
+      "mini-css-extract-plugin" -> "0.11.2",
       "postcss-import" -> "12.0.1",
-      "postcss-loader" -> "3.0.0",
+      "postcss-loader" -> "4.0.2",
       "postcss-preset-env" -> "6.7.0",
       "style-loader" -> "1.2.1",
       "url-loader" -> "4.1.0",
-      "webpack-merge" -> "4.2.2"
+      "webpack-merge" -> "5.1.4"
     ),
     webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.dev.config.js"),
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.prod.config.js")
@@ -105,15 +104,14 @@ val backend = project
     libraryDependencies ++= Seq("doobie-core", "doobie-hikari").map { d =>
       "org.tpolecat" %% d % "0.9.2"
     } ++ Seq(
-      "org.apache.commons" % "commons-text" % "1.8",
-      "com.amazonaws" % "aws-java-sdk-s3" % awsSdkVersion,
+      "org.apache.commons" % "commons-text" % "1.9",
       "software.amazon.awssdk" % "s3" % awsSdk2Version,
       PlayImport.ehcache,
       PlayImport.ws,
       "com.malliina" %% "play-social" % utilPlayVersion,
-      "org.flywaydb" % "flyway-core" % "6.1.1",
+      "org.flywaydb" % "flyway-core" % "6.5.6",
       "mysql" % "mysql-connector-java" % "5.1.49",
-      "com.sksamuel.scrimage" % "scrimage-core" % "4.0.3",
+      "com.sksamuel.scrimage" % "scrimage-core" % "4.0.6",
       "com.malliina" %% "logstreams-client" % "1.10.1",
       utilPlayDep,
       "org.scalameta" %% "munit" % munitVersion % Test,
