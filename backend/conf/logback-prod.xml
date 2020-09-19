@@ -8,6 +8,7 @@
     <appender name="LOGSTREAMS" class="com.malliina.logstreams.client.AkkaHttpAppender">
         <endpoint>${LOGSTREAMS_HOST:-logs.malliina.com}</endpoint>
         <secure>true</secure>
+        <enabled>true</enabled>
         <username>${LOGSTREAMS_USER:-pics}</username>
         <password>${LOGSTREAMS_PASS}</password>
     </appender>
