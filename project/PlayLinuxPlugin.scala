@@ -1,6 +1,6 @@
-import com.malliina.sbt.unix.LinuxKeys.ciBuild
-import com.malliina.sbt.unix.LinuxPlugin
-import play.sbt.PlayScala
+//import com.malliina.sbt.unix.LinuxKeys.ciBuild
+//import com.malliina.sbt.unix.LinuxPlugin
+//import play.sbt.PlayScala
 import sbt.AutoPlugin
 import sbt.Keys.clean
 import sbt._
@@ -10,14 +10,14 @@ import com.typesafe.sbt.packager.archetypes.JavaServerAppPackaging
 import com.typesafe.sbt.packager.archetypes.systemloader.SystemdPlugin
 
 object PlayLinuxPlugin extends AutoPlugin {
-  override def requires = PlayScala && JavaServerAppPackaging && LinuxPlugin && SystemdPlugin
+  override def requires = JavaServerAppPackaging && SystemdPlugin
 
   override def projectSettings = Seq(
-    releaseProcess := Seq[ReleaseStep](
-      releaseStepTask(clean in Compile),
-      checkSnapshotDependencies,
-      runTest,
-      releaseStepTask(ciBuild)
-    )
+//    releaseProcess := Seq[ReleaseStep](
+//      releaseStepTask(clean in Compile),
+//      checkSnapshotDependencies,
+//      runTest,
+//      releaseStepTask(ciBuild)
+//    )
   )
 }
