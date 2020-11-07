@@ -5,6 +5,7 @@ import java.nio.file.Path
 
 import cats.data.NonEmptyList
 import com.malliina.play.auth.JWTError
+import com.malliina.values.ErrorMessage
 import com.sksamuel.scrimage.ImageParseException
 import play.api.http.Writeable
 import play.api.libs.json.{Format, JsError, JsSuccess, Json, Reads, Writes}
@@ -47,5 +48,6 @@ object Errors {
   implicit val json = Json.format[Errors]
   implicit val html = Writeable.writeableOf_JsValue.map[Errors](es => Json.toJson(es))
 
-  def single(message: String) = Errors(NonEmptyList.of(SingleError(message)))
+  def apply(message: ErrorMessage): Errors = Errors.single(message.message)
+  def single(message: String): Errors = Errors(NonEmptyList.of(SingleError(message)))
 }

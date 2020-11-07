@@ -24,4 +24,6 @@ case class UserPayload(username: Username)
 
 object UserPayload {
   implicit val json = Json.format[UserPayload]
+
+  def email(email: Email): UserPayload = apply(Username(email.value))
 }

@@ -1,6 +1,7 @@
 package com.malliina.pics
 
 import com.malliina.pics.app.LocalConf
+import com.malliina.pics.auth.SecretKey
 import com.malliina.pics.db.DatabaseConf
 import com.malliina.play.auth.{AuthConf, ClientId, ClientSecret}
 import controllers.Social
@@ -15,7 +16,11 @@ case class SocialClientConf(client: SocialConf) {
   def conf = client.auth
 }
 
-case class AppConf(secret: String)
+case class GoogleConf(client: SocialConf, web: SocialConf) {
+  def conf = web.auth
+}
+
+case class AppConf(secret: SecretKey)
 
 sealed trait AppMode {
   def isProd = this == AppMode.Prod
@@ -36,7 +41,7 @@ case class PicsConf(
   mode: AppMode,
   app: AppConf,
   db: DatabaseConf,
-  google: SocialClientConf,
+  google: GoogleConf,
   github: SocialClientConf,
   microsoft: SocialClientConf,
   facebook: SocialClientConf,

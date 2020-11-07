@@ -3,7 +3,7 @@ package com.malliina.pics.http4s
 import _root_.play.api.libs.json.{Json, Writes}
 import cats.data.NonEmptyList
 import cats.effect._
-import com.malliina.pics.auth.Http4sAuth
+import com.malliina.pics.auth.{Http4sAuth, UserPayload}
 import com.malliina.pics.html.PicsHtml
 import com.malliina.pics.{
   AppMeta,
@@ -21,13 +21,16 @@ import com.malliina.pics.{
   Pics,
   PicsConf
 }
-import org.http4s.CacheDirective.{`max-age`, `no-cache`, `public`}
+import org.http4s.CacheDirective.{`max-age`, `must-revalidate`, `no-cache`, `no-store`, `public`}
 import org.http4s._
 import org.http4s.headers.{Accept, Location, `Cache-Control`, `WWW-Authenticate`}
 import org.slf4j.LoggerFactory
 import PicsImplicits._
 import com.malliina.html.UserFeedback
 import com.malliina.http.OkClient
+import com.malliina.play.auth.AuthValidator.Callback
+import com.malliina.play.auth.OAuthKeys.{Nonce, State}
+import com.malliina.play.auth.{AuthValidator, CodeValidator, OAuthKeys}
 import controllers.Social
 import controllers.Social._
 
@@ -67,6 +70,8 @@ class PicsService(
 )(implicit cs: ContextShift[IO])
   extends BasicService[IO] {
   val pong = "pong"
+
+  val noCache = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
 
   val supportedStaticExtensions =
     List(".html", ".js", ".map", ".css", ".png", ".ico")
@@ -142,21 +147,66 @@ class PicsService(
             )
             .flatMap { e =>
               e.fold(
-                err => unauthorized(Errors.single(err.message.message)),
+                err => unauthorized(Errors(err.message)),
                 token => SeeOther(Location(Uri.unsafeFromString(twitter.authTokenUrl(token).url)))
               )
             }
-
         case Google =>
-          val redirectUrl = Urls.hostOnly(req) / ReverseSocial.twitter.callback.renderString
+          val redirectUrl = Urls.hostOnly(req) / ReverseSocial.google.callback.renderString
           val google = socials.google
           IO.fromFuture(IO(google.start(redirectUrl, Map.empty))).flatMap { s =>
-            badRequest(Errors.single("Todo"))
+            val state = CodeValidator.randomString()
+            val encodedParams = (s.params ++ Map(OAuthKeys.State -> state)).map {
+              case (k, v) => k -> AuthValidator.urlEncode(v)
+            }
+            val url = s.authorizationEndpoint.append(s"?${stringify(encodedParams)}")
+            val sessionParams = Seq(State -> state) ++ s.nonce
+              .map(n => Seq(Nonce -> n))
+              .getOrElse(Nil)
+            // Writes sessionParams to session cookie, redirects to url with no-cache headers
+            SeeOther(Location(Uri.unsafeFromString(url.url))).map { res =>
+              val session = Json.toJson(sessionParams.toMap)
+              auth
+                .withSession(session, res)
+                .putHeaders(noCache)
+            }
           }
         case other =>
           badRequest(Errors.single(s"Unsupported provider: '$other'."))
       }
-
+    case req @ GET -> Root / "sign-in" / AuthProvider(id) / "callback" =>
+      id match {
+        case Google =>
+          val params = req.uri.query.params
+          val session = auth.session[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
+          val cb = Callback(
+            params.get(OAuthKeys.CodeKey),
+            session.get(State),
+            params.get(OAuthKeys.CodeKey),
+            session.get(Nonce),
+            Urls.hostOnly(req) / ReverseSocial.google.callback.renderString
+          )
+          IO.fromFuture(IO(socials.google.validateCallback(cb))).flatMap { e =>
+            e.flatMap(socials.google.parse)
+              .fold(
+                err => unauthorized(Errors(err.message)),
+                email => {
+                  val returnUri: Uri = req.cookies
+                    .find(_.name == auth.returnUriKey)
+                    .flatMap(c => Uri.fromString(c.content).toOption)
+                    .getOrElse(Reverse.list)
+                  SeeOther(Location(returnUri)).map { r =>
+                    auth
+                      .withUser(UserPayload.email(email), r)
+                      .removeCookie(auth.returnUriKey)
+                      .addCookie(auth.lastIdKey, email.email, Option(HttpDate.MaxValue))
+                  }
+                }
+              )
+          }
+        case other =>
+          badRequest(Errors.single("Not supported yet."))
+      }
     case req @ GET -> Root / rest if ContentType.parse(rest).exists(_.isImage) =>
       PicSize(req)
         .map { size =>
@@ -183,6 +233,9 @@ class PicsService(
         }
   }
 
+  def stringify(map: Map[String, String]): String =
+    map.map { case (key, value) => s"$key=$value" }.mkString("&")
+
   def authed(req: Request[IO])(code: PicRequest2 => IO[Response[IO]]) =
     auth.web(req.headers).map(code).fold(identity, identity)
 
@@ -192,13 +245,16 @@ class PicsService(
     if (ranges.exists(_.satisfies(MediaType.text.html))) ok(html)
     else ok(Json.toJson(json))
 
-  def ok[A](a: A)(implicit w: EntityEncoder[IO, A]) = Ok(a, `Cache-Control`(`no-cache`()))
+  def ok[A](a: A)(implicit w: EntityEncoder[IO, A]) = Ok(a, noCache)
 
   def badRequest(errors: Errors): IO[Response[IO]] = BadRequest(Json.toJson(errors))
   def unauthorized(errors: Errors): IO[Response[IO]] = Unauthorized(
     `WWW-Authenticate`(NonEmptyList.of(Challenge("mysceme", "myrealm"))),
     Json.toJson(errors)
-  ).map(_.removeCookie(ProviderCookie))
+  ).map(_.removeCookie(ProviderCookie)).map { r =>
+    println(s"removing $ProviderCookie")
+    r
+  }
   def notFound(req: Request[IO]) = notFoundWith(s"Not found: '${req.uri}'.")
   def notFoundWith(message: String) = NotFound(Json.toJson(Errors.single(message)))
 }
