@@ -33,7 +33,7 @@ import com.malliina.play.auth.OAuthKeys.{Nonce, State}
 import com.malliina.play.auth.{AuthValidator, CodeValidator, OAuthKeys}
 import controllers.Social
 import controllers.Social._
-
+import PicsService.log
 import scala.concurrent.duration.DurationInt
 
 object PicsService {
@@ -160,10 +160,10 @@ class PicsService(
               case (k, v) => k -> AuthValidator.urlEncode(v)
             }
             val url = s.authorizationEndpoint.append(s"?${stringify(encodedParams)}")
+            log.info(s"Redirecting to '$url' with state '$state'...")
             val sessionParams = Seq(State -> state) ++ s.nonce
               .map(n => Seq(Nonce -> n))
               .getOrElse(Nil)
-            // Writes sessionParams to session cookie, redirects to url with no-cache headers
             SeeOther(Location(Uri.unsafeFromString(url.url))).map { res =>
               val session = Json.toJson(sessionParams.toMap)
               auth
@@ -180,7 +180,7 @@ class PicsService(
           val params = req.uri.query.params
           val session = auth.session[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
           val cb = Callback(
-            params.get(OAuthKeys.CodeKey),
+            params.get(OAuthKeys.State),
             session.get(State),
             params.get(OAuthKeys.CodeKey),
             session.get(Nonce),
@@ -249,12 +249,9 @@ class PicsService(
 
   def badRequest(errors: Errors): IO[Response[IO]] = BadRequest(Json.toJson(errors))
   def unauthorized(errors: Errors): IO[Response[IO]] = Unauthorized(
-    `WWW-Authenticate`(NonEmptyList.of(Challenge("mysceme", "myrealm"))),
+    `WWW-Authenticate`(NonEmptyList.of(Challenge("myscheme", "myrealm"))),
     Json.toJson(errors)
-  ).map(_.removeCookie(ProviderCookie)).map { r =>
-    println(s"removing $ProviderCookie")
-    r
-  }
+  ).map(r => auth.clearSession(r.removeCookie(ProviderCookie)))
   def notFound(req: Request[IO]) = notFoundWith(s"Not found: '${req.uri}'.")
   def notFoundWith(message: String) = NotFound(Json.toJson(Errors.single(message)))
 }
