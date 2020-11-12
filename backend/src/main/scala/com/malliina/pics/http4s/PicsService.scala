@@ -3,8 +3,11 @@ package com.malliina.pics.http4s
 import _root_.play.api.libs.json.{Json, Writes}
 import cats.data.NonEmptyList
 import cats.effect._
+import com.malliina.html.UserFeedback
+import com.malliina.http.OkClient
 import com.malliina.pics.auth.{Http4sAuth, UserPayload}
 import com.malliina.pics.html.PicsHtml
+import com.malliina.pics.http4s.PicsService.log
 import com.malliina.pics.{
   AppMeta,
   ContentType,
@@ -21,19 +24,24 @@ import com.malliina.pics.{
   Pics,
   PicsConf
 }
-import org.http4s.CacheDirective.{`max-age`, `must-revalidate`, `no-cache`, `no-store`, `public`}
+import com.malliina.play.auth.AuthValidator.{Callback, Start}
+import com.malliina.play.auth.OAuthKeys.{Nonce, State}
+import com.malliina.play.auth.{
+  AuthError,
+  AuthValidator,
+  CodeValidator,
+  DiscoveringCodeValidator,
+  LoginHintSupport,
+  OAuthKeys
+}
+import com.malliina.values.{Email, Username}
+import controllers.Social
+import controllers.Social._
+import org.http4s.CacheDirective._
 import org.http4s._
 import org.http4s.headers.{Accept, Location, `Cache-Control`, `WWW-Authenticate`}
 import org.slf4j.LoggerFactory
-import PicsImplicits._
-import com.malliina.html.UserFeedback
-import com.malliina.http.OkClient
-import com.malliina.play.auth.AuthValidator.Callback
-import com.malliina.play.auth.OAuthKeys.{Nonce, State}
-import com.malliina.play.auth.{AuthValidator, CodeValidator, OAuthKeys}
-import controllers.Social
-import controllers.Social._
-import PicsService.log
+
 import scala.concurrent.duration.DurationInt
 
 object PicsService {
@@ -75,6 +83,8 @@ class PicsService(
 
   val supportedStaticExtensions =
     List(".html", ".js", ".map", ".css", ".png", ".ico")
+
+  val reverseSocial = ReverseSocial
 
   val routes = HttpRoutes.of[IO] {
     case GET -> Root             => TemporaryRedirect(Location(uri"/pics"))
@@ -142,7 +152,7 @@ class PicsService(
           IO.fromFuture(
               IO(
                 twitter
-                  .requestToken(Urls.hostOnly(req) / ReverseSocial.twitter.callback.renderString)
+                  .requestToken(Urls.hostOnly(req) / reverseSocial.twitter.callback.renderString)
               )
             )
             .flatMap { e =>
@@ -152,60 +162,34 @@ class PicsService(
               )
             }
         case Google =>
-          val redirectUrl = Urls.hostOnly(req) / ReverseSocial.google.callback.renderString
-          val google = socials.google
-          IO.fromFuture(IO(google.start(redirectUrl, Map.empty))).flatMap { s =>
-            val state = CodeValidator.randomString()
-            val encodedParams = (s.params ++ Map(OAuthKeys.State -> state)).map {
-              case (k, v) => k -> AuthValidator.urlEncode(v)
-            }
-            val url = s.authorizationEndpoint.append(s"?${stringify(encodedParams)}")
-            log.info(s"Redirecting to '$url' with state '$state'...")
-            val sessionParams = Seq(State -> state) ++ s.nonce
-              .map(n => Seq(Nonce -> n))
-              .getOrElse(Nil)
-            SeeOther(Location(Uri.unsafeFromString(url.url))).map { res =>
-              val session = Json.toJson(sessionParams.toMap)
-              auth
-                .withSession(session, res)
-                .putHeaders(noCache)
-            }
-          }
+          startHinted(id, reverseSocial.google, socials.google, req)
+        case Microsoft =>
+          startHinted(id, reverseSocial.microsoft, socials.microsoft, req)
+        case GitHub =>
+          start(socials.github, reverseSocial.github, req)
+        case Amazon =>
+          start(socials.amazon, reverseSocial.amazon, req)
         case other =>
           badRequest(Errors.single(s"Unsupported provider: '$other'."))
       }
-    case req @ GET -> Root / "sign-in" / AuthProvider(id) / "callback" =>
+    case req @ GET -> Root / "sign-in" / "callbacks" / AuthProvider(id) =>
       id match {
         case Google =>
-          val params = req.uri.query.params
-          val session = auth.session[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
-          val cb = Callback(
-            params.get(OAuthKeys.State),
-            session.get(State),
-            params.get(OAuthKeys.CodeKey),
-            session.get(Nonce),
-            Urls.hostOnly(req) / ReverseSocial.google.callback.renderString
+          handleCallback(reverseSocial.google, req, socials.google)
+        case Microsoft =>
+          handleCallback(reverseSocial.microsoft, req, socials.microsoft)
+        case GitHub =>
+          handleCallback(reverseSocial.github, req, socials.github)
+        case Amazon =>
+          handleCallback(
+            reverseSocial.amazon,
+            req,
+            cb =>
+              IO.fromFuture(IO(socials.amazon.validateCallback(cb)))
+                .map(e => e.map(user => Email(user.username.value)))
           )
-          IO.fromFuture(IO(socials.google.validateCallback(cb))).flatMap { e =>
-            e.flatMap(socials.google.parse)
-              .fold(
-                err => unauthorized(Errors(err.message)),
-                email => {
-                  val returnUri: Uri = req.cookies
-                    .find(_.name == auth.returnUriKey)
-                    .flatMap(c => Uri.fromString(c.content).toOption)
-                    .getOrElse(Reverse.list)
-                  SeeOther(Location(returnUri)).map { r =>
-                    auth
-                      .withUser(UserPayload.email(email), r)
-                      .removeCookie(auth.returnUriKey)
-                      .addCookie(auth.lastIdKey, email.email, Option(HttpDate.MaxValue))
-                  }
-                }
-              )
-          }
         case other =>
-          badRequest(Errors.single("Not supported yet."))
+          badRequest(Errors.single(s"Not supported yet: '$other'."))
       }
     case req @ GET -> Root / rest if ContentType.parse(rest).exists(_.isImage) =>
       PicSize(req)
@@ -231,6 +215,141 @@ class PicsService(
         .recover { err =>
           badRequest(Errors(NonEmptyList.of(err)))
         }
+  }
+
+  private def start(validator: AuthValidator, reverse: SocialRoute, req: Request[IO]) =
+    IO.fromFuture(
+        IO(validator.start(Urls.hostOnly(req) / reverse.callback.renderString, Map.empty))
+      )
+      .flatMap { s =>
+        startLoginFlow(s)
+      }
+
+  private def startHinted(
+    provider: AuthProvider,
+    reverse: SocialRoute,
+    validator: LoginHintSupport,
+    req: Request[IO]
+  ): IO[Response[IO]] = {
+    val redirectUrl = Urls.hostOnly(req) / reverse.callback.renderString
+    val lastIdCookie = req.cookies.find(_.name == LastIdCookie)
+    val promptValue = req.cookies
+      .find(_.name == PromptCookie)
+      .map(_.content)
+      .orElse(Option(SelectAccount).filter(_ => lastIdCookie.isEmpty))
+    val extra = promptValue.map(c => Map(PromptKey -> c)).getOrElse(Map.empty)
+    val maybeEmail = lastIdCookie.map(_.content).filter(_ => extra.isEmpty)
+    maybeEmail.foreach { hint =>
+      log.info(s"Starting OAuth flow with $provider using login hint '$hint'...")
+    }
+    promptValue.foreach { prompt =>
+      log.info(s"Starting OAuth flow with $provider using prompt '$prompt'...")
+    }
+
+    IO.fromFuture(IO(validator.startHinted(redirectUrl, maybeEmail, extra))).flatMap { s =>
+      startLoginFlow(s)
+    }
+  }
+
+  private def startLoginFlow(s: Start): IO[Response[IO]] = {
+    val state = CodeValidator.randomString()
+    val encodedParams = (s.params ++ Map(OAuthKeys.State -> state)).map {
+      case (k, v) => k -> AuthValidator.urlEncode(v)
+    }
+    val url = s.authorizationEndpoint.append(s"?${stringify(encodedParams)}")
+    log.info(s"Redirecting to '$url' with state '$state'...")
+    val sessionParams = Seq(State -> state) ++ s.nonce
+      .map(n => Seq(Nonce -> n))
+      .getOrElse(Nil)
+    SeeOther(Location(Uri.unsafeFromString(url.url))).map { res =>
+      val session = Json.toJson(sessionParams.toMap)
+      auth
+        .withSession(session, res)
+        .putHeaders(noCache)
+    }
+  }
+
+  private def handleCallback(
+    reverse: SocialRoute,
+    req: Request[IO],
+    validator: DiscoveringCodeValidator[Email]
+  ): IO[Response[IO]] = handleCallback(
+    reverse,
+    req,
+    cb => IO.fromFuture(IO(validator.validateCallback(cb))).map(e => e.flatMap(validator.parse))
+  )
+
+  private def handleCallback(
+    reverse: SocialRoute,
+    req: Request[IO],
+    validator: CodeValidator[Email, Email]
+  ): IO[Response[IO]] =
+    handleCallback(reverse, req, cb => IO.fromFuture(IO(validator.validateCallback(cb))))
+
+  private def handleCallback(
+    reverse: SocialRoute,
+    req: Request[IO],
+    validate: Callback => IO[Either[AuthError, Email]]
+  ): IO[Response[IO]] = {
+    val params = req.uri.query.params
+    val session = auth.session[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
+    val cb = Callback(
+      params.get(OAuthKeys.State),
+      session.get(State),
+      params.get(OAuthKeys.CodeKey),
+      session.get(Nonce),
+      Urls.hostOnly(req) / reverse.callback.renderString
+    )
+    validate(cb).flatMap { e =>
+      e.fold(
+        err => unauthorized(Errors(err.message)),
+        email => {
+          val returnUri: Uri = req.cookies
+            .find(_.name == auth.returnUriKey)
+            .flatMap(c => Uri.fromString(c.content).toOption)
+            .getOrElse(Reverse.list)
+          SeeOther(Location(returnUri)).map { r =>
+            auth
+              .withUser(UserPayload.email(email), r)
+              .removeCookie(auth.returnUriKey)
+              .addCookie(auth.lastIdKey, email.email, Option(HttpDate.MaxValue))
+          }
+        }
+      )
+    }
+  }
+
+  private def handleEmailCallback(
+    reverse: SocialRoute,
+    validator: CodeValidator[Email, Email],
+    req: Request[IO]
+  ) = {
+    val params = req.uri.query.params
+    val session = auth.session[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
+    val cb = Callback(
+      params.get(OAuthKeys.State),
+      session.get(State),
+      params.get(OAuthKeys.CodeKey),
+      session.get(Nonce),
+      Urls.hostOnly(req) / reverse.callback.renderString
+    )
+    IO.fromFuture(IO(validator.validateCallback(cb))).flatMap { e =>
+      e.fold(
+        err => unauthorized(Errors(err.message)),
+        email => {
+          val returnUri: Uri = req.cookies
+            .find(_.name == auth.returnUriKey)
+            .flatMap(c => Uri.fromString(c.content).toOption)
+            .getOrElse(Reverse.list)
+          SeeOther(Location(returnUri)).map { r =>
+            auth
+              .withUser(UserPayload.email(email), r)
+              .removeCookie(auth.returnUriKey)
+              .addCookie(auth.lastIdKey, email.email, Option(HttpDate.MaxValue))
+          }
+        }
+      )
+    }
   }
 
   def stringify(map: Map[String, String]): String =

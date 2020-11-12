@@ -9,7 +9,7 @@ case class SocialRoute(start: Uri, callback: Uri)
 object SocialRoute {
   def apply(name: String): SocialRoute = {
     val base = uri"/sign-in"
-    SocialRoute(base / name, base / name / "callback")
+    SocialRoute(base / name, base / "callbacks" / name)
   }
 }
 

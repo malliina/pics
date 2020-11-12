@@ -17,10 +17,13 @@ object PicsServer extends IOApp {
 
   val log = LoggerFactory.getLogger(getClass)
 
+  val port = 9000
+
   def server(conf: PicsConf) = for {
     picsApp <- appResource(conf)
+    _ = log.info(s"Binding on port $port...")
     server <- BlazeServerBuilder[IO](ExecutionContext.global)
-      .bindHttp(port = 9000, "0.0.0.0")
+      .bindHttp(port = port, "0.0.0.0")
       .withHttpApp(picsApp)
       .resource
   } yield server

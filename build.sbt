@@ -15,7 +15,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{
 val assetsDir = settingKey[Path]("Webpack assets dir to serve in server")
 val prepTarget = taskKey[Path]("Prep target dir")
 
-val utilPlayVersion = "5.11.2-SNAPSHOT"
+val utilPlayVersion = "5.11.3-SNAPSHOT"
 val primitivesVersion = "1.17.0"
 val munitVersion = "0.7.12"
 val scalatagsVersion = "0.9.1"

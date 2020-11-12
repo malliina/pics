@@ -25,8 +25,8 @@ class Http4sAuth(val jwt: JWT, conf: CookieConf) {
 
   def web(headers: Headers): Either[IO[Response[IO]], PicRequest2] = user(headers).fold(
     {
-      case MissingCredentials2(message, headers) => Right(PicRequest2.anon(headers))
-      case _                                     => Left(onUnauthorized(headers))
+      case MissingCredentials2(_, headers) => Right(PicRequest2.anon(headers))
+      case _                               => Left(onUnauthorized(headers))
     },
     user => Right(PicRequest2.forUser(user, headers))
   )
