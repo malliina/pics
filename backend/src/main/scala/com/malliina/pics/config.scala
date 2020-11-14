@@ -16,7 +16,7 @@ case class SocialClientConf(client: SocialConf) {
   def conf = client.auth
 }
 
-case class GoogleConf(client: SocialConf, web: SocialConf) {
+case class GoogleConf(web: SocialConf) {
   def conf = web.auth
 }
 

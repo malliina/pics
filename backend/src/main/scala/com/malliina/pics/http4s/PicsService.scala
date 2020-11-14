@@ -26,15 +26,9 @@ import com.malliina.pics.{
 }
 import com.malliina.play.auth.AuthValidator.{Callback, Start}
 import com.malliina.play.auth.OAuthKeys.{Nonce, State}
-import com.malliina.play.auth.{
-  AuthError,
-  AuthValidator,
-  CodeValidator,
-  DiscoveringCodeValidator,
-  LoginHintSupport,
-  OAuthKeys
-}
-import com.malliina.values.{Email, Username}
+import com.malliina.play.auth.TwitterValidator.{OauthTokenKey, OauthVerifierKey}
+import com.malliina.play.auth._
+import com.malliina.values.{AccessToken, Email}
 import controllers.Social
 import controllers.Social._
 import org.http4s.CacheDirective._
@@ -112,10 +106,13 @@ class PicsService(
             val entries = keys.map { key =>
               PicMetas.from(key, req)
             }
-            render(ranges)(json = Pics(entries), html = {
-              val feedback = None // UserFeedbacks.flashed(req.rh.flash)
-              html.pics(entries, feedback, listRequest.user).tags
-            })
+            render(ranges)(
+              json = Pics(entries),
+              html = {
+                val feedback = None // UserFeedbacks.flashed(req.rh.flash)
+                html.pics(entries, feedback, listRequest.user).tags
+              }
+            )
           }
         }
         .fold(identity, identity)
@@ -150,17 +147,16 @@ class PicsService(
         case Twitter =>
           val twitter = socials.twitter
           IO.fromFuture(
-              IO(
-                twitter
-                  .requestToken(Urls.hostOnly(req) / reverseSocial.twitter.callback.renderString)
-              )
+            IO(
+              twitter
+                .requestToken(Urls.hostOnly(req) / reverseSocial.twitter.callback.renderString)
             )
-            .flatMap { e =>
-              e.fold(
-                err => unauthorized(Errors(err.message)),
-                token => SeeOther(Location(Uri.unsafeFromString(twitter.authTokenUrl(token).url)))
-              )
-            }
+          ).flatMap { e =>
+            e.fold(
+              err => unauthorized(Errors(err.message)),
+              token => SeeOther(Location(Uri.unsafeFromString(twitter.authTokenUrl(token).url)))
+            )
+          }
         case Google =>
           startHinted(id, reverseSocial.google, socials.google, req)
         case Microsoft =>
@@ -169,17 +165,33 @@ class PicsService(
           start(socials.github, reverseSocial.github, req)
         case Amazon =>
           start(socials.amazon, reverseSocial.amazon, req)
-        case other =>
-          badRequest(Errors.single(s"Unsupported provider: '$other'."))
+        case Facebook =>
+          start(socials.facebook, reverseSocial.facebook, req)
+        case Apple =>
+          start(socials.apple, reverseSocial.apple, req)
       }
     case req @ GET -> Root / "sign-in" / "callbacks" / AuthProvider(id) =>
       id match {
+        case Twitter =>
+          val params = req.uri.query.params
+          val session = auth.session[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
+          val maybe = for {
+            token <- params.get(OauthTokenKey).map(AccessToken.apply)
+            requestToken <- session.get(RequestToken.Key).map(AccessToken.apply)
+            verifier <- params.get(OauthVerifierKey)
+          } yield IO
+            .fromFuture(IO(socials.twitter.validateTwitterCallback(token, requestToken, verifier)))
+            .flatMap { e =>
+              e.flatMap(_.email.toRight(OAuthError("Email missing.")))
+                .fold(err => unauthorized(Errors(err.message)), ok => userResult(ok, req))
+            }
+          maybe.getOrElse(unauthorized(Errors.single(s"Invalid callback parameters.")))
         case Google =>
-          handleCallback(reverseSocial.google, req, socials.google)
+          handleCallback(socials.google, reverseSocial.google, req)
         case Microsoft =>
-          handleCallback(reverseSocial.microsoft, req, socials.microsoft)
+          handleCallback(socials.microsoft, reverseSocial.microsoft, req)
         case GitHub =>
-          handleCallback(reverseSocial.github, req, socials.github)
+          handleCallback(socials.github, reverseSocial.github, req)
         case Amazon =>
           handleCallback(
             reverseSocial.amazon,
@@ -188,8 +200,10 @@ class PicsService(
               IO.fromFuture(IO(socials.amazon.validateCallback(cb)))
                 .map(e => e.map(user => Email(user.username.value)))
           )
-        case other =>
-          badRequest(Errors.single(s"Not supported yet: '$other'."))
+        case Facebook =>
+          handleCallback(socials.facebook, reverseSocial.facebook, req)
+        case Apple =>
+          handleCallback(socials.apple, reverseSocial.apple, req)
       }
     case req @ GET -> Root / rest if ContentType.parse(rest).exists(_.isImage) =>
       PicSize(req)
@@ -219,11 +233,10 @@ class PicsService(
 
   private def start(validator: AuthValidator, reverse: SocialRoute, req: Request[IO]) =
     IO.fromFuture(
-        IO(validator.start(Urls.hostOnly(req) / reverse.callback.renderString, Map.empty))
-      )
-      .flatMap { s =>
-        startLoginFlow(s)
-      }
+      IO(validator.start(Urls.hostOnly(req) / reverse.callback.renderString, Map.empty))
+    ).flatMap { s =>
+      startLoginFlow(s)
+    }
 
   private def startHinted(
     provider: AuthProvider,
@@ -253,8 +266,8 @@ class PicsService(
 
   private def startLoginFlow(s: Start): IO[Response[IO]] = {
     val state = CodeValidator.randomString()
-    val encodedParams = (s.params ++ Map(OAuthKeys.State -> state)).map {
-      case (k, v) => k -> AuthValidator.urlEncode(v)
+    val encodedParams = (s.params ++ Map(OAuthKeys.State -> state)).map { case (k, v) =>
+      k -> AuthValidator.urlEncode(v)
     }
     val url = s.authorizationEndpoint.append(s"?${stringify(encodedParams)}")
     log.info(s"Redirecting to '$url' with state '$state'...")
@@ -270,9 +283,9 @@ class PicsService(
   }
 
   private def handleCallback(
+    validator: DiscoveringCodeValidator[Email],
     reverse: SocialRoute,
-    req: Request[IO],
-    validator: DiscoveringCodeValidator[Email]
+    req: Request[IO]
   ): IO[Response[IO]] = handleCallback(
     reverse,
     req,
@@ -280,9 +293,9 @@ class PicsService(
   )
 
   private def handleCallback(
+    validator: CodeValidator[Email, Email],
     reverse: SocialRoute,
-    req: Request[IO],
-    validator: CodeValidator[Email, Email]
+    req: Request[IO]
   ): IO[Response[IO]] =
     handleCallback(reverse, req, cb => IO.fromFuture(IO(validator.validateCallback(cb))))
 
@@ -303,19 +316,21 @@ class PicsService(
     validate(cb).flatMap { e =>
       e.fold(
         err => unauthorized(Errors(err.message)),
-        email => {
-          val returnUri: Uri = req.cookies
-            .find(_.name == auth.returnUriKey)
-            .flatMap(c => Uri.fromString(c.content).toOption)
-            .getOrElse(Reverse.list)
-          SeeOther(Location(returnUri)).map { r =>
-            auth
-              .withUser(UserPayload.email(email), r)
-              .removeCookie(auth.returnUriKey)
-              .addCookie(auth.lastIdKey, email.email, Option(HttpDate.MaxValue))
-          }
-        }
+        email => userResult(email, req)
       )
+    }
+  }
+
+  private def userResult(email: Email, req: Request[IO]): IO[Response[IO]] = {
+    val returnUri: Uri = req.cookies
+      .find(_.name == auth.returnUriKey)
+      .flatMap(c => Uri.fromString(c.content).toOption)
+      .getOrElse(Reverse.list)
+    SeeOther(Location(returnUri)).map { r =>
+      auth
+        .withUser(UserPayload.email(email), r)
+        .removeCookie(auth.returnUriKey)
+        .addCookie(auth.lastIdKey, email.email, Option(HttpDate.MaxValue))
     }
   }
 

@@ -1,6 +1,7 @@
 package com.malliina.pics.http4s
 
 import com.malliina.http.OkClient
+import com.malliina.pics.auth.{AppleCodeValidator, AppleTokenValidator}
 import com.malliina.play.auth.CognitoCodeValidator.IdentityProvider
 import com.malliina.play.auth.CognitoCodeValidator.IdentityProvider.LoginWithAmazon
 import com.malliina.play.auth.{
@@ -10,6 +11,7 @@ import com.malliina.play.auth.{
   AuthResults,
   CognitoCodeValidator,
   CognitoUser,
+  FacebookCodeValidator,
   GitHubCodeValidator,
   GoogleCodeValidator,
   GoogleValidator,
@@ -29,8 +31,8 @@ object Socials {
 
 class Socials(conf: SocialConf, http: OkClient) {
   val handler: AuthHandler = new AuthHandler {
-    override def onAuthenticated(user: Email, req: RequestHeader) = Results.Ok
-    override def onUnauthorized(error: AuthError, req: RequestHeader) = Results.Unauthorized
+    override def onAuthenticated(user: Email, req: RequestHeader): Result = Results.Ok
+    override def onUnauthorized(error: AuthError, req: RequestHeader): Result = Results.Unauthorized
   }
   object cognitoHandler extends AuthResults[CognitoUser] {
     override def onAuthenticated(user: CognitoUser, req: RequestHeader): Result =
@@ -50,7 +52,9 @@ class Socials(conf: SocialConf, http: OkClient) {
   val microsoft = MicrosoftCodeValidator(oauthConf(conf.microsoftConf))
   val github = GitHubCodeValidator(oauthConf(conf.githubConf))
   val amazon = cognitoValidator(LoginWithAmazon)
-
+  val facebook = FacebookCodeValidator(oauthConf(conf.facebookConf))
+  val apple =
+    AppleCodeValidator(oauthConf(conf.apple), AppleTokenValidator(Seq(conf.apple.clientId)))
   def oauthConf[T](auth: AuthConf) = picsAuthConf(auth, handler)
   def picsAuthConf[T](auth: AuthConf, handler: AuthResults[T]) =
     OAuthConf(dummyCall, handler, auth, http)
