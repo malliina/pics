@@ -210,8 +210,8 @@ class PicsService(
         import Social._
         auth
           .clearSession(res)
-          .removeCookie(LastIdCookie)
-          .removeCookie(ProviderCookie)
+          .removeCookie(ResponseCookie(LastIdCookie, "", path = auth.cookiePath))
+          .removeCookie(ResponseCookie(ProviderCookie, "", path = auth.cookiePath))
           .addCookie(PromptCookie, SelectAccount)
       }
     case GET -> Root / "sign-out" =>

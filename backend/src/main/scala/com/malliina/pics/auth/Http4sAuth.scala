@@ -22,6 +22,7 @@ object Http4sAuth {
 class Http4sAuth(val jwt: JWT, conf: CookieConf) {
   val returnUriKey = conf.returnUriKey
   val lastIdKey = conf.lastIdKey
+  val cookiePath = Option("/")
 
   def web(headers: Headers): Either[IO[Response[IO]], PicRequest2] = user(headers).fold(
     {
@@ -34,7 +35,10 @@ class Http4sAuth(val jwt: JWT, conf: CookieConf) {
   def session[T: Reads](from: Headers): Either[IdentityError2, T] = read[T](conf.sessionKey, from)
   def withSession[T: Writes](t: T, res: Response[IO]): res.Self =
     withJwt(conf.sessionKey, t, res)
-  def clearSession(res: Response[IO]): res.Self = res.removeCookie(conf.sessionKey)
+  def clearSession(res: Response[IO]): res.Self =
+    res
+      .removeCookie(ResponseCookie(conf.sessionKey, "", path = cookiePath))
+      .removeCookie(ResponseCookie(conf.userKey, "", path = cookiePath))
 
   def user(headers: Headers): Either[IdentityError2, Username] =
     readUser(conf.userKey, headers)
@@ -44,7 +48,7 @@ class Http4sAuth(val jwt: JWT, conf: CookieConf) {
 
   def withJwt[T: Writes](cookieName: String, t: T, res: Response[IO]): res.Self = {
     val signed = jwt.sign(t, 12.hours)
-    res.addCookie(ResponseCookie(cookieName, signed.value, httpOnly = true, path = Option("/")))
+    res.addCookie(ResponseCookie(cookieName, signed.value, httpOnly = true, path = cookiePath))
   }
 
   private def readUser(cookieName: String, headers: Headers): Either[IdentityError2, Username] =
