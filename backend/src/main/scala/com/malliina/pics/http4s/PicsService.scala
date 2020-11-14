@@ -205,6 +205,18 @@ class PicsService(
         case Apple =>
           handleCallback(socials.apple, reverseSocial.apple, req)
       }
+    case GET -> Root / "sign-out" / "leave" =>
+      SeeOther(Location(Reverse.signOutCallback)).map { res =>
+        import Social._
+        auth
+          .clearSession(res)
+          .removeCookie(LastIdCookie)
+          .removeCookie(ProviderCookie)
+          .addCookie(PromptCookie, SelectAccount)
+      }
+    case GET -> Root / "sign-out" =>
+      // TODO .flashing("message" -> "You have now logged out.")
+      SeeOther(Location(Reverse.list))
     case req @ GET -> Root / rest if ContentType.parse(rest).exists(_.isImage) =>
       PicSize(req)
         .map { size =>

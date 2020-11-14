@@ -34,6 +34,7 @@ trait Reverse {
   val signIn = uri"/sign-in"
   val signUp = uri"/sign-up"
   val signOut = uri"/sign-out/leave"
+  val signOutCallback = uri"/sign-out"
 
   val sync = uri"/sync"
   val delete = uri"/pics/delete"
