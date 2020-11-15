@@ -5,6 +5,7 @@ import cats.data.NonEmptyList
 import cats.effect._
 import com.malliina.html.UserFeedback
 import com.malliina.http.OkClient
+import com.malliina.pics.auth.Http4sAuth.TwitterState
 import com.malliina.pics.auth.{Http4sAuth, UserPayload}
 import com.malliina.pics.html.PicsHtml
 import com.malliina.pics.http4s.PicsService.log
@@ -152,9 +153,14 @@ class PicsService(
                 .requestToken(Urls.hostOnly(req) / reverseSocial.twitter.callback.renderString)
             )
           ).flatMap { e =>
+            // add requesttoken to session
             e.fold(
               err => unauthorized(Errors(err.message)),
-              token => SeeOther(Location(Uri.unsafeFromString(twitter.authTokenUrl(token).url)))
+              token =>
+                SeeOther(Location(Uri.unsafeFromString(twitter.authTokenUrl(token).url))).map {
+                  res =>
+                    auth.withSession(TwitterState(token), res)(TwitterState.json)
+                }
             )
           }
         case Google =>
@@ -174,18 +180,35 @@ class PicsService(
       id match {
         case Twitter =>
           val params = req.uri.query.params
-          val session = auth.session[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
           val maybe = for {
-            token <- params.get(OauthTokenKey).map(AccessToken.apply)
-            requestToken <- session.get(RequestToken.Key).map(AccessToken.apply)
-            verifier <- params.get(OauthVerifierKey)
+            token <- params
+              .get(OauthTokenKey)
+              .map(AccessToken.apply)
+              .toRight(OAuthError(s"Missing $OauthTokenKey query parameter."))
+            requestToken <- auth
+              .session[TwitterState](req.headers)
+              .left
+              .map(e => OAuthError(s"Session failure."))
+            verifier <- params
+              .get(OauthVerifierKey)
+              .toRight(OAuthError(s"Missing $OauthVerifierKey query paramater."))
           } yield IO
-            .fromFuture(IO(socials.twitter.validateTwitterCallback(token, requestToken, verifier)))
+            .fromFuture(
+              IO(
+                socials.twitter.validateTwitterCallback(token, requestToken.requestToken, verifier)
+              )
+            )
             .flatMap { e =>
               e.flatMap(_.email.toRight(OAuthError("Email missing.")))
                 .fold(err => unauthorized(Errors(err.message)), ok => userResult(ok, req))
             }
-          maybe.getOrElse(unauthorized(Errors.single(s"Invalid callback parameters.")))
+          maybe.fold(
+            err => {
+              log.warn(s"$err in $req")
+              unauthorized(Errors.single(s"Invalid callback parameters."))
+            },
+            identity
+          )
         case Google =>
           handleCallback(socials.google, reverseSocial.google, req)
         case Microsoft =>
@@ -287,7 +310,7 @@ class PicsService(
       .map(n => Seq(Nonce -> n))
       .getOrElse(Nil)
     SeeOther(Location(Uri.unsafeFromString(url.url))).map { res =>
-      val session = Json.toJson(sessionParams.toMap)
+      val session = Json.toJsObject(sessionParams.toMap)
       auth
         .withSession(session, res)
         .putHeaders(noCache)

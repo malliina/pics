@@ -3,11 +3,11 @@ package com.malliina.pics.auth
 import cats.effect.IO
 import com.malliina.pics.http4s.Reverse
 import com.malliina.pics.{AppConf, PicRequest2}
-import com.malliina.values.{IdToken, Username}
+import com.malliina.values.{AccessToken, IdToken, Username}
 import org.http4s.dsl.io._
 import org.http4s.headers.{Cookie, Location}
 import org.http4s.{Headers, Response, ResponseCookie}
-import play.api.libs.json.{Reads, Writes}
+import play.api.libs.json.{Json, OWrites, Reads, Writes}
 
 import scala.concurrent.duration.DurationInt
 
@@ -17,6 +17,12 @@ object Http4sAuth {
       JWT(conf.secret),
       CookieConf("picsUser", "picsState", "picsReturnUri", "picsLastId")
     )
+
+  case class TwitterState(requestToken: AccessToken)
+
+  object TwitterState {
+    implicit val json = Json.format[TwitterState]
+  }
 }
 
 class Http4sAuth(val jwt: JWT, conf: CookieConf) {
@@ -33,7 +39,7 @@ class Http4sAuth(val jwt: JWT, conf: CookieConf) {
   )
 
   def session[T: Reads](from: Headers): Either[IdentityError2, T] = read[T](conf.sessionKey, from)
-  def withSession[T: Writes](t: T, res: Response[IO]): res.Self =
+  def withSession[T: OWrites](t: T, res: Response[IO]): res.Self =
     withJwt(conf.sessionKey, t, res)
   def clearSession(res: Response[IO]): res.Self =
     res
