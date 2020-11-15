@@ -30,7 +30,7 @@ class MultiSizeHandler(
   val mediums: ImageHandler,
   val larges: ImageHandler,
   val originals: ImageHandler
-) extends ImageHandlerLike {
+) extends ImageHandlerLike[Future] {
   val handlers = Seq(smalls, mediums, larges, originals)
 
   def apply(size: PicSize) = size match {

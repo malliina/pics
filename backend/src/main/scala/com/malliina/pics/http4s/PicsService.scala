@@ -1,10 +1,14 @@
 package com.malliina.pics.http4s
 
+import java.nio.file.Files
+
 import _root_.play.api.libs.json.{Json, Writes}
 import cats.data.NonEmptyList
 import cats.effect._
+import cats.implicits.{catsSyntaxApplicativeId, catsSyntaxFlatten}
 import com.malliina.html.UserFeedback
 import com.malliina.http.OkClient
+import com.malliina.pics.PicsStrings.{XClientPic, XKey, XName}
 import com.malliina.pics.auth.Http4sAuth.TwitterState
 import com.malliina.pics.auth.{Http4sAuth, UserPayload}
 import com.malliina.pics.html.PicsHtml
@@ -21,6 +25,8 @@ import com.malliina.pics.{
   PicMeta,
   PicMetas,
   PicRequest2,
+  PicResponse,
+  PicServiceIO,
   PicSize,
   Pics,
   PicsConf
@@ -35,6 +41,7 @@ import controllers.Social._
 import org.http4s.CacheDirective._
 import org.http4s._
 import org.http4s.headers.{Accept, Location, `Cache-Control`, `WWW-Authenticate`}
+import org.http4s.util.CaseInsensitiveString
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.duration.DurationInt
@@ -59,11 +66,15 @@ object PicsService {
     db: MetaSourceT[IO],
     blocker: Blocker,
     cs: ContextShift[IO]
-  ): PicsService =
-    new PicsService(html, auth, socials, db, MultiSizeHandler.default(), blocker)(cs)
+  ): PicsService = {
+    val handler = MultiSizeHandler.default()
+    val service = new PicServiceIO(db, handler)(cs)
+    new PicsService(service, html, auth, socials, db, handler, blocker)(cs)
+  }
 }
 
 class PicsService(
+  service: PicServiceIO,
   html: PicsHtml,
   auth: Http4sAuth,
   socials: Socials,
@@ -117,6 +128,39 @@ class PicsService(
           }
         }
         .fold(identity, identity)
+    case req @ POST -> Root / "pics" =>
+      auth
+        .web(req.headers)
+        .fold(
+          err => err,
+          user => {
+            val decoder =
+              EntityDecoder.binFile[IO](Files.createTempFile("pic", ".jpg").toFile, blocker)
+            req.decodeWith(decoder, strict = true) { file =>
+              service
+                .save(
+                  file.toPath,
+                  user,
+                  req.headers.get(CaseInsensitiveString(XName)).map(_.value)
+                )
+                .flatMap { keyMeta =>
+                  val clientPic = req.headers
+                    .get(CaseInsensitiveString(XClientPic))
+                    .map(h => Key(h.value))
+                    .getOrElse(keyMeta.key)
+                  val picMeta = PicMetas.from(keyMeta, req)
+                  log.info(s"Saved '${picMeta.key}' by '${user.name}' with URL '${picMeta.url}'.")
+                  Accepted(Json.toJson(PicResponse(picMeta))).map { res =>
+                    res.putHeaders(
+                      Location(Uri.unsafeFromString(picMeta.url.url)),
+                      Header(XKey, picMeta.key.key),
+                      Header(XClientPic, clientPic.key)
+                    )
+                  }
+                }
+            }
+          }
+        )
     case req @ GET -> Root / "drop" =>
       authed(req) { user =>
         val created: Option[PicMeta] = None
@@ -240,6 +284,22 @@ class PicsService(
     case GET -> Root / "sign-out" =>
       // TODO .flashing("message" -> "You have now logged out.")
       SeeOther(Location(Reverse.list))
+    case GET -> Root / "legal" / "privacy" =>
+      ok(html.privacyPolicy.tags)
+    case GET -> Root / "support" =>
+      ok(html.support.tags)
+    case req @ GET -> Root / ".well-known" / "apple-developer-domain-association.txt" =>
+      StaticFile
+        .fromResource(
+          "apple-developer-domain-association.txt",
+          blocker,
+          Option(req),
+          preferGzipped = true
+        )
+        .fold(notFound(req))(
+          _.putHeaders(`Cache-Control`(NonEmptyList.of(`max-age`(1.hour), `public`))).pure[IO]
+        )
+        .flatten
     case req @ GET -> Root / rest if ContentType.parse(rest).exists(_.isImage) =>
       PicSize(req)
         .map { size =>

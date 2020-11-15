@@ -17,7 +17,7 @@ object ImageHandler {
 }
 
 class ImageHandler(prefix: String, resizer: ImageResizer, val storage: DataSource)
-  extends ImageHandlerLike {
+  extends ImageHandlerLike[Future] {
 
   def createTempFile = Files.createTempFile(prefix, null)
 
@@ -32,7 +32,7 @@ class ImageHandler(prefix: String, resizer: ImageResizer, val storage: DataSourc
   override def remove(key: Key): Future[PicResult] = storage.remove(key)
 }
 
-trait ImageHandlerLike {
+trait ImageHandlerLike[F[_]] {
 
   /** Might fail with Exception, ImageParseException, IllegalArgumentException, ...
     *

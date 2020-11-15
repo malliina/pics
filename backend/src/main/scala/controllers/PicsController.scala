@@ -34,7 +34,6 @@ object PicsController {
   val CreatedKey = "created"
   val Message = "message"
   val Reason = "reason"
-  val XClientPic = "X-Client-Pic"
 }
 
 class PicsController(

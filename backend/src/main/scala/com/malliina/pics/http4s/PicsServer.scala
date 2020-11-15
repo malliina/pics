@@ -7,6 +7,7 @@ import com.malliina.pics.db.{DoobieDatabase, DoobieDatabase2, DoobiePicsDatabase
 import com.malliina.pics.{MetaSourceT, PicsConf}
 import org.http4s.server.Router
 import org.http4s.server.blaze.BlazeServerBuilder
+import org.http4s.server.middleware.HSTS
 import org.http4s.{HttpRoutes, Request, Response}
 import org.slf4j.LoggerFactory
 
@@ -36,11 +37,13 @@ object PicsServer extends IOApp {
     app(conf, db, blocker)
   }
 
-  private def app(conf: PicsConf, db: MetaSourceT[IO], blocker: Blocker) = orNotFound {
-    Router(
-      "/" -> PicsService(conf, db, blocker, contextShift).routes,
-      "/assets" -> StaticService(blocker, contextShift).routes
-    )
+  private def app(conf: PicsConf, db: MetaSourceT[IO], blocker: Blocker) = HSTS {
+    orNotFound {
+      Router(
+        "/" -> PicsService(conf, db, blocker, contextShift).routes,
+        "/assets" -> StaticService(blocker, contextShift).routes
+      )
+    }
   }
 
   def orNotFound(rs: HttpRoutes[IO]): Kleisli[IO, Request[IO], Response[IO]] =
