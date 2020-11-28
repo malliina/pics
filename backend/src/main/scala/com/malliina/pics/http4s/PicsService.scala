@@ -380,7 +380,9 @@ class PicsService(
   private def removeKey(key: Key, redir: Uri, req: Request[IO]) =
     authed(req) { user =>
       if (user.readOnly) {
-        unauthorized(Errors.single(s"Unauthorized."))
+        IO(log.warn(s"User '${user.name}' is not authorized to delete '$key'.")).flatMap { _ =>
+          unauthorized(Errors.single(s"Unauthorized."))
+        }
       } else {
         db.remove(key, user.name).flatMap { wasDeleted =>
           if (wasDeleted) {
