@@ -38,13 +38,19 @@ object Key {
 
   def valueFormat[A, B: Writes](read: JsValue => JsResult[A], write: A => B): Format[A] =
     Format[A](Reads(read), Writes(a => Json.toJson(write(a))))
+
 }
 
-case class PicKeys(keys: Seq[Key])
+object KeyParam {
+  def unapply(str: String): Option[Key] =
+    if (str.trim.nonEmpty) Option(Key(str.trim)) else None
+}
 
-object PicKeys {
+case class PicsRemoved(keys: Seq[Key])
+
+object PicsRemoved {
   val Removed = "removed"
-  implicit val json = PicsJson.evented(Removed, Json.format[PicKeys])
+  implicit val json = PicsJson.evented(Removed, Json.format[PicsRemoved])
 }
 
 trait BaseMeta {
@@ -99,11 +105,11 @@ object ClientPicMeta {
   implicit val json = Json.format[ClientPicMeta]
 }
 
-case class ClientPics(pics: Seq[ClientPicMeta])
+case class PicsAdded(pics: Seq[ClientPicMeta])
 
-object ClientPics {
+object PicsAdded {
   val Added = "added"
-  implicit val json: Format[ClientPics] = PicsJson.evented(Added, Json.format[ClientPics])
+  implicit val json: Format[PicsAdded] = PicsJson.evented(Added, Json.format[PicsAdded])
 }
 
 object PicsJson {

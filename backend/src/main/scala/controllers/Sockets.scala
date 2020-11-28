@@ -20,10 +20,10 @@ class Sockets(auth: PicsAuth)(implicit actorSystem: ActorSystem, mat: Materializ
   extends PicSink {
   val mediator = actorSystem.actorOf(ClientSockets.props())
 
-  def onPics(pics: ClientPics, owner: PicRequest): Unit =
+  def onPics(pics: PicsAdded, owner: PicRequest): Unit =
     unicast(pics, owner)
 
-  def onPicsRemoved(keys: PicKeys, owner: PicRequest): Unit =
+  def onPicsRemoved(keys: PicsRemoved, owner: PicRequest): Unit =
     unicast(keys, owner)
 
   def unicast[C: Writes](c: C, to: PicRequest): Unit =
@@ -41,13 +41,13 @@ class Sockets(auth: PicsAuth)(implicit actorSystem: ActorSystem, mat: Materializ
 }
 
 trait PicSink {
-  def onPics(pics: ClientPics, owner: PicRequest): Unit
+  def onPics(pics: PicsAdded, owner: PicRequest): Unit
 
   def onPic(pic: ClientPicMeta, owner: PicRequest): Unit =
-    onPics(ClientPics(Seq(pic)), owner)
+    onPics(PicsAdded(Seq(pic)), owner)
 
-  def onPicsRemoved(keys: PicKeys, owner: PicRequest): Unit
+  def onPicsRemoved(keys: PicsRemoved, owner: PicRequest): Unit
 
   def onPicRemoved(key: Key, owner: PicRequest): Unit =
-    onPicsRemoved(PicKeys(Seq(key)), owner)
+    onPicsRemoved(PicsRemoved(Seq(key)), owner)
 }

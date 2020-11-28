@@ -9,9 +9,7 @@ import scala.concurrent.Future
 
 sealed trait DataResponse {
   def contentLength: Option[StorageSize]
-
   def contentType: Option[ContentType]
-
   def isImage: Boolean = contentType.exists(_.isImage)
 }
 
@@ -31,10 +29,19 @@ object DataFile {
 
 trait SourceLike[F[_]] {
   def contains(key: Key): F[Boolean]
-  def fut[T](t: T): Future[T] = Future.successful(t)
 }
 
-trait DataSource extends SourceLike[Future] {
+trait ImageSourceLike[F[_]] extends SourceLike[F] {
+  def remove(key: Key): F[PicResult]
+  def saveBody(key: Key, file: Path): F[StorageSize]
+}
+
+trait DataSourceT[F[_]] extends ImageSourceLike[F] {
+  def get(key: Key): F[DataFile]
+  def load(from: Int, until: Int): F[Seq[FlatMeta]]
+}
+
+trait DataSource extends ImageSourceLike[Future] {
   def load(from: Int, until: Int): Future[Seq[FlatMeta]]
 
   def get(key: Key): Future[DataFile]
@@ -53,6 +60,7 @@ trait DataSource extends SourceLike[Future] {
     }
 
   def saveBody(key: Key, file: Path): Future[StorageSize]
+  def fut[T](t: T): Future[T] = Future.successful(t)
 }
 
 trait MetaSourceT[F[_]] extends SourceLike[F] {
@@ -61,5 +69,3 @@ trait MetaSourceT[F[_]] extends SourceLike[F] {
   def putMetaIfNotExists(meta: KeyMeta): F[Int]
   def remove(key: Key, user: PicOwner): F[Boolean]
 }
-
-trait MetaSource extends MetaSourceT[Future]

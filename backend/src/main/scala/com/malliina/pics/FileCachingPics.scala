@@ -2,6 +2,7 @@ package com.malliina.pics
 
 import java.nio.file.Path
 
+import cats.effect.IO
 import com.malliina.concurrent.Execution.cached
 import com.malliina.storage.StorageSize
 
@@ -47,3 +48,5 @@ class FileCachingPics(cache: FilePics, origin: DataSource) extends DataSource {
       _ <- cache.remove(key)
     } yield result
 }
+
+//class FileCachingPicsIO(cache: FilePics, origin: ImageSourceLike[IO]) extends ImageSourceLike[IO] {}

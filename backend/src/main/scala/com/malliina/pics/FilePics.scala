@@ -2,9 +2,6 @@ package com.malliina.pics
 
 import java.nio.file.{Files, NoSuchFileException, Path, Paths}
 
-import akka.stream.scaladsl.{FileIO, Source}
-import akka.stream.{IOResult, Materializer}
-import akka.util.ByteString
 import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.FilePics.log
 import com.malliina.storage.{StorageLong, StorageSize}
@@ -22,11 +19,8 @@ object FilePics {
     sys.env.get(PicsEnvKey).map(Paths.get(_)).getOrElse(tmpDir.resolve("pics"))
 
   def apply(dir: Path): FilePics = new FilePics(dir)
-
   def default(): FilePics = apply(picsDir)
-
   def thumbs(): FilePics = named("thumbs")
-
   def named(name: String) = apply(picsDir.resolve(name))
 }
 
@@ -63,10 +57,9 @@ class FilePics(val dir: Path) extends DataSource {
     Future {
       Files.copy(file, fileAt(key))
       Files.size(file).bytes
-    }.recoverWith {
-      case t =>
-        log.error("Pics operation failed.", t)
-        Future.failed(t)
+    }.recoverWith { case t =>
+      log.error("Pics operation failed.", t)
+      Future.failed(t)
     }
 
 //  def putSource(key: Key, source: Source[ByteString, Future[IOResult]]): Future[Path] = {

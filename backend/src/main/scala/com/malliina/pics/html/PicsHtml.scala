@@ -35,12 +35,11 @@ object PicsHtml {
   def build(isProd: Boolean): PicsHtml = {
     val name = "frontend"
     val opt = if (isProd) "opt" else "fastopt"
-//    val hotReload = if (isProd) Nil else FullUrl.build(LiveReload.script).toOption.toList
     val hotReload = Nil
     new PicsHtml(
       Seq(s"$name-$opt-library.js", s"$name-$opt-loader.js", s"$name-$opt.js"),
       hotReload,
-      DirectAssets
+      HashedAssetsSource
     )
   }
 
@@ -49,9 +48,6 @@ object PicsHtml {
 
   implicit def userFrag(user: PicOwner): Text.StringFrag =
     stringFrag(user.name)
-
-//  def at(file: String) = routes.PicsAssets.versioned(file)
-//  def at(file: String): String = ???
 
   def postableForm(onAction: String, more: Modifier*) =
     form(role := FormRole, action := onAction, method := Post, more)

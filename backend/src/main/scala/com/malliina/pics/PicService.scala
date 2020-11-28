@@ -14,8 +14,9 @@ trait PicServiceT[F[_]] {
   def save(tempFile: Path, by: BaseRequest, preferredName: Option[String]): F[KeyMeta]
 }
 
-class PicServiceIO(db: MetaSourceT[IO], handler: MultiSizeHandler)(implicit cs: ContextShift[IO])
-  extends PicServiceT[IO] {
+class PicServiceIO(val db: MetaSourceT[IO], handler: MultiSizeHandler)(implicit
+  cs: ContextShift[IO]
+) extends PicServiceT[IO] {
   private val log = Logger(getClass)
 
   override def save(tempFile: Path, by: BaseRequest, preferredName: Option[String]): IO[KeyMeta] = {

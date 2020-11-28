@@ -113,7 +113,6 @@ class AsyncS3Bucket(bucket: BucketName, v2: S3AsyncClient)(implicit ec: Executio
         log.info(s"Saved '$key' to '$bucketName', size $size in ${result.duration}.")
         size
       }
-
   }
 
   // The AWS docs suggest it should fail with a NoSuchKeyException if the key doesn't exist, but it fails with

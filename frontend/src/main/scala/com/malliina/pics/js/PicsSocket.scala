@@ -47,20 +47,23 @@ class PicsSocket extends BaseSocket("/sockets") {
     }
 
   def addClickListener(node: Node): Unit =
-    node.addEventListener("click", (e: Event) => {
-      log.info("Copying...")
-      val url = e.target.asInstanceOf[HTMLElement].getAttribute(jsHtml.dataIdAttr.name)
-      copyToClipboard(url)
-    })
+    node.addEventListener(
+      "click",
+      (e: Event) => {
+        log.info("Copying...")
+        val url = e.target.asInstanceOf[HTMLElement].getAttribute(jsHtml.dataIdAttr.name)
+        copyToClipboard(url)
+      }
+    )
 
   override def handlePayload(payload: JsValue): Unit = {
     val result = (payload \ PicsJson.EventKey).validate[String].flatMap {
-      case ClientPics.Added =>
-        payload.validate[ClientPics].map { pics =>
+      case PicsAdded.Added =>
+        payload.validate[PicsAdded].map { pics =>
           pics.pics.foreach(prepend)
         }
-      case PicKeys.Removed =>
-        payload.validate[PicKeys].map { keys =>
+      case PicsRemoved.Removed =>
+        payload.validate[PicsRemoved].map { keys =>
           keys.keys.foreach(remove)
         }
       case ProfileInfo.Welcome =>

@@ -1,19 +1,9 @@
-import java.nio.file.{Files, Path, StandardCopyOption}
-
-import com.malliina.sbt.filetree.DirMap
-import com.malliina.sbt.unix.LinuxKeys.ciBuild
-//import play.sbt.PlayImport
+import WebPlugin.makeAssetsFile
 import com.typesafe.sbt.packager.docker.DockerVersion
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 
 import scala.sys.process.Process
 import scala.util.Try
-import sbtcrossproject.CrossPlugin.autoImport.{
-  CrossType => PortableType,
-  crossProject => portableProject
-}
-
-val assetsDir = settingKey[Path]("Webpack assets dir to serve in server")
-val prepTarget = taskKey[Path]("Prep target dir")
 
 val utilPlayVersion = "5.11.3-SNAPSHOT"
 val primitivesVersion = "1.17.0"
@@ -27,8 +17,7 @@ inThisBuild(
   Seq(
     organization := "com.malliina",
     version := "0.0.1",
-    scalaVersion := "2.13.3",
-    assetsDir := (baseDirectory.value / "assets").toPath
+    scalaVersion := "2.13.3"
   )
 )
 
@@ -51,7 +40,7 @@ val crossJs = cross.js
 
 val frontend = project
   .in(file("frontend"))
-  .enablePlugins(ScalaJSBundlerPlugin, NodeJsPlugin)
+  .enablePlugins(ScalaJSBundlerPlugin, NodeJsPlugin, WebPlugin)
   .disablePlugins(RevolverPlugin)
   .dependsOn(crossJs)
   .settings(commonSettings)
@@ -63,6 +52,7 @@ val frontend = project
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     version in webpack := "4.44.2",
+//    version in webpack := "5.8.0",
     webpackEmitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
@@ -75,44 +65,23 @@ val frontend = project
     npmDevDependencies in Compile ++= Seq(
       "autoprefixer" -> "10.0.0",
       "cssnano" -> "4.1.10",
-      "css-loader" -> "4.3.0",
+      "css-loader" -> "5.0.1",
       "file-loader" -> "6.1.0",
       "less" -> "3.12.2",
-      "less-loader" -> "7.0.1",
-      "mini-css-extract-plugin" -> "0.11.2",
-      "postcss" -> "8.0.5",
-      "postcss-import" -> "12.0.1",
-      "postcss-loader" -> "4.0.2",
+      "less-loader" -> "7.1.0",
+      "mini-css-extract-plugin" -> "1.3.1",
+      "postcss" -> "8.1.10",
+      "postcss-import" -> "13.0.0",
+      "postcss-loader" -> "4.1.0",
       "postcss-preset-env" -> "6.7.0",
-      "style-loader" -> "1.2.1",
+      "style-loader" -> "2.0.0",
       "url-loader" -> "4.1.0",
       "webpack-merge" -> "5.1.4"
     ),
     webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.dev.config.js"),
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.prod.config.js"),
     webpackBundlingMode in (Compile, fastOptJS) := BundlingMode.LibraryOnly(),
-    webpackBundlingMode in (Compile, fullOptJS) := BundlingMode.Application,
-    webpack.in(Compile, fastOptJS) := {
-      val files = webpack.in(Compile, fastOptJS).value
-      val log = streams.value.log
-      files.map {
-        file =>
-          val relativeFile = file.data.relativeTo(crossTarget.in(Compile, npmUpdate).value).get
-          val dest = assetsDir.value.resolve(relativeFile.toPath)
-          Files.createDirectories(dest.getParent)
-          val path = file.data.toPath
-          Files.copy(path, dest, StandardCopyOption.REPLACE_EXISTING)
-          val size = Files.size(path)
-          log.debug(
-            s"Copied ${file.data} of type ${file.metadata.get(BundlerFileTypeAttr)} to '$dest', $size bytes."
-          )
-          file.copy(dest.toFile)(file.metadata)
-      }
-    },
-    webpack.in(Compile, fastOptJS) := webpack.in(Compile, fastOptJS).dependsOn(prepTarget).value,
-    prepTarget := {
-      Files.createDirectories(assetsDir.value)
-    }
+    webpackBundlingMode in (Compile, fullOptJS) := BundlingMode.Application
   )
 
 val prodPort = 9000
@@ -124,17 +93,12 @@ val backend = project
     FileTreePlugin,
     PlayLinuxPlugin,
     BuildInfoPlugin
-//    PlayLiveReloadPlugin
   )
   .dependsOn(crossJvm)
   .settings(commonSettings)
   .settings(
     buildInfoPackage := "com.malliina.pics",
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "hash" -> gitHash),
-//    scalaJSProjects := Seq(frontend),
-//    pipelineStages := Seq(digest, gzip),
-    // pipelineStages in Assets := Seq(digest, gzip)
-    //    pipelineStages in Assets := Seq(scalaJSPipeline),
     libraryDependencies ++= http4sModules.map { m =>
       "org.http4s" %% s"http4s-$m" % "0.21.7"
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
@@ -143,8 +107,6 @@ val backend = project
       "com.github.pureconfig" %% "pureconfig" % "0.14.0",
       "org.apache.commons" % "commons-text" % "1.9",
       "software.amazon.awssdk" % "s3" % awsSdk2Version,
-//      PlayImport.ehcache,
-//      PlayImport.ws,
       "com.malliina" %% "play-social" % utilPlayVersion,
       "org.flywaydb" % "flyway-core" % "6.5.6",
       "mysql" % "mysql-connector-java" % "5.1.49",
@@ -173,18 +135,6 @@ val backend = project
     packageSummary in Linux := "This is the pics summary.",
     rpmVendor := "Skogberg Labs",
     unmanagedResourceDirectories in Compile += baseDirectory.value / "public",
-//    routesImport ++= Seq(
-//      "com.malliina.pics.Key",
-//      "com.malliina.pics.Keys.bindable"
-//    ),
-//    linuxPackageSymlinks := linuxPackageSymlinks.value.filterNot(_.link == "/usr/bin/starter"),
-//    fileTreeSources := Seq(
-//      DirMap(
-//        source = (resourceDirectory in Assets).value,
-//        destination = "com.malliina.pics.assets.AppAssets",
-//        mapFunc = "com.malliina.pics.html.PicsHtml.at"
-//      )
-//    ),
     httpPort in Linux := Option(s"$prodPort"),
     dockerVersion := Option(DockerVersion(19, 3, 5, None)),
     dockerBaseImage := "openjdk:11",
@@ -195,9 +145,22 @@ val backend = project
     packageName in Docker := "pics",
 //    mainClass in reStart := Option("com.malliina.pics.http4s.PicsServer"),
     resources in Compile ++= webpack.in(frontend, Compile, fastOptJS).value.map(_.data),
-    resourceDirectories in Compile += assetsDir.value.toFile,
+    resources in Compile ++= hashAssets
+      .in(frontend, Compile, fastOptJS)
+      .value
+      .map(_.hashedFile.toFile),
+    resourceDirectories in Compile += assetsDir.in(frontend).value.toFile,
     reStart := reStart.dependsOn(webpack.in(frontend, Compile, fastOptJS)).evaluated,
-    watchSources ++= (watchSources in frontend).value
+    watchSources ++= (watchSources in frontend).value,
+    sourceGenerators in Compile += Def.task {
+      val dest = (sourceManaged in Compile).value
+      val hashed = hashAssets.in(frontend, Compile, fastOptJS).value
+      val log = streams.value.log
+      val cached = FileFunction.cached(streams.value.cacheDirectory / "assets") { in =>
+        makeAssetsFile(dest, hashed, log)
+      }
+      cached(hashed.map(_.hashedFile.toFile).toSet).toSeq
+    }.taskValue
   )
 
 val runApp = inputKey[Unit]("Runs the app")

@@ -1,5 +1,7 @@
 package com.malliina.pics
 
+import cats.effect.IO
+
 import scala.concurrent.duration.{DurationLong, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -18,6 +20,14 @@ object Util {
     }
   }
 
+  def timedIO[T](work: IO[T]): IO[Timed[T]] =
+    IO(System.currentTimeMillis()).flatMap { start =>
+      work.flatMap { t =>
+        IO(System.currentTimeMillis()).map { end =>
+          Timed(t, (end - start).millis)
+        }
+      }
+    }
 }
 
 case class Timed[T](result: T, duration: FiniteDuration)
