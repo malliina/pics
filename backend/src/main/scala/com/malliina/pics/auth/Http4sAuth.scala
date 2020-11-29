@@ -49,18 +49,15 @@ class Http4sAuth(
     if (rs.exists(_.satisfies(MediaType.text.html))) {
       IO.pure(web(headers))
     } else if (rs.exists(m => m.satisfies(version10) || m.satisfies(MediaType.application.json))) {
-      readJwt(headers)
-        .map { io =>
-          io.map { e =>
-            e.fold(
-              _ => Left(onUnauthorized(headers)),
-              user => Right(PicRequest2.forUser(user.username, headers))
-            )
-          }
-        }
-        .fold(_ => IO.pure(Right(PicRequest2.anon(headers))), identity)
+      jwt(headers)
     } else {
       IO.pure(Left(NotAcceptable(Json.toJson(Errors.single("Not acceptable.")), noCache)))
+    }
+  }
+
+  def authenticateAll(headers: Headers): IO[Either[IO[Response[IO]], PicRequest2]] = {
+    IO.pure(web(headers)).flatMap { e =>
+      e.fold(_ => jwt(headers), user => IO.pure(Right(user)))
     }
   }
 
@@ -71,6 +68,18 @@ class Http4sAuth(
     },
     user => Right(PicRequest2.forUser(user, headers))
   )
+
+  private def jwt(headers: Headers) =
+    readJwt(headers)
+      .map { io =>
+        io.map { e =>
+          e.fold(
+            _ => Left(onUnauthorized(headers)),
+            user => Right(PicRequest2.forUser(user.username, headers))
+          )
+        }
+      }
+      .fold(_ => IO.pure(Right(PicRequest2.anon(headers))), identity)
 
   private def readJwt(headers: Headers) = token(headers)
     .map { token =>

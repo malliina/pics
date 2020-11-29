@@ -207,7 +207,7 @@ class PicsService(
         }
       }
     case req @ GET -> Root / "sockets" =>
-      authed(req) { user =>
+      authedAll(req) { user =>
         val welcomeMessage = fs2.Stream(Json.toJson(ProfileInfo(user.name, user.readOnly)))
         val pings =
           fs2.Stream.awakeEvery[IO](30.seconds).map(d => JsonMessages.ping)
@@ -526,6 +526,9 @@ class PicsService(
 
   def authed(req: Request[IO])(code: PicRequest2 => IO[Response[IO]]): IO[Response[IO]] =
     auth.authenticate(req.headers).flatMap(_.fold(identity, code))
+
+  def authedAll(req: Request[IO])(code: PicRequest2 => IO[Response[IO]]): IO[Response[IO]] =
+    auth.authenticateAll(req.headers).flatMap(_.fold(identity, code))
 
   private def render[A: Writes, B](req: Request[IO])(json: A, html: B)(implicit
     w: EntityEncoder[IO, B]
