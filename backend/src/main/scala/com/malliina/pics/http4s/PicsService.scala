@@ -12,7 +12,7 @@ import com.malliina.pics.PicsStrings.{XClientPic, XKey, XName}
 import com.malliina.pics.auth.Http4sAuth.TwitterState
 import com.malliina.pics.auth.{Http4sAuth, PicsAuth, UserPayload}
 import com.malliina.pics.html.PicsHtml
-import com.malliina.pics.http4s.PicsService.{log, version10}
+import com.malliina.pics.http4s.PicsService.{log, noCache, ranges, version10}
 import com.malliina.pics.{AppMeta, ContentType, Errors, Key, KeyParam, Limits, ListRequest2, MetaSourceT, MultiSizeHandler, PicMeta, PicMetas, PicRequest2, PicResponse, PicServiceIO, PicSize, Pics, PicsAdded, PicsConf, PicsRemoved, ProfileInfo}
 import com.malliina.play.auth.AuthValidator.{Callback, Start}
 import com.malliina.play.auth.OAuthKeys.{Nonce, State}
@@ -39,6 +39,7 @@ import scala.concurrent.duration.{DurationInt, FiniteDuration}
 object PicsService {
   private val log = LoggerFactory.getLogger(getClass)
   val version10 = mediaType"application/vnd.pics.v10+json"
+  val noCache = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
 
   def apply(
     conf: PicsConf,
@@ -51,7 +52,7 @@ object PicsService {
     val socials = Socials(conf.social, OkClient.default)
     apply(
       PicsHtml.build(conf.mode.isProd),
-      Http4sAuth(conf.app),
+      Http4sAuth(conf.app, cs),
       socials,
       db,
       topic,
@@ -75,6 +76,11 @@ object PicsService {
     val service = new PicServiceIO(db, handler)(cs)
     new PicsService(service, html, auth, socials, db, topic, handler, blocker)(cs, timer)
   }
+
+  def ranges(headers: Headers) = headers
+    .get(Accept)
+    .map(_.values.map(_.mediaRange))
+    .getOrElse(NonEmptyList.of(MediaRange.`*/*`))
 }
 
 class PicsService(
@@ -89,8 +95,6 @@ class PicsService(
 )(implicit cs: ContextShift[IO], timer: Timer[IO])
   extends BasicService[IO] {
   val pong = "pong"
-
-  val noCache = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
 
   def cached(duration: FiniteDuration) = `Cache-Control`(
     NonEmptyList.of(`max-age`(duration), `public`)
@@ -109,72 +113,78 @@ class PicsService(
       renderRanged(req)(res, res)
     case req @ GET -> Root / "pics" =>
       auth
-        .web(req.headers)
-        .flatMap { picReq =>
-          Limits(req.uri.query)
-            .map { limits =>
-              ListRequest2(limits, picReq)
-            }
-            .left
-            .map { errors =>
-              badRequest(errors)
-            }
-        }
-        .map { listRequest =>
-          db.load(listRequest.offset, listRequest.limit, listRequest.user.name).flatMap { keys =>
-            val entries = keys.map { key =>
-              PicMetas.from(key, req)
-            }
-            render(req)(
-              json = Pics(entries),
-              html = {
-                val feedback = None // UserFeedbacks.flashed(req.rh.flash)
-                html.pics(entries, feedback, listRequest.user).tags
+        .authenticate(req.headers)
+        .map { e =>
+          e.flatMap { picReq =>
+            Limits(req.uri.query)
+              .map { limits =>
+                ListRequest2(limits, picReq)
               }
-            )
+              .left
+              .map { errors =>
+                badRequest(errors)
+              }
           }
         }
-        .fold(identity, identity)
+        .map { e =>
+          e.map { listRequest =>
+            db.load(listRequest.offset, listRequest.limit, listRequest.user.name).flatMap { keys =>
+              val entries = keys.map { key =>
+                PicMetas.from(key, req)
+              }
+              render(req)(
+                json = Pics(entries),
+                html = {
+                  val feedback = None // UserFeedbacks.flashed(req.rh.flash)
+                  html.pics(entries, feedback, listRequest.user).tags
+                }
+              )
+            }
+          }
+        }
+        .flatMap(_.fold(identity, identity))
     case req @ POST -> Root / "pics" =>
       auth
-        .web(req.headers)
-        .fold(
-          err => err,
-          user => {
-            val decoder =
-              EntityDecoder.binFile[IO](Files.createTempFile("pic", ".jpg").toFile, blocker)
-            req.decodeWith(decoder, strict = true) { file =>
-              service
-                .save(
-                  file.toPath,
-                  user,
-                  req.headers.get(CaseInsensitiveString(XName)).map(_.value)
-                )
-                .flatMap { keyMeta =>
-                  val clientPic = req.headers
-                    .get(CaseInsensitiveString(XClientPic))
-                    .map(h => Key(h.value))
-                    .getOrElse(keyMeta.key)
-                  val picMeta = PicMetas.from(keyMeta, req)
-                  log.info(s"Saved '${picMeta.key}' by '${user.name}' with URL '${picMeta.url}'.")
-                  topic
-                    .publish1(
-                      PicMessage
-                        .AddedMessage(PicsAdded(Seq(picMeta.withClient(clientPic))), user.name)
-                    )
-                    .flatMap { _ =>
-                      Accepted(Json.toJson(PicResponse(picMeta))).map { res =>
-                        res.putHeaders(
-                          Location(Uri.unsafeFromString(picMeta.url.url)),
-                          Header(XKey, picMeta.key.key),
-                          Header(XClientPic, clientPic.key)
-                        )
+        .authenticate(req.headers)
+        .flatMap { e =>
+          e.fold(
+            err => err,
+            user => {
+              val decoder =
+                EntityDecoder.binFile[IO](Files.createTempFile("pic", ".jpg").toFile, blocker)
+              req.decodeWith(decoder, strict = true) { file =>
+                service
+                  .save(
+                    file.toPath,
+                    user,
+                    req.headers.get(CaseInsensitiveString(XName)).map(_.value)
+                  )
+                  .flatMap { keyMeta =>
+                    val clientPic = req.headers
+                      .get(CaseInsensitiveString(XClientPic))
+                      .map(h => Key(h.value))
+                      .getOrElse(keyMeta.key)
+                    val picMeta = PicMetas.from(keyMeta, req)
+                    log.info(s"Saved '${picMeta.key}' by '${user.name}' with URL '${picMeta.url}'.")
+                    topic
+                      .publish1(
+                        PicMessage
+                          .AddedMessage(PicsAdded(Seq(picMeta.withClient(clientPic))), user.name)
+                      )
+                      .flatMap { _ =>
+                        Accepted(Json.toJson(PicResponse(picMeta))).map { res =>
+                          res.putHeaders(
+                            Location(Uri.unsafeFromString(picMeta.url.url)),
+                            Header(XKey, picMeta.key.key),
+                            Header(XClientPic, clientPic.key)
+                          )
+                        }
                       }
-                    }
-                }
+                  }
+              }
             }
-          }
-        )
+          )
+        }
     case req @ POST -> Root / "pics" / KeyParam(key) / "delete" =>
       removeKey(key, Reverse.list, req)
     case req @ DELETE -> Root / KeyParam(key) =>
@@ -514,8 +524,8 @@ class PicsService(
   def stringify(map: Map[String, String]): String =
     map.map { case (key, value) => s"$key=$value" }.mkString("&")
 
-  def authed(req: Request[IO])(code: PicRequest2 => IO[Response[IO]]) =
-    auth.web(req.headers).map(code).fold(identity, identity)
+  def authed(req: Request[IO])(code: PicRequest2 => IO[Response[IO]]): IO[Response[IO]] =
+    auth.authenticate(req.headers).flatMap(_.fold(identity, code))
 
   private def render[A: Writes, B](req: Request[IO])(json: A, html: B)(implicit
     w: EntityEncoder[IO, B]
@@ -525,7 +535,7 @@ class PicsService(
   private def renderRanged[A: Writes, B](
     req: Request[IO]
   )(json: IO[Response[IO]], html: IO[Response[IO]]): IO[Response[IO]] = {
-    val rs = ranges(req)
+    val rs = ranges(req.headers)
     val qp = req.uri.query.params
     if (qp.get("f").contains("json") || qp.contains("json")) json
     else if (rs.exists(_.satisfies(MediaType.text.html))) html
@@ -533,11 +543,6 @@ class PicsService(
     else if (rs.exists(_.satisfies(MediaType.application.json))) json
     else NotAcceptable(Json.toJson(Errors.single("Not acceptable.")), noCache)
   }
-
-  private def ranges(req: Request[IO]) = req.headers
-    .get(Accept)
-    .map(_.values.map(_.mediaRange))
-    .getOrElse(NonEmptyList.of(MediaRange.`*/*`))
 
   private def ok[A](a: A)(implicit w: EntityEncoder[IO, A]) = Ok(a, noCache)
 
