@@ -39,13 +39,13 @@ class PicsServiceTests extends FunSuite with Http4sSuite {
   }
 
   test("anon cannot delete") {
-    val req = Request[IO](Method.POST, uri"/pics/pic123.jpg/delete")
+    val req = make(uri"/pics/pic123.jpg/delete", Method.POST, PicsService.version10)
     val res = app().run(req).unsafeRunSync()
     assertEquals(res.status, Status.Unauthorized)
   }
 
   test("anon cannot sync") {
-    val req = Request[IO](Method.POST, uri"/sync")
+    val req = make(uri"/sync", Method.POST, PicsService.version10)
     val res = app().run(req).unsafeRunSync()
     assertEquals(res.status, Status.Unauthorized)
   }
@@ -55,7 +55,10 @@ class PicsServiceTests extends FunSuite with Http4sSuite {
     app().run(req).unsafeRunSync()
   }
 
-  def get(uri: Uri, mediaType: MediaType) = Request[IO](Method.GET, uri).putHeaders(
+  def get(uri: Uri, mediaType: MediaType) =
+    make(uri, Method.GET, mediaType)
+
+  def make(uri: Uri, method: Method, mediaType: MediaType) = Request[IO](method, uri).putHeaders(
     Accept(NonEmptyList.of(MediaRangeAndQValue.withDefaultQValue(mediaType)))
   )
 }

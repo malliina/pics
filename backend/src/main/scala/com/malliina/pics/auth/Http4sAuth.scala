@@ -49,12 +49,16 @@ class Http4sAuth(
     if (rs.exists(_.satisfies(MediaType.text.html))) {
       IO.pure(web(headers))
     } else if (rs.exists(m => m.satisfies(version10) || m.satisfies(MediaType.application.json))) {
-      readJwt(headers).map { e =>
-        e.fold(
-          err => Left(onUnauthorized(headers)),
-          user => Right(PicRequest2.forUser(user.username, headers))
-        )
-      }
+      readJwt(headers)
+        .map { io =>
+          io.map { e =>
+            e.fold(
+              _ => Left(onUnauthorized(headers)),
+              user => Right(PicRequest2.forUser(user.username, headers))
+            )
+          }
+        }
+        .fold(_ => IO.pure(Right(PicRequest2.anon(headers))), identity)
     } else {
       IO.pure(Left(NotAcceptable(Json.toJson(Errors.single("Not acceptable.")), noCache)))
     }
@@ -68,7 +72,7 @@ class Http4sAuth(
     user => Right(PicRequest2.forUser(user, headers))
   )
 
-  def readJwt(headers: Headers): IO[Either[IdentityError2, JWTUser]] = token(headers)
+  private def readJwt(headers: Headers) = token(headers)
     .map { token =>
       IO(ios.validate(AccessToken(token.value)).orElse(android.validate(token)))
         .flatMap { e =>
@@ -86,7 +90,7 @@ class Http4sAuth(
           }
         }
     }
-    .fold(e => IO.pure(Left(e)), identity)
+//    .fold(e => IO.pure(Right(PicRequest2.anon(headers))), identity)
 
   def token(headers: Headers) = headers
     .get(Authorization)
