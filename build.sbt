@@ -6,7 +6,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossP
 import scala.sys.process.Process
 import scala.util.Try
 
-val utilPlayVersion = "5.11.3-SNAPSHOT"
+val utilPlayVersion = "5.12.0"
 val primitivesVersion = "1.17.0"
 val munitVersion = "0.7.12"
 val scalatagsVersion = "0.9.1"
