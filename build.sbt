@@ -1,5 +1,6 @@
 import WebPlugin.makeAssetsFile
 import com.typesafe.sbt.packager.docker.DockerVersion
+import org.scalajs.sbtplugin.Stage
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 
 import scala.sys.process.Process
@@ -91,7 +92,8 @@ val backend = project
   .in(file("backend"))
   .enablePlugins(
     FileTreePlugin,
-    PlayLinuxPlugin,
+    JavaServerAppPackaging,
+    SystemdPlugin,
     BuildInfoPlugin
   )
   .dependsOn(crossJvm)
@@ -142,24 +144,38 @@ val backend = project
     version in Docker := gitHash,
     dockerRepository := Option("malliinapics.azurecr.io"),
     dockerExposedPorts ++= Seq(prodPort),
+    publishArtifact in (Compile, packageDoc) := false,
+    publishArtifact in packageDoc := false,
+    sources in (Compile, doc) := Seq.empty,
     packageName in Docker := "pics",
-//    mainClass in reStart := Option("com.malliina.pics.http4s.PicsServer"),
-    resources in Compile ++= webpack.in(frontend, Compile, fastOptJS).value.map(_.data),
-    resources in Compile ++= hashAssets
-      .in(frontend, Compile, fastOptJS)
-      .value
-      .map(_.hashedFile.toFile),
+    resources in Compile ++= Def.taskDyn {
+      val sjsStage = scalaJSStage.in(frontend).value match {
+        case Stage.FastOpt => fastOptJS
+        case Stage.FullOpt => fullOptJS
+      }
+      Def.task {
+        val webpackFiles = webpack.in(frontend, Compile, sjsStage).value.map(_.data)
+        val hashedFiles = hashAssets.in(frontend, Compile, sjsStage).value.map(_.hashedFile.toFile)
+        webpackFiles ++ hashedFiles
+      }
+    }.value,
     resourceDirectories in Compile += assetsDir.in(frontend).value.toFile,
     reStart := reStart.dependsOn(webpack.in(frontend, Compile, fastOptJS)).evaluated,
     watchSources ++= (watchSources in frontend).value,
-    sourceGenerators in Compile += Def.task {
-      val dest = (sourceManaged in Compile).value
-      val hashed = hashAssets.in(frontend, Compile, fastOptJS).value
-      val log = streams.value.log
-      val cached = FileFunction.cached(streams.value.cacheDirectory / "assets") { in =>
-        makeAssetsFile(dest, hashed, log)
+    sourceGenerators in Compile += Def.taskDyn {
+      val sjsStage = scalaJSStage.in(frontend).value match {
+        case Stage.FastOpt => fastOptJS
+        case Stage.FullOpt => fullOptJS
       }
-      cached(hashed.map(_.hashedFile.toFile).toSet).toSeq
+      Def.task {
+        val dest = (sourceManaged in Compile).value
+        val hashed = hashAssets.in(frontend, Compile, sjsStage).value
+        val log = streams.value.log
+        val cached = FileFunction.cached(streams.value.cacheDirectory / "assets") { in =>
+          makeAssetsFile(dest, hashed, log)
+        }
+        cached(hashed.map(_.hashedFile.toFile).toSet).toSeq
+      }
     }.taskValue
   )
 

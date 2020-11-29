@@ -3,13 +3,15 @@ package com.malliina.pics.http4s
 import cats.data.Kleisli
 import cats.effect.{Blocker, ExitCode, IO, IOApp, Resource}
 import com.malliina.pics.db.{DoobieDatabase, DoobieDatabase2, DoobiePicsDatabase}
-import com.malliina.pics.{MetaSourceT, PicsConf}
+import com.malliina.pics.{Errors, MetaSourceT, PicsConf}
 import fs2.concurrent.Topic
+import org.http4s.Status.Unauthorized
 import org.http4s.server.Router
 import org.http4s.server.blaze.BlazeServerBuilder
-import org.http4s.server.middleware.HSTS
+import org.http4s.server.middleware.{CSRF, HSTS}
 import org.http4s.{HttpRoutes, Request, Response}
 import org.slf4j.LoggerFactory
+import play.api.libs.json.Json
 
 import scala.concurrent.ExecutionContext
 
@@ -35,6 +37,11 @@ object PicsServer extends IOApp {
     tx <- DoobieDatabase.migratedResource(conf.db, blocker)
   } yield {
     val db = DoobiePicsDatabase(new DoobieDatabase2(tx))
+//    val csrf =
+//      CSRF.generateSigningKey[IO].map { key =>
+//        CSRF[IO, IO](key, _ => true)
+//          .withOnFailure(Unauthorized(Json.toJson(Errors.single("CSRF failure."))))
+//      }
     app(conf, db, blocker, topic)
   }
 

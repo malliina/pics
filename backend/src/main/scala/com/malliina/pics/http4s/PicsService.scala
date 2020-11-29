@@ -377,6 +377,7 @@ class PicsService(
           notFoundWith(s"Not found: '$key'.")
         }
     }
+
   private def removeKey(key: Key, redir: Uri, req: Request[IO]) =
     authed(req) { user =>
       if (user.readOnly) {

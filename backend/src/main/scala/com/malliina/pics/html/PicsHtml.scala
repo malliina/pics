@@ -35,12 +35,10 @@ object PicsHtml {
   def build(isProd: Boolean): PicsHtml = {
     val name = "frontend"
     val opt = if (isProd) "opt" else "fastopt"
-    val hotReload = Nil
-    new PicsHtml(
-      Seq(s"$name-$opt-library.js", s"$name-$opt-loader.js", s"$name-$opt.js"),
-      hotReload,
-      HashedAssetsSource
-    )
+    val appScripts =
+      if (isProd) Seq(s"$name-$opt-bundle.js")
+      else Seq(s"$name-$opt-library.js", s"$name-$opt-loader.js", s"$name-$opt.js")
+    new PicsHtml(appScripts, Nil, HashedAssetsSource)
   }
 
   implicit def urlWriter(url: FullUrl): Text.StringFrag =
