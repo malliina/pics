@@ -7,7 +7,7 @@ import com.malliina.storage.StorageInt
 import javax.imageio.ImageIO
 
 class ImageTests extends munit.FunSuite {
-  val picDir = Paths.get("files")
+  val picDir = Paths.get("backend/files")
   val original = picDir.resolve("original.jpg")
   val origLarge = picDir.resolve("demo-original.jpeg")
 
