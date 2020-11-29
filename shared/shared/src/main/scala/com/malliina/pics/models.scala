@@ -38,37 +38,40 @@ object Key {
 
   def valueFormat[A, B: Writes](read: JsValue => JsResult[A], write: A => B): Format[A] =
     Format[A](Reads(read), Writes(a => Json.toJson(write(a))))
+
 }
 
-case class PicKeys(keys: Seq[Key])
+object KeyParam {
+  def unapply(str: String): Option[Key] =
+    if (str.trim.nonEmpty) Option(Key(str.trim)) else None
+}
 
-object PicKeys {
+case class PicsRemoved(keys: Seq[Key])
+
+object PicsRemoved {
   val Removed = "removed"
-  implicit val json = PicsJson.evented(Removed, Json.format[PicKeys])
+  implicit val json = PicsJson.evented(Removed, Json.format[PicsRemoved])
 }
 
 trait BaseMeta {
   def key: Key
-
   def added: java.util.Date
-
   def url: FullUrl
-
   def small: FullUrl
-
   def medium: FullUrl
-
   def large: FullUrl
 }
 
 /** Using java.util.Date because Scala.js doesn't fully support java.time.* classes.
   */
-case class PicMeta(key: Key,
-                   added: java.util.Date,
-                   url: FullUrl,
-                   small: FullUrl,
-                   medium: FullUrl,
-                   large: FullUrl) extends BaseMeta {
+case class PicMeta(
+  key: Key,
+  added: java.util.Date,
+  url: FullUrl,
+  small: FullUrl,
+  medium: FullUrl,
+  large: FullUrl
+) extends BaseMeta {
   def withClient(clientKey: Key): ClientPicMeta =
     ClientPicMeta(key, added, url, small, medium, large, clientKey)
 }
@@ -81,30 +84,32 @@ object PicMeta {
   implicit val json = Json.format[PicMeta]
 }
 
-case class Pics(pics: Seq[PicMeta])
+case class Pics(pics: List[PicMeta])
 
 object Pics {
   implicit val json = Json.format[Pics]
 }
 
-case class ClientPicMeta(key: Key,
-                         added: java.util.Date,
-                         url: FullUrl,
-                         small: FullUrl,
-                         medium: FullUrl,
-                         large: FullUrl,
-                         clientKey: Key) extends BaseMeta
+case class ClientPicMeta(
+  key: Key,
+  added: java.util.Date,
+  url: FullUrl,
+  small: FullUrl,
+  medium: FullUrl,
+  large: FullUrl,
+  clientKey: Key
+) extends BaseMeta
 
 object ClientPicMeta {
   implicit val dateformat = PicMeta.dateFormat
   implicit val json = Json.format[ClientPicMeta]
 }
 
-case class ClientPics(pics: Seq[ClientPicMeta])
+case class PicsAdded(pics: Seq[ClientPicMeta])
 
-object ClientPics {
+object PicsAdded {
   val Added = "added"
-  implicit val json: Format[ClientPics] = PicsJson.evented(Added, Json.format[ClientPics])
+  implicit val json: Format[PicsAdded] = PicsJson.evented(Added, Json.format[PicsAdded])
 }
 
 object PicsJson {

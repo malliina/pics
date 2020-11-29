@@ -13,5 +13,6 @@ dist
 .hydra
 hydra.sbt
 .bloop
+.bsp
 out
 site

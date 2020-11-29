@@ -13,6 +13,7 @@ object PicsJS extends BaseHtml {
   Bootstrap
 
   def main(args: Array[String]): Unit = {
+    println("Init")
     if (has(PicsClass)) {
       new PicsSocket
       LazyLoader()
