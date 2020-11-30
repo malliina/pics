@@ -30,7 +30,6 @@ object CognitoUserAttribute {
 @js.native
 trait PoolData extends js.Object {
   def UserPoolId: String = js.native
-
   def ClientId: String = js.native
 }
 
@@ -47,9 +46,7 @@ trait CognitoUserResult extends js.Object {
 @js.native
 trait SignUpResult extends js.Object {
   def user: CognitoUserResult = js.native
-
   def userConfirmed: Boolean = js.native
-
   def userSub: String = js.native
 }
 
@@ -99,7 +96,6 @@ object CognitoUserPool {
 @js.native
 trait UserData extends js.Object {
   def Username: String = js.native
-
   def Pool: CognitoUserPool = js.native
 }
 
@@ -111,7 +107,6 @@ object UserData {
 @js.native
 trait AuthenticationData extends js.Object {
   def Username: String = js.native
-
   def Password: String = js.native
 }
 
@@ -135,7 +130,6 @@ object AuthenticationDetails {
 @js.native
 trait MfaSettings extends js.Object {
   def PreferredMfa: Boolean = js.native
-
   def Enabled: Boolean = js.native
 }
 
@@ -217,14 +211,18 @@ object CognitoUser {
     }
 
     def confirm(code: String): Future[String] = withFuture[String] { p =>
-      self.confirmRegistration(code, forceAliasCreation = true, (err, success) => {
-        Option(err).foreach { err =>
-          p.failure(CognitoException(err))
+      self.confirmRegistration(
+        code,
+        forceAliasCreation = true,
+        (err, success) => {
+          Option(err).foreach { err =>
+            p.failure(CognitoException(err))
+          }
+          Option(success).foreach { s =>
+            p.success(s)
+          }
         }
-        Option(success).foreach { s =>
-          p.success(s)
-        }
-      })
+      )
     }
 
     def resend(): Future[Unit] = {
@@ -254,9 +252,13 @@ object CognitoUser {
 
     def enableTotp(): Future[String] = withFuture[String] { p =>
       val settings = MfaSettings(preferred = true, enabled = true)
-      self.setUserMfaPreference(null, settings, (err, success) => {
-        complete(p, err, success)
-      })
+      self.setUserMfaPreference(
+        null,
+        settings,
+        (err, success) => {
+          complete(p, err, success)
+        }
+      )
     }
 
     def disableTotp(): Future[String] = withFuture[String] { p =>
@@ -334,25 +336,20 @@ object CognitoUser {
 @js.native
 trait CognitoSession extends js.Object {
   def accessToken: AccessToken = js.native
-
   def idToken: IdToken = js.native
-
   def refreshToken: RefreshToken = js.native
 }
 
 @js.native
 trait CognitoAuthFailure extends js.Object {
   def code: String = js.native
-
   def name: String = js.native
-
   def message: String = js.native
 }
 
 @js.native
 trait SimpleCallback extends js.Object {
   def onSuccess: js.Function1[js.Any, Unit] = js.native
-
   def onFailure: js.Function1[CognitoAuthFailure, Unit] = js.native
 }
 
@@ -364,15 +361,10 @@ object SimpleCallback {
 @js.native
 trait AuthCallback extends js.Object {
   def onSuccess: js.Function1[CognitoSession, Unit] = js.native
-
   def onFailure: js.Function1[CognitoAuthFailure, Unit] = js.native
-
   def mfaRequired: js.Function1[js.Any, Unit] = js.native
-
   def totpRequired: js.Function1[js.Any, Unit] = js.native
-
   def selectMFAType: js.Function2[String, js.Any, Unit] = js.native
-
   def mfaSetup: js.Function2[String, js.Any, Unit] = js.native
 }
 

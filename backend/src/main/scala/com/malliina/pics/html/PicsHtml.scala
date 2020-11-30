@@ -53,11 +53,13 @@ object PicsHtml {
 
 class PicsHtml(scripts: Seq[String], absoluteScripts: Seq[FullUrl], assets: AssetsSource)
   extends BaseHtml {
-  def signIn(feedback: Option[UserFeedback] = None) = basePage(AuthHtml.signIn(feedback))
+  val authHtml = AuthHtml(assets)
 
-  def signUp(feedback: Option[UserFeedback] = None) = basePage(AuthHtml.signUp(feedback))
+  def signIn(feedback: Option[UserFeedback] = None) = basePage(authHtml.signIn(feedback))
 
-  def profile = basePage(AuthHtml.profile)
+  def signUp(feedback: Option[UserFeedback] = None) = basePage(authHtml.signUp(feedback))
+
+  def profile = basePage(authHtml.profile)
 
   def drop(created: Option[PicMeta], feedback: Option[UserFeedback], user: BaseRequest) = {
     val content =

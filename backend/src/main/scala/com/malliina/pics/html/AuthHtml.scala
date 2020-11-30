@@ -1,11 +1,16 @@
 package com.malliina.pics.html
 
 import com.malliina.html.UserFeedback
+import com.malliina.pics.AssetsSource
 import com.malliina.pics.http4s.{Reverse, ReverseSocial, SocialRoute}
 //import com.malliina.pics.assets.AppAssets
 import scalatags.Text.all._
 
-object AuthHtml extends BaseHtml {
+object AuthHtml {
+  def apply(assets: AssetsSource) = new AuthHtml(assets)
+}
+
+class AuthHtml(assets: AssetsSource) extends BaseHtml {
   val reverseSocial = ReverseSocial
   val reverse = Reverse
 
@@ -80,10 +85,10 @@ object AuthHtml extends BaseHtml {
     extraHeader = modifier(cognitoHeaders, jsScript(""))
   )
 
-  def cognitoHeaders = modifier(
-//    jsScript(AppAssets.js.aws_cognito_sdk_min_js),
-//    jsScript(AppAssets.js.amazon_cognito_identity_min_js)
-  )
+  def cognitoHeaders: Modifier =
+    Seq("aws-cognito-sdk.min.js", "amazon-cognito-identity.min.js").map { file =>
+      jsScript(assets.at(s"js/$file"))
+    }
 
   def loginForm(feedback: Option[UserFeedback] = None) =
     form(id := LoginFormId, `class` := col.md.twelve, method := Post, novalidate)(
