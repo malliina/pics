@@ -2,7 +2,7 @@ package com.malliina.pics.http4s
 
 import cats.data.NonEmptyList
 import cats.effect.{Blocker, ContextShift, Sync}
-import cats.implicits.{catsSyntaxApplicativeId, _}
+import cats.implicits._
 import com.malliina.pics.AppLogger
 import com.malliina.pics.http4s.StaticService.log
 import com.malliina.values.UnixPath
@@ -29,18 +29,19 @@ class StaticService[F[_]](blocker: Blocker)(implicit cs: ContextShift[F], s: Syn
 
 //  val routes = resourceService[F](ResourceService.Config("/db", blocker))
 //  val routes = fileService(FileService.Config("./public", blocker))
-  val routes = HttpRoutes.of[F] { case req @ GET -> rest =>
-    val file = UnixPath(rest.toList.mkString("/"))
-    val isCacheable = file.value.count(_ == '.') == 2
-    val cacheHeaders =
-      if (isCacheable) NonEmptyList.of(`max-age`(365.days), `public`)
-      else NonEmptyList.of(`no-cache`())
-    val res = s"/${file.value}"
-    StaticFile
-      .fromResource(res, blocker, Option(req))
-      .map(_.putHeaders(`Cache-Control`(cacheHeaders)))
-      .fold(onNotFound(req))(_.pure[F])
-      .flatten
+  val routes = HttpRoutes.of[F] {
+    case req @ GET -> rest if supportedStaticExtensions.exists(rest.toString.endsWith) =>
+      val file = UnixPath(rest.toList.mkString("/"))
+      val isCacheable = file.value.count(_ == '.') == 2
+      val cacheHeaders =
+        if (isCacheable) NonEmptyList.of(`max-age`(365.days), `public`)
+        else NonEmptyList.of(`no-cache`())
+      val res = s"/${file.value}"
+      StaticFile
+        .fromResource(res, blocker, Option(req))
+        .map(_.putHeaders(`Cache-Control`(cacheHeaders)))
+        .fold(onNotFound(req))(_.pure[F])
+        .flatten
   }
 
   private def onNotFound(req: Request[F]) = {
