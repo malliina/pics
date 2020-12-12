@@ -3,19 +3,19 @@ package com.malliina.pics.db
 import cats.effect.IO._
 import cats.effect.{Blocker, ContextShift, IO, Resource}
 import com.malliina.pics.db.DoobieDatabase.log
+import com.malliina.util.AppLogger
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import doobie._
 import doobie.implicits._
 import doobie.util.ExecutionContexts
 import doobie.util.log.{ExecFailure, ProcessingFailure, Success}
 import org.flywaydb.core.Flyway
-import play.api.Logger
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 
 object DoobieDatabase {
-  private val log = Logger(getClass)
+  private val log = AppLogger(getClass)
 
   def apply(conf: DatabaseConf, ec: ExecutionContext): DoobieDatabase =
     apply(dataSource(conf), ec)

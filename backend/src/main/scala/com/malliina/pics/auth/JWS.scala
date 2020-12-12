@@ -1,6 +1,6 @@
 package com.malliina.pics.auth
 
-import com.malliina.play.auth.{AuthError, InvalidSignature, JsonError}
+import com.malliina.web.{AuthError, InvalidSignature, JsonError}
 import com.malliina.values.{IdToken, TokenValue}
 import com.nimbusds.jose.crypto.{MACSigner, MACVerifier}
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader, JWSObject, Payload}
@@ -8,8 +8,7 @@ import play.api.libs.json.{JsError, Json, OWrites, Reads}
 
 import scala.util.Try
 
-/**
-  * @see https://connect2id.com/products/nimbus-jose-jwt/examples/jws-with-hmac
+/** @see https://connect2id.com/products/nimbus-jose-jwt/examples/jws-with-hmac
   * @see https://connect2id.com/products/nimbus-jose-jwt/examples/jwt-with-hmac
   */
 object JWS {

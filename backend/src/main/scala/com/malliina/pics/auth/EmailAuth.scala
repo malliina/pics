@@ -1,9 +1,10 @@
 package com.malliina.pics.auth
 
-import com.malliina.play.auth.JWTUser
+import cats.effect.IO
 import com.malliina.values.{Email, Username}
+import com.malliina.web.JWTUser
+import org.http4s.Request
 import play.api.libs.json.Json
-import play.api.mvc.RequestHeader
 
 import scala.concurrent.Future
 
@@ -13,7 +14,7 @@ trait EmailAuth {
     *
     * @return the authenticated user's email address
     */
-  def authEmail(rh: RequestHeader): Future[Email]
+  def authEmail(rh: Request[IO]): Future[Email]
 }
 
 case class EmailUser(email: Email) extends JWTUser {

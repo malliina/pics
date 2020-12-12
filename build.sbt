@@ -6,13 +6,13 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossP
 import scala.sys.process.Process
 import scala.util.Try
 
-val utilPlayVersion = "5.12.0"
+val utilPlayVersion = "5.12.3-SNAPSHOT"
 val primitivesVersion = "1.17.0"
 val munitVersion = "0.7.12"
 val scalatagsVersion = "0.9.1"
 val awsSdk2Version = "2.14.21"
 val testContainersScalaVersion = "0.38.3"
-val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
+val utilPlayDep = "com.malliina" %% "web-auth" % utilPlayVersion
 
 inThisBuild(
   Seq(
@@ -109,7 +109,6 @@ val backend = project
       "com.github.pureconfig" %% "pureconfig" % "0.14.0",
       "org.apache.commons" % "commons-text" % "1.9",
       "software.amazon.awssdk" % "s3" % awsSdk2Version,
-      "com.malliina" %% "play-social" % utilPlayVersion,
       "org.flywaydb" % "flyway-core" % "6.5.6",
       "mysql" % "mysql-connector-java" % "5.1.49",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.6",

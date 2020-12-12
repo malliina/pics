@@ -3,7 +3,6 @@ package com.malliina.pics.html
 import com.malliina.html.UserFeedback
 import com.malliina.pics.AssetsSource
 import com.malliina.pics.http4s.{Reverse, ReverseSocial, SocialRoute}
-//import com.malliina.pics.assets.AppAssets
 import scalatags.Text.all._
 
 object AuthHtml {

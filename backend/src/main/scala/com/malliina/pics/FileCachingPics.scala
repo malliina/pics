@@ -2,7 +2,6 @@ package com.malliina.pics
 
 import java.nio.file.Path
 
-import cats.effect.IO
 import com.malliina.concurrent.Execution.cached
 import com.malliina.storage.StorageSize
 

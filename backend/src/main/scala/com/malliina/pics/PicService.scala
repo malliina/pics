@@ -5,8 +5,8 @@ import java.nio.file.{Files, Path}
 import cats.effect._
 import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.PicService.log
+import com.malliina.util.AppLogger
 import org.apache.commons.io.FilenameUtils
-import play.api.Logger
 
 import scala.concurrent.Future
 
@@ -17,7 +17,7 @@ trait PicServiceT[F[_]] {
 class PicServiceIO(val db: MetaSourceT[IO], handler: MultiSizeHandler)(implicit
   cs: ContextShift[IO]
 ) extends PicServiceT[IO] {
-  private val log = Logger(getClass)
+  private val log = AppLogger(getClass)
 
   override def save(tempFile: Path, by: BaseRequest, preferredName: Option[String]): IO[KeyMeta] = {
     val fileCopy: IO[(Path, Key)] = IO {
@@ -45,7 +45,7 @@ class PicServiceIO(val db: MetaSourceT[IO], handler: MultiSizeHandler)(implicit
 }
 
 object PicService {
-  private val log = Logger(getClass)
+  private val log = AppLogger(getClass)
 
   def apply(db: MetaSourceT[Future], handler: MultiSizeHandler): PicService =
     new PicService(db, handler)

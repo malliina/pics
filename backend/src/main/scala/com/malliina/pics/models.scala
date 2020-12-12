@@ -7,14 +7,11 @@ import java.util.Date
 import com.malliina.http.FullUrl
 import com.malliina.pics.PicRequest.AnonUser
 import com.malliina.pics.http4s.{Reverse, Urls}
-import com.malliina.play.http.FullUrls
 import com.malliina.values.Username
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
 import org.http4s.{Headers, Request, Uri}
-import play.api.http.Writeable
 import play.api.libs.json._
-import play.api.mvc.{PathBindable, RequestHeader}
 
 trait BaseRequest {
   def name: PicOwner
@@ -31,18 +28,8 @@ object PicRequest2 {
     apply(PicOwner(user.name), user == AnonUser, headers)
 }
 
-case class PicRequest(name: PicOwner, readOnly: Boolean, rh: RequestHeader) extends BaseRequest
-
 object PicRequest {
   val AnonUser = PicOwner("anon")
-
-  def anon(rh: RequestHeader) = PicRequest(AnonUser, rh)
-
-  def forUser(user: Username, rh: RequestHeader): PicRequest =
-    apply(PicOwner(user.name), rh)
-
-  def apply(user: PicOwner, rh: RequestHeader): PicRequest =
-    PicRequest(user, readOnly = user == AnonUser, rh)
 }
 
 sealed trait PicResult
@@ -57,9 +44,6 @@ object PicSize {
 
   def apply[F[_]](request: Request[F]): Either[SingleError, PicSize] =
     request.uri.query.params.get(Key).map(parse).getOrElse(Right(Original))
-
-  def apply(rh: RequestHeader): Either[SingleError, PicSize] =
-    rh.getQueryString(Key).map(parse).getOrElse(Right(Original))
 
   def parse(in: String): Either[SingleError, PicSize] = in match {
     case Small.value    => Right(Small)
@@ -86,16 +70,6 @@ object AppMeta {
 }
 
 object Keys {
-
-  implicit object bindable extends PathBindable[Key] {
-    override def bind(key: String, value: String): Either[String, Key] =
-      if (value.length >= Key.Length) Right(Key(value))
-      else Left(s"Invalid key: '$value'.")
-
-    override def unbind(key: String, value: Key): String =
-      value.key
-  }
-
   val generator = new RandomStringGenerator.Builder()
     .withinRange('0', 'z')
     .filteredBy(CharacterPredicates.LETTERS, CharacterPredicates.DIGITS)
@@ -108,15 +82,9 @@ case class FlatMeta(key: Key, lastModified: Instant) {
   def withUser(user: PicOwner) = KeyMeta(key, user, lastModified)
 }
 
-case class KeyMeta(key: Key, owner: PicOwner, added: Instant) {
-  def toEntry(rh: RequestHeader) = PicMetas(this, rh)
-}
+case class KeyMeta(key: Key, owner: PicOwner, added: Instant)
 
 object PicMetas {
-//  val reverse = routes.PicsController
-
-  def apply(meta: KeyMeta, rh: RequestHeader): PicMeta = fromHost(meta, FullUrls.hostOnly(rh))
-
   def from[F[_]](meta: KeyMeta, rh: Request[F]): PicMeta = fromHost(meta, Urls.hostOnly(rh))
 
   def fromHost(meta: KeyMeta, host: FullUrl): PicMeta = {
@@ -141,11 +109,6 @@ case class PicResponse(pic: PicMeta)
 
 object PicResponse {
   implicit val json = Json.format[PicResponse]
-  implicit val html = Writeable.writeableOf_JsValue.map[PicResponse](ps => Json.toJson(ps))
-}
-
-object PicsWriteables {
-  implicit val html = Writeable.writeableOf_JsValue.map[Pics](ps => Json.toJson(ps))
 }
 
 case class BucketName(name: String) extends AnyVal {

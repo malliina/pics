@@ -5,13 +5,13 @@ import java.nio.file.{Files, Path}
 import cats.effect.IO
 import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.ImageHandler.log
+import com.malliina.util.AppLogger
 import com.sksamuel.scrimage.ImmutableImage
-import play.api.Logger
 
 import scala.concurrent.Future
 
 object ImageHandler {
-  private val log = Logger(getClass)
+  private val log = AppLogger(getClass)
 
   def apply(prefix: String, resizer: ImageResizer, storage: DataSource) =
     new ImageHandler(prefix, resizer, storage)

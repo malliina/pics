@@ -3,8 +3,8 @@ package com.malliina.pics.http4s
 import cats.data.NonEmptyList
 import cats.effect.{Blocker, ContextShift, Sync}
 import cats.implicits._
-import com.malliina.pics.AppLogger
 import com.malliina.pics.http4s.StaticService.log
+import com.malliina.util.AppLogger
 import com.malliina.values.UnixPath
 import org.http4s.CacheDirective.{`max-age`, `no-cache`, `public`}
 import org.http4s.headers.`Cache-Control`

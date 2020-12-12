@@ -4,9 +4,10 @@ import java.nio.file.{Files, Path}
 
 import cats.effect.IO
 import com.malliina.pics.s3.S3Source.log
-import com.malliina.pics.{AppLogger, BucketName, DataFile, DataSourceT, FilePics, FlatMeta, Key, PicResult, PicSuccess, Util}
-import com.malliina.play.auth.CodeValidator
+import com.malliina.pics.{BucketName, DataFile, DataSourceT, FilePics, FlatMeta, Key, PicResult, PicSuccess, Util}
 import com.malliina.storage.{StorageLong, StorageSize}
+import com.malliina.util.AppLogger
+import com.malliina.web.Utils.randomString
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.model._
 
@@ -22,7 +23,7 @@ class S3Source(bucket: BucketName, client: S3AsyncClient) extends DataSourceT[IO
   Files.createDirectories(downloadsDir)
 
   override def get(key: Key): IO[DataFile] = {
-    val random = CodeValidator.randomString().take(8)
+    val random = randomString().take(8)
     val dest = downloadsDir.resolve(s"$random-$key")
     val cf =
       client.getObject(GetObjectRequest.builder().bucket(bucketName).key(key.key).build(), dest)

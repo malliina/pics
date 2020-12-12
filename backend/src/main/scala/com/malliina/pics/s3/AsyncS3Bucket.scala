@@ -5,14 +5,10 @@ import java.nio.file.{Files, Path}
 import com.malliina.concurrent.Execution
 import com.malliina.pics._
 import com.malliina.pics.s3.AsyncS3Bucket.log
-import com.malliina.play.auth.CodeValidator
 import com.malliina.storage.{StorageLong, StorageSize}
-import play.api.Logger
-import software.amazon.awssdk.auth.credentials.{
-  AwsCredentialsProviderChain,
-  DefaultCredentialsProvider,
-  ProfileCredentialsProvider
-}
+import com.malliina.util.AppLogger
+import com.malliina.web.Utils.randomString
+import software.amazon.awssdk.auth.credentials.{AwsCredentialsProviderChain, DefaultCredentialsProvider, ProfileCredentialsProvider}
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.model._
@@ -22,7 +18,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 object AsyncS3Bucket {
-  private val log = Logger(getClass)
+  private val log = AppLogger(getClass)
 
   def apply(bucket: BucketName): AsyncS3Bucket = {
     val creds = AwsCredentialsProviderChain.of(
@@ -53,7 +49,7 @@ class AsyncS3Bucket(bucket: BucketName, v2: S3AsyncClient)(implicit ec: Executio
   Files.createDirectories(downloadsDir)
 
   override def get(key: Key): Future[DataFile] = {
-    val random = CodeValidator.randomString().take(8)
+    val random = randomString().take(8)
     val dest = downloadsDir.resolve(s"$random-$key")
     val cf = v2.getObject(GetObjectRequest.builder().bucket(bucketName).key(key.key).build(), dest)
     cf.future.map(_ => DataFile(dest))

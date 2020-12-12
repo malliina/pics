@@ -2,14 +2,12 @@ package com.malliina.pics.auth
 
 import java.time.Instant
 
-import com.malliina.http.FullUrl
+import com.malliina.http.{FullUrl, OkClient}
 import com.malliina.oauth.TokenResponse
-import com.malliina.play.auth.StaticCodeValidator.StaticConf
-import com.malliina.play.auth._
+import com.malliina.pics.auth.AppleAuthFlow.staticConf
 import com.malliina.values.{Email, ErrorMessage, IdToken}
-import play.api.mvc.{RequestHeader, Result}
-import com.malliina.play.auth.OAuthKeys._
-import com.malliina.play.http.FullUrls
+import com.malliina.web.OAuthKeys._
+import com.malliina.web._
 
 import scala.concurrent.Future
 
@@ -28,6 +26,7 @@ object AppleResponse {
 
 object AppleTokenValidator {
   val appleIssuer = Issuer("https://appleid.apple.com")
+
   def apply(clientIds: Seq[ClientId]) = new AppleTokenValidator(clientIds, Seq(appleIssuer))
 }
 
@@ -36,13 +35,14 @@ class AppleTokenValidator(clientIds: Seq[ClientId], issuers: Seq[Issuer])
   override protected def validateClaims(
     parsed: ParsedJWT,
     now: Instant
-  ): Either[JWTError, ParsedJWT] = checkContains(Aud, clientIds.map(_.value), parsed).map { _ =>
-    parsed
-  }
+  ): Either[JWTError, ParsedJWT] =
+    checkContains(Aud, clientIds.map(_.value), parsed).map { _ =>
+      parsed
+    }
 
 }
 
-object AppleCodeValidator {
+object AppleAuthFlow {
   val emailScope = "email"
   val host = FullUrl.host("appleid.apple.com")
 
@@ -50,19 +50,19 @@ object AppleCodeValidator {
   val jwksUri = host / "/auth/keys"
   val tokensUrl = host / "/auth/token"
 
-  def apply(oauth: OAuthConf[Email], validator: AppleTokenValidator): AppleCodeValidator =
-    new AppleCodeValidator(oauth, validator)
+  def apply(conf: AuthConf, validator: AppleTokenValidator, http: OkClient) =
+    new AppleAuthFlow(conf, validator, http)
 
   def staticConf(conf: AuthConf) = StaticConf(emailScope, authUrl, tokensUrl, conf)
 }
 
 /** @see https://developer.apple.com/documentation/signinwithapplejs/incorporating_sign_in_with_apple_into_other_platforms
   */
-class AppleCodeValidator(val oauth: OAuthConf[Email], validator: AppleTokenValidator)
-  extends StaticCodeValidator[Email, Email]("Apple", AppleCodeValidator.staticConf(oauth.conf)) {
-
-  def validate(code: Code, req: RequestHeader): Future[Either[AuthError, Email]] =
-    validate(code, FullUrls(redirCall, req), None)
+class AppleAuthFlow(authConf: AuthConf, validator: AppleTokenValidator, http: OkClient)
+  extends StaticFlowStart
+  with CallbackValidator[Email] {
+  override val conf: StaticConf = staticConf(authConf)
+  implicit val ec = http.exec
 
   override def validate(
     code: Code,
@@ -70,8 +70,8 @@ class AppleCodeValidator(val oauth: OAuthConf[Email], validator: AppleTokenValid
     requestNonce: Option[String]
   ): Future[Either[AuthError, Email]] = {
     val params = tokenParameters(code, redirectUrl)
-    postForm[TokenResponse](staticConf.tokenEndpoint, params).flatMap { tokens =>
-      http.getAs[JWTKeys](AppleCodeValidator.jwksUri).map { keys =>
+    http.postFormAs[TokenResponse](conf.tokenEndpoint, params).flatMap { tokens =>
+      http.getAs[JWTKeys](AppleAuthFlow.jwksUri).map { keys =>
         validator.validate(IdToken(tokens.id_token.token), keys.keys, Instant.now()).flatMap { v =>
           v.readString(EmailKey).map(Email.apply)
         }
@@ -79,15 +79,12 @@ class AppleCodeValidator(val oauth: OAuthConf[Email], validator: AppleTokenValid
     }
   }
 
-  override def onOutcome(outcome: Either[AuthError, Email], req: RequestHeader): Result =
-    handler.resultFor(outcome, req)
-
   override def extraRedirParams(redirectUrl: FullUrl): Map[String, String] =
     Map(ResponseType -> CodeKey, "response_mode" -> "form_post")
 
   def tokenParameters(code: Code, redirUrl: FullUrl) = Map(
-    ClientIdKey -> clientConf.clientId.value,
-    ClientSecretKey -> clientConf.clientSecret.value,
+    ClientIdKey -> authConf.clientId.value,
+    ClientSecretKey -> authConf.clientSecret.value,
     GrantType -> AuthorizationCode,
     CodeKey -> code.code,
     RedirectUri -> redirUrl.url

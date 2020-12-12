@@ -7,14 +7,14 @@ import cats.effect.IO
 import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.ScrimageResizer.log
 import com.malliina.storage.{StorageLong, StorageSize}
+import com.malliina.util.AppLogger
 import com.sksamuel.scrimage.ImmutableImage
 import com.sksamuel.scrimage.nio.JpegWriter
-import play.api.Logger
 
 import scala.concurrent.Future
 
 object ScrimageResizerIO {
-  private val log = Logger(getClass)
+  private val log = AppLogger(getClass)
 
   def apply(maxWidth: Int, maxHeight: Int): ScrimageResizerIO =
     new ScrimageResizerIO(maxWidth, maxHeight)
@@ -68,7 +68,7 @@ trait ImageResizerIO extends ImageResizerT[IO] {
 }
 
 object ScrimageResizer {
-  private val log = Logger(getClass)
+  private val log = AppLogger(getClass)
 
   def apply(maxWidth: Int, maxHeight: Int) = new ScrimageResizer(maxWidth, maxHeight)
 
@@ -106,7 +106,7 @@ object AsIsResizer extends ImageResizer {
 }
 
 object ImageResizer {
-  private val log = Logger(getClass)
+  private val log = AppLogger(getClass)
 }
 
 trait ImageResizer extends ImageResizerT[Future] {

@@ -1,10 +1,6 @@
 package controllers
 
-import com.malliina.pics.CSRFConf.{CsrfHeaderName, CsrfTokenNoCheck}
 import com.malliina.pics.PicOwner
-import play.api.http.Writeable
-import play.api.mvc.Request
-import tests.{TestAuthenticator, await}
 
 class PicsTests extends munit.FunSuite {
   test("version endpoint returns ok for acceptable Accept header") {
@@ -61,12 +57,6 @@ class PicsTests extends munit.FunSuite {
 //    val result = makePost(s"/pics$anonQuery", "boom")
 //    assert(result.header.status == 400)
   }
-
-  def anonQuery = testAuthQuery(PicOwner.anon.name)
-
-  def userQuery = testAuthQuery(TestAuthenticator.TestUser)
-
-  def testAuthQuery(user: String) = s"?${TestAuthenticator.TestQuery}=$user"
 
 //  def makePost[B: Writeable](uri: String, body: B) = makeRequest(
 //    buildPostRequest(uri).withBody(body)

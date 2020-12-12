@@ -3,7 +3,7 @@ package com.malliina.pics
 import com.malliina.pics.app.LocalConf
 import com.malliina.pics.auth.SecretKey
 import com.malliina.pics.db.DatabaseConf
-import com.malliina.play.auth.{AuthConf, ClientId, ClientSecret}
+import com.malliina.web.{AuthConf, ClientId, ClientSecret}
 import controllers.Social
 import pureconfig._
 import pureconfig.error.CannotConvert

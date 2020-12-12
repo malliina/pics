@@ -4,6 +4,7 @@ import cats.data.Kleisli
 import cats.effect.{Blocker, ExitCode, IO, IOApp, Resource}
 import com.malliina.pics.db.{DoobieDatabase, DoobieDatabase2, DoobiePicsDatabase}
 import com.malliina.pics.{Errors, MetaSourceT, PicsConf}
+import com.malliina.util.AppLogger
 import fs2.concurrent.Topic
 import org.http4s.Status.Unauthorized
 import org.http4s.server.Router
@@ -18,7 +19,7 @@ import scala.concurrent.ExecutionContext
 object PicsServer extends IOApp {
   type AppService = Kleisli[IO, Request[IO], Response[IO]]
 
-  val log = LoggerFactory.getLogger(getClass)
+  val log = AppLogger(getClass)
 
   val port = 9000
 

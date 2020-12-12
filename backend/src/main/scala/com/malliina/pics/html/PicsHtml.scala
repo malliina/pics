@@ -5,14 +5,10 @@ import com.malliina.http.FullUrl
 import com.malliina.pics.html.PicsHtml._
 import com.malliina.pics.http4s.Reverse
 import com.malliina.pics.{html => _, _}
-import com.malliina.play.tags.TagPage
-import com.malliina.play.tags.Tags._
-import play.api.http.MimeTypes
-import play.api.mvc.Call
 import scalatags.Text
-import scalatags.Text.GenericAttr
 import scalatags.Text.all.{defer => _, _}
 import PicsHtml.reverse
+import com.malliina.html.HtmlTags.{fullUrl => _, _}
 import org.http4s.Uri
 
 import scala.language.implicitConversions
@@ -29,8 +25,7 @@ object PicsHtml {
   val async = attr("async").empty
 
   val reverse = Reverse
-  implicit val urlAttr: GenericAttr[FullUrl] = new GenericAttr[FullUrl]
-  implicit val callAttr: GenericAttr[Call] = new GenericAttr[Call]
+//  implicit val urlAttr: GenericAttr[FullUrl] = new GenericAttr[FullUrl]
 
   def build(isProd: Boolean): PicsHtml = {
     val name = "frontend"
@@ -230,7 +225,7 @@ class PicsHtml(scripts: Seq[String], absoluteScripts: Seq[FullUrl], assets: Asse
           deferredJsPath(js)
         },
         absoluteScripts.map { url =>
-          script(src := url, defer)
+          script(src.:=(url)(urlAttr), defer)
         }
       ),
       body(`class` := conf.bodyClass)(
@@ -241,7 +236,8 @@ class PicsHtml(scripts: Seq[String], absoluteScripts: Seq[FullUrl], assets: Asse
     )
   )
 
-  def deferredJsPath(path: String) = script(`type` := MimeTypes.JAVASCRIPT, src := at(path), defer)
+  def deferredJsPath(path: String) =
+    script(`type` := "application/javascript", src := at(path), defer)
 
   def at(path: String) = assets.at(path)
 }

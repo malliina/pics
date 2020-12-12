@@ -10,16 +10,14 @@ import com.malliina.html.UserFeedback
 import com.malliina.http.OkClient
 import com.malliina.pics.PicsStrings.{XClientPic, XKey, XName}
 import com.malliina.pics.auth.Http4sAuth.TwitterState
-import com.malliina.pics.auth.{Http4sAuth, PicsAuth, UserPayload}
+import com.malliina.pics.auth.{Http4sAuth, UserPayload}
 import com.malliina.pics.html.PicsHtml
 import com.malliina.pics.http4s.PicsService.{log, noCache, ranges, version10}
-import com.malliina.pics.{AppMeta, ContentType, Errors, Key, KeyParam, Limits, ListRequest2, MetaSourceT, MultiSizeHandler, PicMeta, PicMetas, PicRequest2, PicResponse, PicServiceIO, PicSize, Pics, PicsAdded, PicsConf, PicsRemoved, ProfileInfo}
-import com.malliina.play.auth.AuthValidator.{Callback, Start}
-import com.malliina.play.auth.OAuthKeys.{Nonce, State}
-import com.malliina.play.auth.TwitterValidator.{OauthTokenKey, OauthVerifierKey}
-import com.malliina.play.auth._
-import com.malliina.play.json.JsonMessages
+import com.malliina.pics.{AppMeta, ContentType, Errors, ImageException, ImageFailure, ImageReaderFailure, Key, KeyParam, Limits, ListRequest2, MetaSourceT, MultiSizeHandler, PicMeta, PicMetas, PicOwner, PicRequest, PicRequest2, PicResponse, PicServiceIO, PicSize, Pics, PicsAdded, PicsConf, PicsRemoved, ProfileInfo, ResizeException, UnsupportedFormat}
+import com.malliina.storage.StorageLong
 import com.malliina.values.{AccessToken, Email}
+import com.malliina.web.{AuthError, Callback, CallbackValidator, DiscoveringAuthFlow, FlowStart, OAuthError, OAuthKeys, Start, Utils, Verified}
+import com.malliina.web.Utils.randomString
 import controllers.Social
 import controllers.Social._
 import fs2._
@@ -33,7 +31,10 @@ import org.http4s.util.CaseInsensitiveString
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame._
 import org.slf4j.LoggerFactory
+import OAuthKeys.{Nonce, State}
+import com.malliina.web.TwitterAuthFlow.{OauthTokenKey, OauthVerifierKey}
 
+import scala.concurrent.Future
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 object PicsService {
@@ -191,12 +192,13 @@ class PicsService(
       removeKey(key, Reverse.drop, req)
     case req @ POST -> Root / "sync" =>
       import cats.implicits._
+      val adminUser = PicOwner("malliina123@gmail.com")
       authed(req) { user =>
-        if (user.name == PicsAuth.AdminUser) {
+        if (user.name == adminUser) {
           IO.fromFuture(IO(handler.originals.storage.load(0, 1000000))).flatMap { keys =>
             log.info(s"Syncing ${keys.length} keys...")
             keys.toList
-              .traverse { key => db.putMetaIfNotExists(key.withUser(PicsAuth.AdminUser)) }
+              .traverse { key => db.putMetaIfNotExists(key.withUser(adminUser)) }
               .flatMap { changes =>
                 log.info(s"Sync complete. Upserted ${changes.sum} rows.")
                 SeeOther(Location(Reverse.drop))
@@ -210,11 +212,13 @@ class PicsService(
       authedAll(req) { user =>
         val welcomeMessage = fs2.Stream(Json.toJson(ProfileInfo(user.name, user.readOnly)))
         val pings =
-          fs2.Stream.awakeEvery[IO](30.seconds).map(d => JsonMessages.ping)
+          fs2.Stream.awakeEvery[IO](30.seconds).map(d => PicMessage.ping)
         val updates =
           topic.subscribe(1000).filter(_.forUser(user.name)).drop(1).map(msg => Json.toJson(msg))
         val toClient =
-          (welcomeMessage ++ pings.merge(updates)).map(json => Text(Json.stringify(json)))
+          (welcomeMessage ++ pings.merge(updates)).map(json =>
+            Text(Json.stringify(PicMessage.pingJson))
+          )
         val fromClient: Pipe[IO, WebSocketFrame, Unit] = _.evalMap {
           case Text(message, _) => IO(log.info(message))
           case f                => IO(log.debug(s"Unknown WebSocket frame: $f"))
@@ -314,11 +318,11 @@ class PicsService(
             identity
           )
         case Google =>
-          handleCallback(socials.google, reverseSocial.google, req)
+          handleCallbackD(socials.google, reverseSocial.google, req)
         case Microsoft =>
-          handleCallback(socials.microsoft, reverseSocial.microsoft, req)
+          handleCallbackD(socials.microsoft, reverseSocial.microsoft, req)
         case GitHub =>
-          handleCallback(socials.github, reverseSocial.github, req)
+          handleCallbackV(socials.github, reverseSocial.github, req)
         case Amazon =>
           handleCallback(
             reverseSocial.amazon,
@@ -328,9 +332,9 @@ class PicsService(
                 .map(e => e.map(user => Email(user.username.value)))
           )
         case Facebook =>
-          handleCallback(socials.facebook, reverseSocial.facebook, req)
+          handleCallbackV(socials.facebook, reverseSocial.facebook, req)
         case Apple =>
-          handleCallback(socials.apple, reverseSocial.apple, req)
+          handleCallbackV(socials.apple, reverseSocial.apple, req)
       }
     case GET -> Root / "sign-out" / "leave" =>
       SeeOther(Location(Reverse.signOutCallback)).map { res =>
@@ -415,7 +419,7 @@ class PicsService(
       }
     }
 
-  private def start(validator: AuthValidator, reverse: SocialRoute, req: Request[IO]) =
+  private def start(validator: FlowStart[Future], reverse: SocialRoute, req: Request[IO]) =
     IO.fromFuture(
       IO(validator.start(Urls.hostOnly(req) / reverse.callback.renderString, Map.empty))
     ).flatMap { s =>
@@ -425,7 +429,7 @@ class PicsService(
   private def startHinted(
     provider: AuthProvider,
     reverse: SocialRoute,
-    validator: LoginHintSupport,
+    validator: FlowStart[Future],
     req: Request[IO]
   ): IO[Response[IO]] = IO {
     val redirectUrl = Urls.hostOnly(req) / reverse.callback.renderString
@@ -444,15 +448,16 @@ class PicsService(
     }
     (redirectUrl, maybeEmail, extra)
   }.flatMap { case (redirectUrl, maybeEmail, extra) =>
-    IO.fromFuture(IO(validator.startHinted(redirectUrl, maybeEmail, extra))).flatMap { s =>
+//    IO.fromFuture(IO(validator.startHinted(redirectUrl, maybeEmail, extra))).flatMap { s =>
+    IO.fromFuture(IO(validator.start(redirectUrl, extra))).flatMap { s =>
       startLoginFlow(s)
     }
   }
 
   private def startLoginFlow(s: Start): IO[Response[IO]] = IO {
-    val state = CodeValidator.randomString()
+    val state = randomString()
     val encodedParams = (s.params ++ Map(OAuthKeys.State -> state)).map { case (k, v) =>
-      k -> AuthValidator.urlEncode(v)
+      k -> Utils.urlEncode(v)
     }
     val url = s.authorizationEndpoint.append(s"?${stringify(encodedParams)}")
     log.info(s"Redirecting to '$url' with state '$state'...")
@@ -469,18 +474,19 @@ class PicsService(
     }
   }
 
-  private def handleCallback(
-    validator: DiscoveringCodeValidator[Email],
+  private def handleCallbackD(
+    validator: DiscoveringAuthFlow[Email],
     reverse: SocialRoute,
     req: Request[IO]
-  ): IO[Response[IO]] = handleCallback(
-    reverse,
-    req,
-    cb => IO.fromFuture(IO(validator.validateCallback(cb))).map(e => e.flatMap(validator.parse))
-  )
+  ): IO[Response[IO]] =
+    handleCallback(
+      reverse,
+      req,
+      cb => IO.fromFuture(IO(validator.validateCallback(cb))).map(e => e.flatMap(validator.parse))
+    )
 
-  private def handleCallback(
-    validator: CodeValidator[Email, Email],
+  private def handleCallbackV(
+    validator: CallbackValidator[Email],
     reverse: SocialRoute,
     req: Request[IO]
   ): IO[Response[IO]] =
@@ -547,8 +553,27 @@ class PicsService(
     else NotAcceptable(Json.toJson(Errors.single("Not acceptable.")), noCache)
   }
 
-  private def ok[A](a: A)(implicit w: EntityEncoder[IO, A]) = Ok(a, noCache)
+  private def failResize(error: ImageFailure, by: PicRequest2): IO[Response[IO]] = error match {
+    case UnsupportedFormat(format, supported) =>
+      val msg = s"Unsupported format: '$format', must be one of: '${supported.mkString(", ")}'"
+      log.error(msg)
+      badRequestWith(msg)
+    case ImageException(ioe) =>
+      val msg = "An I/O error occurred."
+      log.error(msg, ioe)
+      serverError(msg)
+    case ImageReaderFailure(file) =>
+      val size = Files.size(file).bytes
+      val isReadable = Files.isReadable(file)
+      log.error(s"Unable to read image from file '$file'. Size: $size, readable: $isReadable.")
+      badRequestWith("Unable to read image.")
+    case ResizeException(ipa) =>
+      log.error(s"Unable to parse image by '${by.name}'.", ipa)
+      badRequestWith("Unable to parse image.")
+  }
 
+  private def ok[A](a: A)(implicit w: EntityEncoder[IO, A]) = Ok(a, noCache)
+  private def badRequestWith(message: String) = badRequest(Errors.single(message))
   private def badRequest(errors: Errors): IO[Response[IO]] =
     BadRequest(Json.toJson(errors), noCache)
   private def unauthorized(errors: Errors): IO[Response[IO]] = Unauthorized(
@@ -558,4 +583,6 @@ class PicsService(
   private def keyNotFound(key: Key) = notFoundWith(s"Not found: '$key'.")
   private def notFound(req: Request[IO]) = notFoundWith(s"Not found: '${req.uri}'.")
   private def notFoundWith(message: String) = NotFound(Json.toJson(Errors.single(message)), noCache)
+  private def serverError(message: String) =
+    InternalServerError(Json.toJson(Errors.single(message)), noCache)
 }

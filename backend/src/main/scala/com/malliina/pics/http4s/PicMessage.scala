@@ -1,7 +1,6 @@
 package com.malliina.pics.http4s
 
 import com.malliina.pics.{PicOwner, PicsAdded, PicsRemoved}
-import com.malliina.play.json.JsonMessages
 import play.api.libs.json.{JsValue, Json, Writes}
 
 sealed trait PicMessage {
@@ -24,5 +23,7 @@ object PicMessage {
     def forUser(user: PicOwner): Boolean = user == owner
   }
 
-  val ping = Broadcast(JsonMessages.ping)
+//  val ping = Broadcast(JsonMessages.ping)
+  val pingJson = Json.obj("event" -> "ping")
+  val ping = Broadcast(pingJson)
 }

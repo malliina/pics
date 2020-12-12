@@ -2,13 +2,10 @@ package com.malliina.pics.s3
 
 import cats.effect.IO
 import com.malliina.pics.s3.S3BucketIO.log
-import com.malliina.pics.{AppLogger, BucketName}
+import com.malliina.pics.BucketName
+import com.malliina.util.AppLogger
 import software.amazon.awssdk.services.s3.S3AsyncClient
-import software.amazon.awssdk.services.s3.model.{
-  CreateBucketRequest,
-  CreateBucketResponse,
-  HeadBucketRequest
-}
+import software.amazon.awssdk.services.s3.model.{CreateBucketRequest, CreateBucketResponse, HeadBucketRequest}
 
 object S3BucketIO {
   private val log = AppLogger(getClass)

@@ -2,13 +2,13 @@ package com.malliina.pics.db
 
 import com.malliina.pics.db.DoobiePicsDatabase.log
 import com.malliina.pics.{Key, KeyMeta, MetaSourceT, PicOwner}
+import com.malliina.util.AppLogger
 import doobie.implicits._
-import play.api.Logger
 
 import scala.concurrent.Future
 
 object DoobiePicsDatabase {
-  private val log = Logger(getClass)
+  private val log = AppLogger(getClass)
 
   def legacy(db: DoobieDatabase): DoobiePicsDatabase[Future] = new DoobiePicsDatabase(db)
   def apply[F[_]](db: DatabaseRunner[F]): DoobiePicsDatabase[F] = new DoobiePicsDatabase(db)

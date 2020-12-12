@@ -1,6 +1,7 @@
 package com.malliina.play.auth
 
 import com.malliina.values.{AccessToken, IdToken}
+import com.malliina.web.Expired
 
 class CognitoTests extends munit.FunSuite {
   val validator = Validators.picsAccess

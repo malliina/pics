@@ -1,38 +1,20 @@
 package controllers
 
-import cats.data.NonEmptyList
 import com.malliina.http.OkClient
 import com.malliina.pics.auth.{EmailUser, GoogleTokenAuth}
-import com.malliina.pics.{Errors, PicRequest, SingleError}
-import com.malliina.play.auth._
+import com.malliina.play.auth.Validators
+import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, IdToken, TokenValue}
+import com.malliina.web._
 import controllers.JWTAuth.log
-import play.api.Logger
-import play.api.http.HeaderNames.AUTHORIZATION
-import play.api.mvc._
 
 import scala.concurrent.{ExecutionContext, Future}
 
 object JWTAuth {
-  private val log = Logger(getClass)
+  private val log = AppLogger(getClass)
 
   def default(http: OkClient) =
     new JWTAuth(Validators.picsAccess, Validators.picsId, Validators.google(http))
-
-  def failJwt(error: JWTError) = failSingle(SingleError.forJWT(error))
-
-  def failSingle(error: SingleError) =
-    Results.Unauthorized(Errors(NonEmptyList.of(error)))
-
-  def readToken(rh: RequestHeader, expectedSchema: String = "Bearer"): Option[AccessToken] =
-    rh.headers.get(AUTHORIZATION) flatMap { authInfo =>
-      authInfo.split(" ") match {
-        case Array(schema, encodedCredentials) if schema == expectedSchema =>
-          Option(AccessToken(encodedCredentials))
-        case _ =>
-          None
-      }
-    }
 }
 
 class JWTAuth(
@@ -41,27 +23,6 @@ class JWTAuth(
   google: GoogleTokenAuth
 ) {
   implicit val ec: ExecutionContext = google.ec
-
-  /** Called when authenticating iOS/Android requests.
-    *
-    * @param rh request
-    * @return
-    */
-  def userOrAnon(rh: RequestHeader): Future[Either[AuthError, PicRequest]] =
-    auth(rh)
-      .map { f =>
-        f.map { e =>
-          e.map { u =>
-            PicRequest.forUser(u.username, rh)
-          }
-        }
-      }
-      .getOrElse {
-        Future.successful(Right(PicRequest.anon(rh)))
-      }
-
-  private def auth(rh: RequestHeader): Option[Future[Either[AuthError, JWTUser]]] =
-    readToken(rh).map(token => validateUser(token))
 
   def validateUser(token: TokenValue): Future[Either[AuthError, JWTUser]] =
     Future
@@ -92,7 +53,4 @@ class JWTAuth(
     */
   def validateToken(token: TokenValue): Future[Either[AuthError, JWTUser]] =
     validateUser(token)
-
-  private def readToken(rh: RequestHeader, expectedSchema: String = "Bearer"): Option[TokenValue] =
-    JWTAuth.readToken(rh, expectedSchema)
 }

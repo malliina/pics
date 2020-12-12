@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets
 
 import com.malliina.pics.Errors
 import com.malliina.pics.auth.Crypto.PrivateKey
-import com.malliina.play.auth.CodeValidator
+import com.malliina.web.Utils
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import org.apache.commons.codec.binary.Hex
@@ -15,14 +15,13 @@ object Crypto {
   def apply(key: PrivateKey): Crypto = new Crypto(key)
 }
 
-/**
-  * @see https://github.com/reactormonk/cryptobits/blob/master/cryptobits/src/cryptobits.scala
+/** @see https://github.com/reactormonk/cryptobits/blob/master/cryptobits/src/cryptobits.scala
   */
 class Crypto(key: PrivateKey) {
   val algorithm = "HmacSHA1"
   val sep = "-"
 
-  def randomString() = CodeValidator.randomString()
+  def randomString() = Utils.randomString()
 
   def sign(payload: String): String = {
     val nonce = randomString()

@@ -5,13 +5,13 @@ import java.nio.file.{Files, NoSuchFileException, Path, Paths}
 import com.malliina.concurrent.Execution.cached
 import com.malliina.pics.FilePics.log
 import com.malliina.storage.{StorageLong, StorageSize}
-import play.api.Logger
+import com.malliina.util.AppLogger
 
 import scala.concurrent.Future
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 object FilePics {
-  private val log = Logger(getClass)
+  private val log = AppLogger(getClass)
   val tmpDir = Paths.get(sys.props("java.io.tmpdir"))
 
   val PicsEnvKey = "pics.dir"
@@ -61,23 +61,6 @@ class FilePics(val dir: Path) extends DataSource {
       log.error("Pics operation failed.", t)
       Future.failed(t)
     }
-
-//  def putSource(key: Key, source: Source[ByteString, Future[IOResult]]): Future[Path] = {
-//    val file = fileAt(key)
-//    log.info(s"Saving '$key' to '$file'...")
-//    FileIO
-//      .toPath(file)
-//      .runWith(source)(mat)
-//      .map { res =>
-//        log.info(s"Saved '$key' of ${res.count} bytes to '$file'.")
-//        file
-//      }
-//      .recoverWith {
-//        case t =>
-//          log.error(s"Unable to save key '$key' to file.", t)
-//          Future.failed(new Exception(s"Unable to save '$key'."))
-//      }
-//  }
 
   private def fileAt(key: Key) = dir resolve key.key
 }

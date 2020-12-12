@@ -2,6 +2,7 @@ package com.malliina.play.auth
 
 import com.malliina.http.OkClient
 import com.malliina.pics.auth.GoogleTokenAuth
+import com.malliina.web._
 
 object Validators {
   val ExpectedPicsGroup = "pics-group"

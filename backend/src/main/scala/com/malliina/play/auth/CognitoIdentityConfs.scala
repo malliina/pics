@@ -1,6 +1,7 @@
 package com.malliina.play.auth
 
 import com.malliina.http.FullUrl
+import com.malliina.web.CognitoIdentityConf
 
 object CognitoIdentityConfs {
   def pics = CognitoIdentityConf(
