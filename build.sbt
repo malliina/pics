@@ -6,12 +6,12 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossP
 import scala.sys.process.Process
 import scala.util.Try
 
-val utilPlayVersion = "5.12.3-SNAPSHOT"
-val primitivesVersion = "1.17.0"
-val munitVersion = "0.7.12"
-val scalatagsVersion = "0.9.1"
-val awsSdk2Version = "2.14.21"
-val testContainersScalaVersion = "0.38.3"
+val utilPlayVersion = "5.13.0"
+val primitivesVersion = "1.18.0"
+val munitVersion = "0.7.19"
+val scalatagsVersion = "0.9.2"
+val awsSdk2Version = "2.15.45"
+val testContainersScalaVersion = "0.38.7"
 val utilPlayDep = "com.malliina" %% "web-auth" % utilPlayVersion
 
 inThisBuild(
@@ -102,14 +102,14 @@ val backend = project
     buildInfoPackage := "com.malliina.pics",
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "hash" -> gitHash),
     libraryDependencies ++= http4sModules.map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.21.7"
+      "org.http4s" %% s"http4s-$m" % "0.21.14"
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
-      "org.tpolecat" %% d % "0.9.2"
+      "org.tpolecat" %% d % "0.9.4"
     } ++ Seq(
       "com.github.pureconfig" %% "pureconfig" % "0.14.0",
       "org.apache.commons" % "commons-text" % "1.9",
       "software.amazon.awssdk" % "s3" % awsSdk2Version,
-      "org.flywaydb" % "flyway-core" % "6.5.6",
+      "org.flywaydb" % "flyway-core" % "7.3.1",
       "mysql" % "mysql-connector-java" % "5.1.49",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.6",
       "com.malliina" %% "logstreams-client" % "1.10.1",

@@ -1,7 +1,5 @@
 package tests
 
-import java.io.File
-
 import cats.effect.{ContextShift, IO, Timer}
 import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.pics._
@@ -11,7 +9,7 @@ import com.malliina.pics.http4s.PicsServer
 import com.malliina.pics.http4s.PicsServer.AppService
 import munit.FunSuite
 import pureconfig.{ConfigObjectSource, ConfigSource}
-
+import org.testcontainers.utility.DockerImageName
 import scala.concurrent.Promise
 import scala.util.Try
 
@@ -25,7 +23,7 @@ trait MUnitDatabaseSuite { self: munit.Suite =>
     def apply() = conf.get
     override def beforeAll(): Unit = {
       val testDb = readTestConf.getOrElse {
-        val c = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
+        val c = MySQLContainer(mysqlImageVersion = DockerImageName.parse("mysql:5.7.29"))
         c.start()
         container = Option(c)
         TestConf(c)

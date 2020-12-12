@@ -10,6 +10,7 @@ import doobie.implicits._
 import doobie.util.ExecutionContexts
 import doobie.util.log.{ExecFailure, ProcessingFailure, Success}
 import org.flywaydb.core.Flyway
+import org.flywaydb.core.api.output.MigrateResult
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
@@ -28,7 +29,7 @@ object DoobieDatabase {
     apply(conf, ec)
   }
 
-  def migrate(conf: DatabaseConf): Int = {
+  def migrate(conf: DatabaseConf): MigrateResult = {
     val flyway = Flyway.configure.dataSource(conf.url, conf.user, conf.pass).load()
     flyway.migrate()
   }

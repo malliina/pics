@@ -9,7 +9,7 @@ Seq(
   "org.scala-js" % "sbt-scalajs" % "1.3.1",
   "ch.epfl.scala" % "sbt-scalajs-bundler" % "0.20.0",
   "com.eed3si9n" % "sbt-buildinfo" % "0.10.0",
-  "ch.epfl.scala" % "sbt-bloop" % "1.4.5",
+  "ch.epfl.scala" % "sbt-bloop" % "1.4.6",
   "org.scalameta" % "sbt-scalafmt" % "2.4.2",
   "io.spray" % "sbt-revolver" % "0.9.1"
 ) map addSbtPlugin
