@@ -7,8 +7,9 @@ import com.malliina.pics.http4s.PicsService.{noCache, version10}
 import com.malliina.pics.http4s.{PicsService, Reverse}
 import com.malliina.pics.{AppConf, Errors, PicRequest2}
 import com.malliina.play.auth.Validators
-import com.malliina.web.{CognitoAccessValidator, CognitoIdValidator, JWTUser}
 import com.malliina.values.{AccessToken, IdToken, Username}
+import com.malliina.web.{CognitoAccessValidator, CognitoIdValidator}
+import controllers.Social
 import org.http4s.Credentials.Token
 import org.http4s.headers.{Authorization, Cookie, Location}
 import org.http4s.{Headers, MediaType, Response, ResponseCookie}
@@ -64,8 +65,10 @@ class Http4sAuth(
 
   private def web(headers: Headers): Either[IO[Response[IO]], PicRequest2] = user(headers).fold(
     {
-      case MissingCredentials2(_, headers) => Right(PicRequest2.anon(headers))
-      case _                               => Left(onUnauthorized(headers))
+      case MissingCredentials2(_, headers)
+          if !Cookie.from(headers).exists(_.values.exists(_.name == Social.ProviderCookie)) =>
+        Right(PicRequest2.anon(headers))
+      case _ => Left(onUnauthorized(headers))
     },
     user => Right(PicRequest2.forUser(user, headers))
   )
@@ -146,5 +149,6 @@ class Http4sAuth(
       }
     } yield t
 
-  private def onUnauthorized(headers: Headers) = SeeOther(Location(Reverse.signIn))
+  private def onUnauthorized(headers: Headers) =
+    SeeOther(Location(Reverse.signIn))
 }
