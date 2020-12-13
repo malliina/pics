@@ -308,7 +308,7 @@ class PicsService(
             )
             .flatMap { e =>
               e.flatMap(_.email.toRight(OAuthError("Email missing.")))
-                .fold(err => unauthorized(Errors(err.message)), ok => userResult(ok, req))
+                .fold(err => unauthorized(Errors(err.message)), ok => userResult(ok, id, req))
             }
           maybe.fold(
             err => {
@@ -318,23 +318,24 @@ class PicsService(
             identity
           )
         case Google =>
-          handleCallbackD(socials.google, reverseSocial.google, req)
+          handleCallbackD(socials.google, reverseSocial.google, req, id)
         case Microsoft =>
-          handleCallbackD(socials.microsoft, reverseSocial.microsoft, req)
+          handleCallbackD(socials.microsoft, reverseSocial.microsoft, req, id)
         case GitHub =>
-          handleCallbackV(socials.github, reverseSocial.github, req)
+          handleCallbackV(socials.github, reverseSocial.github, req, id)
         case Amazon =>
           handleCallback(
             reverseSocial.amazon,
             req,
+            id,
             cb =>
               IO.fromFuture(IO(socials.amazon.validateCallback(cb)))
                 .map(e => e.map(user => Email(user.username.value)))
           )
         case Facebook =>
-          handleCallbackV(socials.facebook, reverseSocial.facebook, req)
+          handleCallbackV(socials.facebook, reverseSocial.facebook, req, id)
         case Apple =>
-          handleCallbackV(socials.apple, reverseSocial.apple, req)
+          handleCallbackV(socials.apple, reverseSocial.apple, req, id)
       }
     case GET -> Root / "sign-out" / "leave" =>
       SeeOther(Location(Reverse.signOutCallback)).map { res =>
@@ -477,24 +478,28 @@ class PicsService(
   private def handleCallbackD(
     validator: DiscoveringAuthFlow[Email],
     reverse: SocialRoute,
-    req: Request[IO]
+    req: Request[IO],
+    provider: AuthProvider
   ): IO[Response[IO]] =
     handleCallback(
       reverse,
       req,
+      provider,
       cb => IO.fromFuture(IO(validator.validateCallback(cb))).map(e => e.flatMap(validator.parse))
     )
 
   private def handleCallbackV(
     validator: CallbackValidator[Email],
     reverse: SocialRoute,
-    req: Request[IO]
+    req: Request[IO],
+    provider: AuthProvider
   ): IO[Response[IO]] =
-    handleCallback(reverse, req, cb => IO.fromFuture(IO(validator.validateCallback(cb))))
+    handleCallback(reverse, req, provider, cb => IO.fromFuture(IO(validator.validateCallback(cb))))
 
   private def handleCallback(
     reverse: SocialRoute,
     req: Request[IO],
+    provider: AuthProvider,
     validate: Callback => IO[Either[AuthError, Email]]
   ): IO[Response[IO]] = {
     val params = req.uri.query.params
@@ -509,12 +514,16 @@ class PicsService(
     validate(cb).flatMap { e =>
       e.fold(
         err => unauthorized(Errors(err.message)),
-        email => userResult(email, req)
+        email => userResult(email, provider, req)
       )
     }
   }
 
-  private def userResult(email: Email, req: Request[IO]): IO[Response[IO]] = {
+  private def userResult(
+    email: Email,
+    provider: AuthProvider,
+    req: Request[IO]
+  ): IO[Response[IO]] = {
     val returnUri: Uri = req.cookies
       .find(_.name == auth.returnUriKey)
       .flatMap(c => Uri.fromString(c.content).toOption)
@@ -524,6 +533,7 @@ class PicsService(
         .withUser(UserPayload.email(email), r)
         .removeCookie(auth.returnUriKey)
         .addCookie(auth.lastIdKey, email.email, Option(HttpDate.MaxValue))
+        .addCookie(Social.ProviderCookie, provider.name, Option(HttpDate.MaxValue))
     }
   }
 
