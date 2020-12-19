@@ -5,7 +5,7 @@ pool:
   vmImage: 'Ubuntu 18.04'
 
 variables:
-  azureSubscriptionEndpoint: malliina
+  azureSubscriptionEndpoint: malliinaresources
   ResourceGroupName: personal
   DockerNamespace: malliinapics.azurecr.io
   DockerRepository: mavenapi
