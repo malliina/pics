@@ -5,13 +5,10 @@ import com.malliina.web.AuthConf
 import scala.concurrent.duration.{Duration, DurationInt}
 
 object Social {
-  val PromptCookie = "picsPrompt"
   val PromptKey = "prompt"
-  val ProviderCookie = "picsProvider"
   val LoginCookieDuration: Duration = 3650.days
   val SelectAccount = "select_account"
 
-  val SessionKey = "picsUser"
   val LastIdCookie = "picsLastId"
 
   case class SocialConf(

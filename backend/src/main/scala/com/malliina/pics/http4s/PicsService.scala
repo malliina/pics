@@ -105,6 +105,7 @@ class PicsService(
     List(".html", ".js", ".map", ".css", ".png", ".ico")
 
   val reverseSocial = ReverseSocial
+  val cookieNames = auth.cookieNames
 
   val routes = HttpRoutes.of[IO] {
     case GET -> Root          => SeeOther(Location(uri"/pics"))
@@ -236,7 +237,7 @@ class PicsService(
     case req @ GET -> Root / "sign-in" =>
       val reverseSocial = ReverseSocial
       req.cookies
-        .find(_.name == Social.ProviderCookie)
+        .find(_.name == cookieNames.provider)
         .flatMap { cookie =>
           AuthProvider.forString(cookie.content).toOption
         }
@@ -267,7 +268,9 @@ class PicsService(
               token =>
                 SeeOther(Location(Uri.unsafeFromString(twitter.authTokenUrl(token).url))).map {
                   res =>
-                    auth.withSession(TwitterState(token), res)(TwitterState.json)
+                    auth.withSession(TwitterState(token), req.isSecured, res)(
+                      TwitterState.json
+                    )
                 }
             )
           }
@@ -342,9 +345,9 @@ class PicsService(
         import Social._
         auth
           .clearSession(res)
-          .removeCookie(ResponseCookie(LastIdCookie, "", path = auth.cookiePath))
-          .removeCookie(ResponseCookie(ProviderCookie, "", path = auth.cookiePath))
-          .addCookie(PromptCookie, SelectAccount)
+          .removeCookie(ResponseCookie(cookieNames.lastId, "", path = auth.cookiePath))
+          .removeCookie(ResponseCookie(cookieNames.provider, "", path = auth.cookiePath))
+          .addCookie(cookieNames.prompt, SelectAccount)
       }
     case GET -> Root / "sign-out" =>
       // TODO .flashing("message" -> "You have now logged out.")
@@ -424,7 +427,7 @@ class PicsService(
     IO.fromFuture(
       IO(validator.start(Urls.hostOnly(req) / reverse.callback.renderString, Map.empty))
     ).flatMap { s =>
-      startLoginFlow(s)
+      startLoginFlow(s, req.isSecured)
     }
 
   private def startHinted(
@@ -434,9 +437,9 @@ class PicsService(
     req: Request[IO]
   ): IO[Response[IO]] = IO {
     val redirectUrl = Urls.hostOnly(req) / reverse.callback.renderString
-    val lastIdCookie = req.cookies.find(_.name == LastIdCookie)
+    val lastIdCookie = req.cookies.find(_.name == cookieNames.lastId)
     val promptValue = req.cookies
-      .find(_.name == PromptCookie)
+      .find(_.name == cookieNames.prompt)
       .map(_.content)
       .orElse(Option(SelectAccount).filter(_ => lastIdCookie.isEmpty))
     val extra = promptValue.map(c => Map(PromptKey -> c)).getOrElse(Map.empty)
@@ -451,11 +454,11 @@ class PicsService(
   }.flatMap { case (redirectUrl, maybeEmail, extra) =>
 //    IO.fromFuture(IO(validator.startHinted(redirectUrl, maybeEmail, extra))).flatMap { s =>
     IO.fromFuture(IO(validator.start(redirectUrl, extra))).flatMap { s =>
-      startLoginFlow(s)
+      startLoginFlow(s, req.isSecured)
     }
   }
 
-  private def startLoginFlow(s: Start): IO[Response[IO]] = IO {
+  private def startLoginFlow(s: Start, isSecure: Boolean): IO[Response[IO]] = IO {
     val state = randomString()
     val encodedParams = (s.params ++ Map(OAuthKeys.State -> state)).map { case (k, v) =>
       k -> Utils.urlEncode(v)
@@ -470,7 +473,7 @@ class PicsService(
     SeeOther(Location(Uri.unsafeFromString(url.url))).map { res =>
       val session = Json.toJsObject(sessionParams.toMap)
       auth
-        .withSession(session, res)
+        .withSession(session, isSecure, res)
         .putHeaders(noCache)
     }
   }
@@ -525,25 +528,21 @@ class PicsService(
     req: Request[IO]
   ): IO[Response[IO]] = {
     val returnUri: Uri = req.cookies
-      .find(_.name == auth.returnUriKey)
+      .find(_.name == cookieNames.returnUri)
       .flatMap(c => Uri.fromString(c.content).toOption)
       .getOrElse(Reverse.list)
     SeeOther(Location(returnUri)).map { r =>
-      auth
-        .withUser(UserPayload.email(email), r)
-        .removeCookie(auth.returnUriKey)
-        .addCookie(auth.lastIdKey, email.email, Option(HttpDate.MaxValue))
-        .addCookie(Social.ProviderCookie, provider.name, Option(HttpDate.MaxValue))
+      auth.withPicsUser(UserPayload.email(email), req.isSecured, provider, r)
     }
   }
 
   def stringify(map: Map[String, String]): String =
     map.map { case (key, value) => s"$key=$value" }.mkString("&")
 
-  def authed(req: Request[IO])(code: PicRequest2 => IO[Response[IO]]): IO[Response[IO]] =
+  def authed(req: Request[IO])(code: PicRequest => IO[Response[IO]]): IO[Response[IO]] =
     auth.authenticate(req.headers).flatMap(_.fold(identity, code))
 
-  def authedAll(req: Request[IO])(code: PicRequest2 => IO[Response[IO]]): IO[Response[IO]] =
+  def authedAll(req: Request[IO])(code: PicRequest => IO[Response[IO]]): IO[Response[IO]] =
     auth.authenticateAll(req.headers).flatMap(_.fold(identity, code))
 
   private def render[A: Writes, B](req: Request[IO])(json: A, html: B)(implicit
@@ -563,7 +562,7 @@ class PicsService(
     else NotAcceptable(Json.toJson(Errors.single("Not acceptable.")), noCache)
   }
 
-  private def failResize(error: ImageFailure, by: PicRequest2): IO[Response[IO]] = error match {
+  private def failResize(error: ImageFailure, by: PicRequest): IO[Response[IO]] = error match {
     case UnsupportedFormat(format, supported) =>
       val msg = s"Unsupported format: '$format', must be one of: '${supported.mkString(", ")}'"
       log.error(msg)
@@ -589,7 +588,7 @@ class PicsService(
   private def unauthorized(errors: Errors): IO[Response[IO]] = Unauthorized(
     `WWW-Authenticate`(NonEmptyList.of(Challenge("myscheme", "myrealm"))),
     Json.toJson(errors)
-  ).map(r => auth.clearSession(r.removeCookie(ProviderCookie)))
+  ).map(r => auth.clearSession(r.removeCookie(cookieNames.provider)))
   private def keyNotFound(key: Key) = notFoundWith(s"Not found: '$key'.")
   private def notFound(req: Request[IO]) = notFoundWith(s"Not found: '${req.uri}'.")
   private def notFoundWith(message: String) = NotFound(Json.toJson(Errors.single(message)), noCache)

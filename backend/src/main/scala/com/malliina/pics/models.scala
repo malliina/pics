@@ -19,17 +19,15 @@ trait BaseRequest {
   def isAnon = readOnly
 }
 
-case class PicRequest2(name: PicOwner, readOnly: Boolean, rh: Headers) extends BaseRequest
-
-object PicRequest2 {
-  def anon(headers: Headers): PicRequest2 = PicRequest2(PicRequest.AnonUser, true, headers)
-  def forUser(user: Username, headers: Headers): PicRequest2 = apply(PicOwner(user.name), headers)
-  def apply(user: PicOwner, headers: Headers): PicRequest2 =
-    apply(PicOwner(user.name), user == AnonUser, headers)
-}
+case class PicRequest(name: PicOwner, readOnly: Boolean, rh: Headers) extends BaseRequest
 
 object PicRequest {
   val AnonUser = PicOwner("anon")
+
+  def anon(headers: Headers): PicRequest = PicRequest(AnonUser, true, headers)
+  def forUser(user: Username, headers: Headers): PicRequest = apply(PicOwner(user.name), headers)
+  def apply(user: PicOwner, headers: Headers): PicRequest =
+    apply(PicOwner(user.name), user == AnonUser, headers)
 }
 
 sealed trait PicResult
