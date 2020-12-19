@@ -433,7 +433,7 @@ class PicsService(
   private def startHinted(
     provider: AuthProvider,
     reverse: SocialRoute,
-    validator: FlowStart[Future],
+    validator: LoginHint[Future],
     req: Request[IO]
   ): IO[Response[IO]] = IO {
     val redirectUrl = Urls.hostOnly(req) / reverse.callback.renderString
@@ -452,8 +452,7 @@ class PicsService(
     }
     (redirectUrl, maybeEmail, extra)
   }.flatMap { case (redirectUrl, maybeEmail, extra) =>
-//    IO.fromFuture(IO(validator.startHinted(redirectUrl, maybeEmail, extra))).flatMap { s =>
-    IO.fromFuture(IO(validator.start(redirectUrl, extra))).flatMap { s =>
+    IO.fromFuture(IO(validator.startHinted(redirectUrl, maybeEmail, extra))).flatMap { s =>
       startLoginFlow(s, req.isSecured)
     }
   }
