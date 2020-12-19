@@ -8,7 +8,7 @@ variables:
   azureSubscriptionEndpoint: malliinaresources
   ResourceGroupName: personal
   DockerNamespace: malliinapics.azurecr.io
-  DockerRepository: mavenapi
+  DockerRepository: pics
   WebAppName: malliinapics
   SbtVersion: 1.4.4
   ContainerRegistry: malliinapicsconnection
