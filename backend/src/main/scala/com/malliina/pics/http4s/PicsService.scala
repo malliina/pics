@@ -74,7 +74,7 @@ object PicsService {
     cs: ContextShift[IO],
     timer: Timer[IO]
   ): PicsService = {
-    val handler = MultiSizeHandler.default()
+    val handler = MultiSizeHandlerIO.default()
     val service = new PicServiceIO(db, handler)(cs)
     new PicsService(service, html, auth, socials, db, topic, handler, blocker)(cs, timer)
   }
@@ -92,7 +92,7 @@ class PicsService(
   socials: Socials,
   db: MetaSourceT[IO],
   topic: Topic[IO, PicMessage],
-  handler: MultiSizeHandler,
+  handler: MultiSizeHandlerIO,
   blocker: Blocker
 )(implicit cs: ContextShift[IO], timer: Timer[IO])
   extends BasicService[IO] {
@@ -197,7 +197,7 @@ class PicsService(
       val adminUser = PicOwner("malliina123@gmail.com")
       authed(req) { user =>
         if (user.name == adminUser) {
-          IO.fromFuture(IO(handler.originals.storage.load(0, 1000000))).flatMap { keys =>
+          handler.originals.storage.load(0, 1000000).flatMap { keys =>
             log.info(s"Syncing ${keys.length} keys...")
             keys.toList
               .traverse { key => db.putMetaIfNotExists(key.withUser(adminUser)) }
@@ -381,7 +381,7 @@ class PicsService(
   }
 
   private def sendPic(key: Key, size: PicSize, req: Request[IO]) =
-    IO.fromFuture(IO(handler(size).storage.find(key))).flatMap { maybeFile =>
+    handler(size).storage.find(key).flatMap { maybeFile =>
       maybeFile
         .map { file =>
           StaticFile
@@ -404,7 +404,7 @@ class PicsService(
         db.remove(key, user.name).flatMap { wasDeleted =>
           if (wasDeleted) {
             log.info(s"Key '$key' removed by '${user.name}' from '$req'.")
-            IO.fromFuture(IO(handler.remove(key))).flatMap { _ =>
+            handler.remove(key).flatMap { _ =>
               topic.publish1(PicMessage.RemovedMessage(PicsRemoved(Seq(key)), user.name)).flatMap {
                 _ =>
                   renderRanged(req)(

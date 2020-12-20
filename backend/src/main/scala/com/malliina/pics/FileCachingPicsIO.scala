@@ -2,27 +2,25 @@ package com.malliina.pics
 
 import java.nio.file.Path
 
-import com.malliina.concurrent.Execution.cached
+import cats.effect.IO
 import com.malliina.storage.StorageSize
 
-import scala.concurrent.Future
-
-object FileCachingPics {
-  def apply(cache: FilePics, origin: DataSource): FileCachingPics =
-    new FileCachingPics(cache, origin)
+object FileCachingPicsIO {
+  def apply(cache: FilePicsIO, origin: DataSourceT[IO]): FileCachingPicsIO =
+    new FileCachingPicsIO(cache, origin)
 }
 
-class FileCachingPics(cache: FilePics, origin: DataSource) extends DataSource {
+class FileCachingPicsIO(cache: FilePicsIO, origin: DataSourceT[IO]) extends DataSourceIO {
   override def load(from: Int, until: Int) = origin.load(from, until)
 
-  override def contains(key: Key): Future[Boolean] = {
+  override def contains(key: Key): IO[Boolean] = {
     cache.contains(key).flatMap { isCached =>
-      if (isCached) fut(true)
+      if (isCached) IO.pure(true)
       else origin.contains(key)
     }
   }
 
-  override def get(key: Key): Future[DataFile] =
+  override def get(key: Key): IO[DataFile] =
     cache.contains(key).flatMap { isCached =>
       if (isCached) {
         cache.get(key)
@@ -35,17 +33,15 @@ class FileCachingPics(cache: FilePics, origin: DataSource) extends DataSource {
       }
     }
 
-  override def saveBody(key: Key, file: Path): Future[StorageSize] =
+  override def saveBody(key: Key, file: Path): IO[StorageSize] =
     for {
       size <- origin.saveBody(key, file)
       _ <- cache.saveBody(key, file)
     } yield size
 
-  override def remove(key: Key): Future[PicResult] =
+  override def remove(key: Key): IO[PicResult] =
     for {
       result <- origin.remove(key)
       _ <- cache.remove(key)
     } yield result
 }
-
-//class FileCachingPicsIO(cache: FilePics, origin: ImageSourceLike[IO]) extends ImageSourceLike[IO] {}

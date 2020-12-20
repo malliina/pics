@@ -2,7 +2,7 @@ package tests
 
 import java.nio.file.{Files, Paths}
 
-import com.malliina.pics.{ContentType, Resizer, ScrimageResizer}
+import com.malliina.pics.{ContentType, Resizer, ScrimageResizerIO}
 import com.malliina.storage.StorageInt
 import javax.imageio.ImageIO
 
@@ -42,7 +42,7 @@ class ImageTests extends munit.FunSuite {
   }
 
   test("resize to small".ignore) {
-    val resizer = ScrimageResizer.Small
+    val resizer = ScrimageResizerIO.Small
     val result = resizeWith(resizer, "demo-scrimage-small.jpeg")
     assert(result.isRight)
     val size = result.toOption.get
@@ -50,7 +50,7 @@ class ImageTests extends munit.FunSuite {
   }
 
   test("resize to medium scrimage".ignore) {
-    val resizer = ScrimageResizer.Medium
+    val resizer = ScrimageResizerIO.Medium
     val result = resizeWith(resizer, "demo-scrimage-normal.jpeg")
     assert(result.isRight)
     val size = result.toOption.get
@@ -58,13 +58,13 @@ class ImageTests extends munit.FunSuite {
   }
 
   test("resize to large scrimage".ignore) {
-    val resizer = ScrimageResizer.Large
+    val resizer = ScrimageResizerIO.Large
     val result = resizeWith(resizer, "demo-scrimage-large.jpeg")
     assert(result.isRight)
     val size = result.toOption.get
     assert(size < 600.kilos)
   }
 
-  def resizeWith(resizer: ScrimageResizer, name: String) =
-    await(resizer.resizeFile(origLarge, picDir.resolve(name)))
+  def resizeWith(resizer: ScrimageResizerIO, name: String) =
+    resizer.resizeFile(origLarge, picDir.resolve(name)).unsafeRunSync()
 }

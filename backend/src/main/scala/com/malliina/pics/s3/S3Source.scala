@@ -4,10 +4,11 @@ import java.nio.file.{Files, Path}
 
 import cats.effect.IO
 import com.malliina.pics.s3.S3Source.log
-import com.malliina.pics.{BucketName, DataFile, DataSourceT, FilePics, FlatMeta, Key, PicResult, PicSuccess, Util}
+import com.malliina.pics.{BucketName, DataFile, DataSourceT, FilePicsIO, FlatMeta, Key, PicResult, PicSuccess, Util}
 import com.malliina.storage.{StorageLong, StorageSize}
 import com.malliina.util.AppLogger
 import com.malliina.web.Utils.randomString
+import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.model._
 
@@ -15,11 +16,26 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 object S3Source {
   private val log = AppLogger(getClass)
+
+  def apply(bucket: BucketName): S3Source = {
+    val s3Client = S3AsyncClient
+      .builder()
+      .region(Region.EU_WEST_1)
+      .build()
+    val client = S3BucketIO(s3Client)
+    client.createIfNotExists(bucket).unsafeRunSync()
+    new S3Source(bucket, s3Client)
+  }
+
+  val Small = apply(BucketName("malliina-pics-small"))
+  val Medium = apply(BucketName("malliina-pics-medium"))
+  val Large = apply(BucketName("malliina-pics-large"))
+  val Original = apply(BucketName("malliina-pics"))
 }
 
 class S3Source(bucket: BucketName, client: S3AsyncClient) extends DataSourceT[IO] {
   val bucketName = bucket.name
-  val downloadsDir = FilePics.tmpDir.resolve("downloads")
+  val downloadsDir = FilePicsIO.tmpDir.resolve("downloads")
   Files.createDirectories(downloadsDir)
 
   override def get(key: Key): IO[DataFile] = {

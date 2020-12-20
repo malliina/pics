@@ -2,15 +2,13 @@ package com.malliina.pics
 
 import java.nio.file.{Files, NoSuchFileException, Path, Paths}
 
-import com.malliina.concurrent.Execution.cached
-import com.malliina.pics.FilePics.log
+import cats.effect.IO
 import com.malliina.storage.{StorageLong, StorageSize}
 import com.malliina.util.AppLogger
 
-import scala.concurrent.Future
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
-object FilePics {
+object FilePicsIO {
   private val log = AppLogger(getClass)
   val tmpDir = Paths.get(sys.props("java.io.tmpdir"))
 
@@ -18,48 +16,49 @@ object FilePics {
   val picsDir =
     sys.env.get(PicsEnvKey).map(Paths.get(_)).getOrElse(tmpDir.resolve("pics"))
 
-  def apply(dir: Path): FilePics = new FilePics(dir)
-  def default(): FilePics = apply(picsDir)
-  def thumbs(): FilePics = named("thumbs")
+  def apply(dir: Path): FilePicsIO = new FilePicsIO(dir)
+  def default(): FilePicsIO = apply(picsDir)
+  def thumbs(): FilePicsIO = named("thumbs")
   def named(name: String) = apply(picsDir.resolve(name))
 }
 
-class FilePics(val dir: Path) extends DataSource {
+class FilePicsIO(val dir: Path) extends DataSourceIO {
+  import FilePicsIO.log
   Files.createDirectories(dir)
   log.info(s"Using pics dir '$dir'.")
 
-  override def load(from: Int, until: Int): Future[Seq[FlatMeta]] = Future {
+  override def load(from: Int, until: Int): IO[Seq[FlatMeta]] = IO {
     Files.list(dir).iterator().asScala.toList.slice(from, from + until).map { p =>
       FlatMeta(Key(p.getFileName.toString), Files.getLastModifiedTime(p).toInstant)
     }
   }
 
-  override def contains(key: Key): Future[Boolean] = Future(Files.exists(fileAt(key)))
+  override def contains(key: Key): IO[Boolean] = IO(Files.exists(fileAt(key)))
 
-  override def get(key: Key): Future[DataFile] = Future(DataFile(fileAt(key)))
+  override def get(key: Key): IO[DataFile] = IO(DataFile(fileAt(key)))
 
-  override def remove(key: Key): Future[PicResult] =
-    Future[PicResult] {
+  override def remove(key: Key): IO[PicResult] =
+    IO[PicResult] {
       Files.delete(fileAt(key))
       PicSuccess
-    }.recoverWith {
+    }.handleErrorWith {
       case _: NoSuchFileException =>
-        fut(PicNotFound(key))
+        IO.pure(PicNotFound(key))
       case other: Exception =>
         log.error("Pics operation failed.", other)
-        Future.failed(other)
+        IO.raiseError(other)
     }
 
-  def putData(key: Key, data: DataFile): Future[Path] =
+  def putData(key: Key, data: DataFile): IO[Path] =
     saveBody(key, data.file).map(_ => fileAt(key))
 
-  def saveBody(key: Key, file: Path): Future[StorageSize] =
-    Future {
+  def saveBody(key: Key, file: Path): IO[StorageSize] =
+    IO {
       Files.copy(file, fileAt(key))
       Files.size(file).bytes
-    }.recoverWith { case t =>
+    }.handleErrorWith { t =>
       log.error("Pics operation failed.", t)
-      Future.failed(t)
+      IO.raiseError(t)
     }
 
   private def fileAt(key: Key) = dir resolve key.key

@@ -5,7 +5,6 @@ import java.time.Instant
 import java.util.Date
 
 import com.malliina.http.FullUrl
-import com.malliina.pics.PicRequest.AnonUser
 import com.malliina.pics.http4s.{Reverse, Urls}
 import com.malliina.values.Username
 import org.apache.commons.io.FilenameUtils

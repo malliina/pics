@@ -2,7 +2,7 @@ package com.malliina.pics
 
 import java.nio.file.{Files, Path}
 
-import com.malliina.concurrent.Execution.cached
+import cats.effect.IO
 import com.malliina.storage.{StorageLong, StorageSize}
 
 import scala.concurrent.Future
@@ -32,6 +32,12 @@ trait SourceLike[F[_]] {
 }
 
 trait ImageSourceLike[F[_]] extends SourceLike[F] {
+
+  /** Removes `key`.
+    *
+    * @param key key to delete
+    * @return success even if `key` does not exist
+    */
   def remove(key: Key): F[PicResult]
   def saveBody(key: Key, file: Path): F[StorageSize]
 }
@@ -41,26 +47,12 @@ trait DataSourceT[F[_]] extends ImageSourceLike[F] {
   def load(from: Int, until: Int): F[Seq[FlatMeta]]
 }
 
-trait DataSource extends ImageSourceLike[Future] {
-  def load(from: Int, until: Int): Future[Seq[FlatMeta]]
-
-  def get(key: Key): Future[DataFile]
-
-  /** Removes `key`.
-    *
-    * @param key key to delete
-    * @return success even if `key` does not exist
-    */
-  def remove(key: Key): Future[PicResult]
-
-  def find(key: Key): Future[Option[DataFile]] =
+trait DataSourceIO extends DataSourceT[IO] {
+  def find(key: Key): IO[Option[DataFile]] =
     contains(key).flatMap { exists =>
       if (exists) get(key).map(Option.apply)
-      else Future.successful(None)
+      else IO.pure(None)
     }
-
-  def saveBody(key: Key, file: Path): Future[StorageSize]
-  def fut[T](t: T): Future[T] = Future.successful(t)
 }
 
 trait MetaSourceT[F[_]] extends SourceLike[F] {
