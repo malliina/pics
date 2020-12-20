@@ -32,6 +32,7 @@ import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame._
 import org.slf4j.LoggerFactory
 import OAuthKeys.{Nonce, State}
+import com.malliina.pics.http4s.PicMessage.Welcome
 import com.malliina.web.TwitterAuthFlow.{OauthTokenKey, OauthVerifierKey}
 
 import scala.concurrent.Future
@@ -120,7 +121,7 @@ class PicsService(
           e.flatMap { picReq =>
             Limits(req.uri.query)
               .map { limits =>
-                ListRequest2(limits, picReq)
+                ListRequest(limits, picReq)
               }
               .left
               .map { errors =>
@@ -211,15 +212,12 @@ class PicsService(
       }
     case req @ GET -> Root / "sockets" =>
       authedAll(req) { user =>
-        val welcomeMessage = fs2.Stream(Json.toJson(ProfileInfo(user.name, user.readOnly)))
-        val pings =
-          fs2.Stream.awakeEvery[IO](30.seconds).map(d => PicMessage.ping)
-        val updates =
-          topic.subscribe(1000).filter(_.forUser(user.name)).drop(1).map(msg => Json.toJson(msg))
-        val toClient =
-          (welcomeMessage ++ pings.merge(updates)).map(json =>
-            Text(Json.stringify(PicMessage.pingJson))
-          )
+        val welcomeMessage = fs2.Stream(PicMessage.welcome(user.name, user.readOnly))
+        val pings = fs2.Stream.awakeEvery[IO](30.seconds).map(_ => PicMessage.ping)
+        val updates = topic.subscribe(1000).drop(1).filter(_.forUser(user.name))
+        val toClient = (welcomeMessage ++ pings.merge(updates)).map { message =>
+          Text(Json.stringify(Json.toJson(message)))
+        }
         val fromClient: Pipe[IO, WebSocketFrame, Unit] = _.evalMap {
           case Text(message, _) => IO(log.info(message))
           case f                => IO(log.debug(s"Unknown WebSocket frame: $f"))
