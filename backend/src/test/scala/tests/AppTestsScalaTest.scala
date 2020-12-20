@@ -4,12 +4,13 @@ import cats.effect.{ContextShift, IO, Timer}
 import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.pics._
 import com.malliina.pics.app.LocalConf
-import com.malliina.pics.db.{DatabaseConf, DoobieDatabase}
+import com.malliina.pics.db.{DatabaseConf, DatabaseRunner, DoobieDatabase}
 import com.malliina.pics.http4s.PicsServer
 import com.malliina.pics.http4s.PicsServer.AppService
 import munit.FunSuite
 import pureconfig.{ConfigObjectSource, ConfigSource}
 import org.testcontainers.utility.DockerImageName
+
 import scala.concurrent.Promise
 import scala.util.Try
 
@@ -92,11 +93,12 @@ trait Http4sSuite extends MUnitDatabaseSuite { self: FunSuite =>
 }
 
 trait DoobieSuite extends MUnitDatabaseSuite { self: munit.Suite =>
-  val doobie: Fixture[DoobieDatabase] = new Fixture[DoobieDatabase]("doobie") {
-    var database: Option[DoobieDatabase] = None
-    def apply() = database.get
+  val doobie: Fixture[DatabaseRunner[IO]] = new Fixture[DatabaseRunner[IO]]("doobie") {
+    var database: Option[DatabaseRunner[IO]] = None
+    def apply(): DatabaseRunner[IO] = database.get
     override def beforeAll(): Unit = {
-      database = Option(DoobieDatabase.withMigrations(db(), munitExecutionContext))
+      val cs = IO.contextShift(munitExecutionContext)
+      database = Option(DoobieDatabase.withMigrations(db(), cs))
     }
     override def afterAll(): Unit = {
       database.foreach(_.close())

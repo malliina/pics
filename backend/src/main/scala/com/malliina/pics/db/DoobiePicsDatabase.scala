@@ -10,7 +10,6 @@ import scala.concurrent.Future
 object DoobiePicsDatabase {
   private val log = AppLogger(getClass)
 
-  def legacy(db: DoobieDatabase): DoobiePicsDatabase[Future] = new DoobiePicsDatabase(db)
   def apply[F[_]](db: DatabaseRunner[F]): DoobiePicsDatabase[F] = new DoobiePicsDatabase(db)
 }
 
@@ -18,9 +17,9 @@ class DoobiePicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] {
   def load(from: Int, until: Int, user: PicOwner): F[List[KeyMeta]] = db.run {
     val limit = until - from
     sql"""select `key`, owner, added
-         from pics 
-         where owner = $user 
-         order by added desc limit $limit offset $from"""
+          from pics 
+          where owner = $user 
+          order by added desc limit $limit offset $from"""
       .query[KeyMeta]
       .to[List]
   }

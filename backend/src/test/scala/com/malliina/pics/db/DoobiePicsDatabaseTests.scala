@@ -9,11 +9,11 @@ class DoobiePicsDatabaseTests extends BaseSuite with DoobieSuite {
     val picsDatabase = DoobiePicsDatabase(data)
     val user = PicOwner("testuser")
     val key = Keys.randomish()
-    val _ = await(picsDatabase.saveMeta(key, user))
-    val pics = await(picsDatabase.load(0, 2, user))
+    val _ = picsDatabase.saveMeta(key, user).unsafeRunSync()
+    val pics = picsDatabase.load(0, 2, user).unsafeRunSync()
     assert(pics.exists(_.key == key))
-    assert(await(picsDatabase.contains(key)))
-    await(picsDatabase.remove(key, user))
-    assert(!await(picsDatabase.contains(key)))
+    assert(picsDatabase.contains(key).unsafeRunSync())
+    picsDatabase.remove(key, user).unsafeRunSync()
+    assert(!picsDatabase.contains(key).unsafeRunSync())
   }
 }

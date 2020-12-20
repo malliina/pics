@@ -13,20 +13,19 @@ import org.flywaydb.core.Flyway
 import org.flywaydb.core.api.output.MigrateResult
 
 import scala.concurrent.duration.DurationInt
-import scala.concurrent.{ExecutionContext, Future}
 
 object DoobieDatabase {
   private val log = AppLogger(getClass)
 
-  def apply(conf: DatabaseConf, ec: ExecutionContext): DoobieDatabase =
-    apply(dataSource(conf), ec)
+  def apply(conf: DatabaseConf, cs: ContextShift[IO]): DatabaseRunner[IO] =
+    apply(dataSource(conf), cs)
 
-  def apply(ds: HikariDataSource, ec: ExecutionContext): DoobieDatabase =
-    new DoobieDatabase(ds, ec)
+  def apply(ds: HikariDataSource, cs: ContextShift[IO]): DatabaseRunner[IO] =
+    new DoobieDatabaseLegacy(ds, cs)
 
-  def withMigrations(conf: DatabaseConf, ec: ExecutionContext): DoobieDatabase = {
+  def withMigrations(conf: DatabaseConf, cs: ContextShift[IO]): DatabaseRunner[IO] = {
     migrate(conf)
-    apply(conf, ec)
+    apply(conf, cs)
   }
 
   def migrate(conf: DatabaseConf): MigrateResult = {
@@ -65,17 +64,12 @@ object DoobieDatabase {
     for {
       ec <- ExecutionContexts.fixedThreadPool[IO](32) // our connect EC
     } yield Transactor.fromDataSource[IO](ds, ec, blocker)
+
+  def apply(tx: DataSourceTransactor[IO]) = new DoobieDatabase(tx)
 }
 
-trait DatabaseRunner[F[_]] {
-  def run[T](io: ConnectionIO[T]): F[T]
-  def close(): Unit
-}
-
-class DoobieDatabase(ds: HikariDataSource, val ec: ExecutionContext)
-  extends DatabaseRunner[Future] {
-  private implicit val cs: ContextShift[IO] = IO.contextShift(ec)
-  private val tx = DoobieDatabase.resource(ds)
+// Temporary migration tool
+class DoobieDatabase(tx: DataSourceTransactor[IO]) extends DatabaseRunner[IO] {
   implicit val logHandler = LogHandler {
     case Success(sql, args, exec, processing) =>
       log.info(s"OK '$sql' exec ${exec.toMillis} ms processing ${processing.toMillis} ms.")
@@ -85,19 +79,21 @@ class DoobieDatabase(ds: HikariDataSource, val ec: ExecutionContext)
       log.error(s"Exec failed '$sql' in $exec.'", failure)
   }
 
-  def run[T](io: ConnectionIO[T]): Future[T] =
-    tx.use(r => io.transact(r)).unsafeToFuture()
-
-  def close(): Unit = ds.close()
-}
-
-// Temporary migration tool
-class DoobieDatabase2(tx: DataSourceTransactor[IO]) extends DatabaseRunner[IO] {
   def run[T](io: ConnectionIO[T]): IO[T] = io.transact(tx)
   def close(): Unit = ()
 }
 
-class DoobieDatabaseUnsafe(pure: DatabaseRunner[IO]) extends DatabaseRunner[Future] {
-  def run[T](io: ConnectionIO[T]): Future[T] = pure.run(io).unsafeToFuture()
-  def close(): Unit = ()
+trait DatabaseRunner[F[_]] {
+  def run[T](io: ConnectionIO[T]): F[T]
+  def close(): Unit
+}
+
+class DoobieDatabaseLegacy(ds: HikariDataSource, cs: ContextShift[IO]) extends DatabaseRunner[IO] {
+  implicit val cShift = cs
+  private val tx = DoobieDatabase.resource(ds)
+
+  def run[T](io: ConnectionIO[T]): IO[T] =
+    tx.use(r => io.transact(r))
+
+  def close(): Unit = ds.close()
 }
