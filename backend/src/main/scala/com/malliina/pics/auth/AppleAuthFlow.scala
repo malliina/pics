@@ -2,14 +2,13 @@ package com.malliina.pics.auth
 
 import java.time.Instant
 
-import com.malliina.http.{FullUrl, OkClient}
+import cats.effect.IO
+import com.malliina.http.{FullUrl, HttpClient}
 import com.malliina.oauth.TokenResponse
 import com.malliina.pics.auth.AppleAuthFlow.staticConf
 import com.malliina.values.{Email, ErrorMessage, IdToken}
 import com.malliina.web.OAuthKeys._
 import com.malliina.web._
-
-import scala.concurrent.Future
 
 case class AppleResponse(code: Code, state: String)
 
@@ -50,7 +49,7 @@ object AppleAuthFlow {
   val jwksUri = host / "/auth/keys"
   val tokensUrl = host / "/auth/token"
 
-  def apply(conf: AuthConf, validator: AppleTokenValidator, http: OkClient) =
+  def apply(conf: AuthConf, validator: AppleTokenValidator, http: HttpClient[IO]) =
     new AppleAuthFlow(conf, validator, http)
 
   def staticConf(conf: AuthConf) = StaticConf(emailScope, authUrl, tokensUrl, conf)
@@ -58,17 +57,16 @@ object AppleAuthFlow {
 
 /** @see https://developer.apple.com/documentation/signinwithapplejs/incorporating_sign_in_with_apple_into_other_platforms
   */
-class AppleAuthFlow(authConf: AuthConf, validator: AppleTokenValidator, http: OkClient)
+class AppleAuthFlow(authConf: AuthConf, validator: AppleTokenValidator, http: HttpClient[IO])
   extends StaticFlowStart
   with CallbackValidator[Email] {
   override val conf: StaticConf = staticConf(authConf)
-  implicit val ec = http.exec
 
   override def validate(
     code: Code,
     redirectUrl: FullUrl,
     requestNonce: Option[String]
-  ): Future[Either[AuthError, Email]] = {
+  ): IO[Either[AuthError, Email]] = {
     val params = tokenParameters(code, redirectUrl)
     http.postFormAs[TokenResponse](conf.tokenEndpoint, params).flatMap { tokens =>
       http.getAs[JWTKeys](AppleAuthFlow.jwksUri).map { keys =>

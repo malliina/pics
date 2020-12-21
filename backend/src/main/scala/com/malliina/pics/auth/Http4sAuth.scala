@@ -14,6 +14,7 @@ import org.http4s.Credentials.Token
 import org.http4s.headers.{Authorization, Cookie, Location}
 import org.http4s._
 import _root_.play.api.libs.json.{Json, OWrites, Reads, Writes}
+import com.malliina.http.io.HttpClientIO
 
 import scala.concurrent.duration.DurationInt
 
@@ -23,7 +24,7 @@ object Http4sAuth {
       JWT(conf.secret),
       Validators.picsAccess,
       Validators.picsId,
-      Validators.google(OkClient.default),
+      Validators.google(HttpClientIO()),
       CookieConf.pics
     )(cs)
 
@@ -89,7 +90,7 @@ class Http4sAuth(
         .flatMap { e =>
           e.fold(
             err =>
-              IO.fromFuture(IO(google.validate(token))).map { e =>
+              google.validate(token).map { e =>
                 e.map { email => EmailUser(email) }
               },
             user => IO.pure(Right(user))

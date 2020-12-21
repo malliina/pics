@@ -1,6 +1,7 @@
 package controllers
 
-import com.malliina.http.OkClient
+import cats.effect.IO
+import com.malliina.http.HttpClient
 import com.malliina.pics.auth.{EmailUser, GoogleTokenAuth}
 import com.malliina.play.auth.Validators
 import com.malliina.util.AppLogger
@@ -8,12 +9,10 @@ import com.malliina.values.{AccessToken, IdToken, TokenValue}
 import com.malliina.web._
 import controllers.JWTAuth.log
 
-import scala.concurrent.{ExecutionContext, Future}
-
 object JWTAuth {
   private val log = AppLogger(getClass)
 
-  def default(http: OkClient) =
+  def default(http: HttpClient[IO]) =
     new JWTAuth(Validators.picsAccess, Validators.picsId, Validators.google(http))
 }
 
@@ -22,11 +21,9 @@ class JWTAuth(
   android: CognitoIdValidator,
   google: GoogleTokenAuth
 ) {
-  implicit val ec: ExecutionContext = google.ec
-
-  def validateUser(token: TokenValue): Future[Either[AuthError, JWTUser]] =
-    Future
-      .successful(
+  def validateUser(token: TokenValue): IO[Either[AuthError, JWTUser]] =
+    IO
+      .pure(
         ios.validate(AccessToken(token.value)).orElse(android.validate(IdToken(token.value)))
       )
       .flatMap { e =>
@@ -37,7 +34,7 @@ class JWTAuth(
                 EmailUser(email)
               }
             },
-          ok => Future.successful(Right(ok))
+          ok => IO.pure(Right(ok))
         )
       }
       .map { e =>
@@ -51,6 +48,6 @@ class JWTAuth(
     *
     * @param token access token or id token
     */
-  def validateToken(token: TokenValue): Future[Either[AuthError, JWTUser]] =
+  def validateToken(token: TokenValue): IO[Either[AuthError, JWTUser]] =
     validateUser(token)
 }

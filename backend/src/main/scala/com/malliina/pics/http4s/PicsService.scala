@@ -32,6 +32,7 @@ import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame._
 import org.slf4j.LoggerFactory
 import OAuthKeys.{Nonce, State}
+import com.malliina.http.io.HttpClientIO
 import com.malliina.pics.http4s.PicMessage.Welcome
 import com.malliina.web.TwitterAuthFlow.{OauthTokenKey, OauthVerifierKey}
 
@@ -51,7 +52,7 @@ object PicsService {
     cs: ContextShift[IO],
     timer: Timer[IO]
   ): PicsService = {
-    val socials = Socials(conf.social, OkClient.default)
+    val socials = Socials(conf.social, HttpClientIO())
     apply(
       PicsHtml.build(conf.mode.isProd),
       Http4sAuth(conf.app, cs),
@@ -254,12 +255,8 @@ class PicsService(
       id match {
         case Twitter =>
           val twitter = socials.twitter
-          IO.fromFuture(
-            IO(
-              twitter
-                .requestToken(Urls.hostOnly(req) / reverseSocial.twitter.callback.renderString)
-            )
-          ).flatMap { e =>
+          twitter.requestToken(Urls.hostOnly(req) / reverseSocial.twitter.callback.renderString)
+          .flatMap { e =>
             // add requesttoken to session
             e.fold(
               err => unauthorized(Errors(err.message)),
@@ -301,13 +298,7 @@ class PicsService(
             verifier <- params
               .get(OauthVerifierKey)
               .toRight(OAuthError(s"Missing $OauthVerifierKey query paramater."))
-          } yield IO
-            .fromFuture(
-              IO(
-                socials.twitter.validateTwitterCallback(token, requestToken.requestToken, verifier)
-              )
-            )
-            .flatMap { e =>
+          } yield socials.twitter.validateTwitterCallback(token, requestToken.requestToken, verifier).flatMap { e =>
               e.flatMap(_.email.toRight(OAuthError("Email missing.")))
                 .fold(err => unauthorized(Errors(err.message)), ok => userResult(ok, id, req))
             }
@@ -330,7 +321,7 @@ class PicsService(
             req,
             id,
             cb =>
-              IO.fromFuture(IO(socials.amazon.validateCallback(cb)))
+              socials.amazon.validateCallback(cb)
                 .map(e => e.map(user => Email(user.username.value)))
           )
         case Facebook =>
@@ -421,17 +412,15 @@ class PicsService(
       }
     }
 
-  private def start(validator: FlowStart[Future], reverse: SocialRoute, req: Request[IO]) =
-    IO.fromFuture(
-      IO(validator.start(Urls.hostOnly(req) / reverse.callback.renderString, Map.empty))
-    ).flatMap { s =>
+  private def start(validator: FlowStart[IO], reverse: SocialRoute, req: Request[IO]) =
+    validator.start(Urls.hostOnly(req) / reverse.callback.renderString, Map.empty).flatMap { s =>
       startLoginFlow(s, req.isSecured)
     }
 
   private def startHinted(
     provider: AuthProvider,
     reverse: SocialRoute,
-    validator: LoginHint[Future],
+    validator: LoginHint[IO],
     req: Request[IO]
   ): IO[Response[IO]] = IO {
     val redirectUrl = Urls.hostOnly(req) / reverse.callback.renderString
@@ -450,7 +439,7 @@ class PicsService(
     }
     (redirectUrl, maybeEmail, extra)
   }.flatMap { case (redirectUrl, maybeEmail, extra) =>
-    IO.fromFuture(IO(validator.startHinted(redirectUrl, maybeEmail, extra))).flatMap { s =>
+    validator.startHinted(redirectUrl, maybeEmail, extra).flatMap { s =>
       startLoginFlow(s, req.isSecured)
     }
   }
@@ -485,7 +474,7 @@ class PicsService(
       reverse,
       req,
       provider,
-      cb => IO.fromFuture(IO(validator.validateCallback(cb))).map(e => e.flatMap(validator.parse))
+      cb => validator.validateCallback(cb).map(e => e.flatMap(validator.parse))
     )
 
   private def handleCallbackV(
@@ -494,7 +483,7 @@ class PicsService(
     req: Request[IO],
     provider: AuthProvider
   ): IO[Response[IO]] =
-    handleCallback(reverse, req, provider, cb => IO.fromFuture(IO(validator.validateCallback(cb))))
+    handleCallback(reverse, req, provider, cb => validator.validateCallback(cb))
 
   private def handleCallback(
     reverse: SocialRoute,

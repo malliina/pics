@@ -6,13 +6,13 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossP
 import scala.sys.process.Process
 import scala.util.Try
 
-val utilPlayVersion = "5.13.0"
+val webAuthVersion = "6.0.0"
 val primitivesVersion = "1.18.0"
 val munitVersion = "0.7.19"
 val scalatagsVersion = "0.9.2"
 val awsSdk2Version = "2.15.45"
 val testContainersScalaVersion = "0.38.7"
-val utilPlayDep = "com.malliina" %% "web-auth" % utilPlayVersion
+val utilPlayDep = "com.malliina" %% "web-auth" % webAuthVersion
 
 inThisBuild(
   Seq(
@@ -27,7 +27,7 @@ val commonSettings = Seq(
     "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
     "com.typesafe.play" %%% "play-json" % "2.9.1",
     "com.malliina" %%% "primitives" % primitivesVersion,
-    "com.malliina" %%% "util-html" % utilPlayVersion
+    "com.malliina" %%% "util-html" % webAuthVersion
   )
 )
 
