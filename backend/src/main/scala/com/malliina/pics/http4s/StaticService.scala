@@ -3,6 +3,7 @@ package com.malliina.pics.http4s
 import cats.data.NonEmptyList
 import cats.effect.{Blocker, ContextShift, Sync}
 import cats.implicits._
+import com.malliina.pics.assets.HashedAssets
 import com.malliina.pics.http4s.StaticService.log
 import com.malliina.util.AppLogger
 import com.malliina.values.UnixPath
@@ -36,7 +37,8 @@ class StaticService[F[_]](blocker: Blocker)(implicit cs: ContextShift[F], s: Syn
       val cacheHeaders =
         if (isCacheable) NonEmptyList.of(`max-age`(365.days), `public`)
         else NonEmptyList.of(`no-cache`())
-      val res = s"/${file.value}"
+      val res = s"/${HashedAssets.prefix}/$file"
+      log.debug(s"Searching for '$file' at resource '$res'...")
       StaticFile
         .fromResource(res, blocker, Option(req))
         .map(_.putHeaders(`Cache-Control`(cacheHeaders)))

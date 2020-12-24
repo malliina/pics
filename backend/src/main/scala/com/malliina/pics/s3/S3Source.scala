@@ -8,6 +8,7 @@ import com.malliina.pics.{BucketName, DataFile, DataSourceT, FilePicsIO, FlatMet
 import com.malliina.storage.{StorageLong, StorageSize}
 import com.malliina.util.AppLogger
 import com.malliina.web.Utils.randomString
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.model._
@@ -18,9 +19,10 @@ object S3Source {
   private val log = AppLogger(getClass)
 
   def apply(bucket: BucketName): S3Source = {
+    val creds = DefaultCredentialsProvider.builder().profileName("pics").build()
     val s3Client = S3AsyncClient
       .builder()
-      .region(Region.EU_WEST_1)
+      .region(Region.EU_WEST_1).credentialsProvider(creds)
       .build()
     val client = S3BucketIO(s3Client)
     client.createIfNotExists(bucket).unsafeRunSync()

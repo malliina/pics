@@ -5,8 +5,6 @@ import java.nio.file.{Files, Path}
 import cats.effect.IO
 import com.malliina.storage.{StorageLong, StorageSize}
 
-import scala.concurrent.Future
-
 sealed trait DataResponse {
   def contentLength: Option[StorageSize]
   def contentType: Option[ContentType]

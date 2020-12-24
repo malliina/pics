@@ -16,6 +16,7 @@ object WebPlugin extends AutoPlugin {
   override def requires = ScalaJSBundlerPlugin
   object autoImport {
     val assetsDir = settingKey[Path]("Webpack assets dir to serve in server")
+    val assetsPrefix = settingKey[String]("Assets prefix")
     val prepTarget = taskKey[Path]("Prep target dir")
     val hashAssets = taskKey[Seq[HashedFile]]("Hashed files")
   }
@@ -23,7 +24,8 @@ object WebPlugin extends AutoPlugin {
   override def projectSettings: Seq[Def.Setting[_]] =
     stageSettings(Stage.FastOpt) ++ stageSettings(Stage.FullOpt) ++ Seq(
       assetsDir := (baseDirectory.value / "target" / "assets").toPath,
-      prepTarget := Files.createDirectories(assetsDir.value)
+      assetsPrefix := "public",
+      prepTarget := Files.createDirectories(assetsDir.value.resolve(assetsPrefix.value))
     )
 
   private def stageSettings(stage: Stage): Seq[Def.Setting[_]] = {
@@ -36,7 +38,7 @@ object WebPlugin extends AutoPlugin {
         val files = webpack.in(Compile, stageTask).value
         val log = streams.value.log
         files.flatMap { file =>
-          val root = assetsDir.value
+          val root = assetsDir.value.resolve(assetsPrefix.value)
           val relativeFile = file.data.relativeTo(root.toFile).get
           val dest = file.data.toPath
           val extraFiles =
@@ -61,7 +63,7 @@ object WebPlugin extends AutoPlugin {
         val log = streams.value.log
         files.map { file =>
           val relativeFile = file.data.relativeTo(crossTarget.in(Compile, npmUpdate).value).get
-          val dest = assetsDir.value.resolve(relativeFile.toPath)
+          val dest = assetsDir.value.resolve(assetsPrefix.value).resolve(relativeFile.toPath)
           val path = file.data.toPath
           Files.createDirectories(dest.getParent)
           Files.copy(path, dest, StandardCopyOption.REPLACE_EXISTING)
@@ -91,7 +93,7 @@ object WebPlugin extends AutoPlugin {
     hashedFile
   }
 
-  def makeAssetsFile(base: File, hashes: Seq[HashedFile], log: ManagedLogger): Set[File] = {
+  def makeAssetsFile(base: File, prefix: String, hashes: Seq[HashedFile], log: ManagedLogger): Set[File] = {
     val inlined = hashes.map(h => s""""${h.path}" -> "${h.hashedPath}"""").mkString(", ")
     val packageName = "com.malliina.pics.assets"
     val objectName = "HashedAssets"
@@ -99,7 +101,8 @@ object WebPlugin extends AutoPlugin {
       s"""
        |package $packageName
        |
-       |object $objectName { 
+       |object $objectName {
+       |  val prefix: String = "$prefix"
        |  val assets: Map[String, String] = Map($inlined)
        |}
        |""".stripMargin.trim + IO.Newline

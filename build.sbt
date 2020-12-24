@@ -128,9 +128,8 @@ val backend = project
     javaOptions in Universal ++= {
       Seq(
         "-J-Xmx1024m",
-        "-Dpidfile.path=/dev/null",
         s"-Dhttp.port=$prodPort",
-        "-Dlogger.resource=logback-prod.xml"
+        "-Dlogback.configurationFile=logback-prod.xml"
       )
     },
     packageSummary in Linux := "This is the pics summary.",
@@ -169,9 +168,10 @@ val backend = project
       Def.task {
         val dest = (sourceManaged in Compile).value
         val hashed = hashAssets.in(frontend, Compile, sjsStage).value
+        val prefix = assetsPrefix.in(frontend).value
         val log = streams.value.log
         val cached = FileFunction.cached(streams.value.cacheDirectory / "assets") { in =>
-          makeAssetsFile(dest, hashed, log)
+          makeAssetsFile(dest, prefix, hashed, log)
         }
         cached(hashed.map(_.hashedFile.toFile).toSet).toSeq
       }
