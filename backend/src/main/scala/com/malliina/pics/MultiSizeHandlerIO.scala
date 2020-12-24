@@ -8,11 +8,16 @@ import com.malliina.pics.s3.S3Source
 import com.sksamuel.scrimage.ImmutableImage
 
 object MultiSizeHandlerIO {
-  def default(): MultiSizeHandlerIO = new MultiSizeHandlerIO(
-    ImageHandlerIO("small", ScrimageResizerIO.Small, cached("smalls", S3Source.Small)),
-    ImageHandlerIO("medium", ScrimageResizerIO.Medium, cached("mediums", S3Source.Medium)),
-    ImageHandlerIO("large", ScrimageResizerIO.Large, cached("larges", S3Source.Large)),
-    ImageHandlerIO("original", AsIsResizerIO, cached("originals", S3Source.Original))
+  def default(): MultiSizeHandlerIO = apply(S3Source.Small, S3Source.Medium, S3Source.Large, S3Source.Original)
+
+  def empty(): MultiSizeHandlerIO = apply(FilePicsIO.named("small"), FilePicsIO.named("medium"), FilePicsIO.named("large"), FilePicsIO.named("original"))
+
+  def apply(small: DataSourceT[IO], medium: DataSourceT[IO], large: DataSourceT[IO], original: DataSourceT[IO]) =
+    new MultiSizeHandlerIO(
+    ImageHandlerIO("small", ScrimageResizerIO.Small, cached("smalls", small)),
+    ImageHandlerIO("medium", ScrimageResizerIO.Medium, cached("mediums", medium)),
+    ImageHandlerIO("large", ScrimageResizerIO.Large, cached("larges", large)),
+    ImageHandlerIO("original", AsIsResizerIO, cached("originals", original))
   )
 
   def cached(name: String, origin: DataSourceT[IO]) =

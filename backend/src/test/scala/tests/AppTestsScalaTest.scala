@@ -67,7 +67,7 @@ trait Http4sSuite extends MUnitDatabaseSuite { self: FunSuite =>
     override def apply(): AppService = service.get
 
     override def beforeAll(): Unit = {
-      val resource = PicsServer.appResource(PicsConf.load.copy(db = db()))
+      val resource = PicsServer.appResource(PicsConf.load.copy(db = db()), MultiSizeHandlerIO.empty())
       val resourceEffect = resource.allocated[IO, AppService]
       val setupEffect =
         resourceEffect

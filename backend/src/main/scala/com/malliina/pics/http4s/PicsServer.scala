@@ -3,7 +3,7 @@ package com.malliina.pics.http4s
 import cats.data.Kleisli
 import cats.effect.{Blocker, ExitCode, IO, IOApp, Resource}
 import com.malliina.pics.db.{DoobieDatabase, DoobiePicsDatabase}
-import com.malliina.pics.{MetaSourceT, PicsConf}
+import com.malliina.pics.{MetaSourceT, MultiSizeHandlerIO, PicsConf}
 import com.malliina.util.AppLogger
 import fs2.concurrent.Topic
 import org.http4s.server.Router
@@ -21,7 +21,7 @@ object PicsServer extends IOApp {
   val port = 9000
 
   def server(conf: PicsConf) = for {
-    picsApp <- appResource(conf)
+    picsApp <- appResource(conf, MultiSizeHandlerIO.default())
     _ = log.info(s"Binding on port $port...")
     server <- BlazeServerBuilder[IO](ExecutionContext.global)
       .bindHttp(port = port, "0.0.0.0")
@@ -29,7 +29,7 @@ object PicsServer extends IOApp {
       .resource
   } yield server
 
-  def appResource(conf: PicsConf) = for {
+  def appResource(conf: PicsConf, handler: MultiSizeHandlerIO) = for {
     blocker <- Blocker[IO]
     topic <- Resource.liftF(Topic[IO, PicMessage](PicMessage.ping))
     tx <- DoobieDatabase.migratedResource(conf.db, blocker)
@@ -40,18 +40,19 @@ object PicsServer extends IOApp {
 //        CSRF[IO, IO](key, _ => true)
 //          .withOnFailure(Unauthorized(Json.toJson(Errors.single("CSRF failure."))))
 //      }
-    app(conf, db, blocker, topic)
+    app(conf, db, handler, blocker, topic)
   }
 
   private def app(
     conf: PicsConf,
     db: MetaSourceT[IO],
+    handler: MultiSizeHandlerIO,
     blocker: Blocker,
     topic: Topic[IO, PicMessage]
   ) = HSTS {
     orNotFound {
       Router(
-        "/" -> PicsService(conf, db, topic, blocker, contextShift, timer).routes,
+        "/" -> PicsService(conf, db, topic, handler, blocker, contextShift, timer).routes,
         "/assets" -> StaticService(blocker, contextShift).routes
       )
     }

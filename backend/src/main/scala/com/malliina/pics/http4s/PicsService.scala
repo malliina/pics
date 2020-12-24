@@ -7,36 +7,33 @@ import cats.data.NonEmptyList
 import cats.effect._
 import cats.implicits.{catsSyntaxApplicativeId, catsSyntaxFlatten}
 import com.malliina.html.UserFeedback
-import com.malliina.http.OkClient
+import com.malliina.http.io.HttpClientIO
 import com.malliina.pics.PicsStrings.{XClientPic, XKey, XName}
+import com.malliina.pics._
 import com.malliina.pics.auth.Http4sAuth.TwitterState
 import com.malliina.pics.auth.{Http4sAuth, UserPayload}
 import com.malliina.pics.html.PicsHtml
 import com.malliina.pics.http4s.PicsService.{log, noCache, ranges, version10}
-import com.malliina.pics._
 import com.malliina.storage.StorageLong
 import com.malliina.values.{AccessToken, Email}
-import com.malliina.web._
+import com.malliina.web.OAuthKeys.{Nonce, State}
+import com.malliina.web.TwitterAuthFlow.{OauthTokenKey, OauthVerifierKey}
 import com.malliina.web.Utils.randomString
+import com.malliina.web._
 import controllers.Social
 import controllers.Social._
 import fs2._
 import fs2.concurrent.Topic
 import org.http4s.CacheDirective._
-import org.http4s.{Callback => _, _}
-import org.http4s.syntax.literals.http4sLiteralsSyntax
 import org.http4s.headers.{Accept, Location, `Cache-Control`, `WWW-Authenticate`}
 import org.http4s.server.websocket.WebSocketBuilder
+import org.http4s.syntax.literals.http4sLiteralsSyntax
 import org.http4s.util.CaseInsensitiveString
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame._
+import org.http4s.{Callback => _, _}
 import org.slf4j.LoggerFactory
-import OAuthKeys.{Nonce, State}
-import com.malliina.http.io.HttpClientIO
-import com.malliina.pics.http4s.PicMessage.Welcome
-import com.malliina.web.TwitterAuthFlow.{OauthTokenKey, OauthVerifierKey}
 
-import scala.concurrent.Future
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 object PicsService {
@@ -48,6 +45,7 @@ object PicsService {
     conf: PicsConf,
     db: MetaSourceT[IO],
     topic: Topic[IO, PicMessage],
+    handler: MultiSizeHandlerIO,
     blocker: Blocker,
     cs: ContextShift[IO],
     timer: Timer[IO]
@@ -59,6 +57,7 @@ object PicsService {
       socials,
       db,
       topic,
+      handler,
       blocker,
       cs,
       timer
@@ -71,11 +70,11 @@ object PicsService {
     socials: Socials,
     db: MetaSourceT[IO],
     topic: Topic[IO, PicMessage],
+    handler: MultiSizeHandlerIO,
     blocker: Blocker,
     cs: ContextShift[IO],
     timer: Timer[IO]
   ): PicsService = {
-    val handler = MultiSizeHandlerIO.default()
     val service = new PicServiceIO(db, handler)(cs)
     new PicsService(service, html, auth, socials, db, topic, handler, blocker)(cs, timer)
   }
