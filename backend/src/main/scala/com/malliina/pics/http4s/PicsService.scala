@@ -212,10 +212,12 @@ class PicsService(
       }
     case req @ GET -> Root / "sockets" =>
       authedAll(req) { user =>
+        val userAgent = user.rh.get(CaseInsensitiveString("User-Agent")).map(ua => s"'$ua'").getOrElse("Unknown")
+        log.info(s"Opening socket for '${user.name}' using user agent $userAgent.")
         val welcomeMessage = fs2.Stream(PicMessage.welcome(user.name, user.readOnly))
         val pings = fs2.Stream.awakeEvery[IO](30.seconds).map(_ => PicMessage.ping)
         val updates = topic.subscribe(1000).drop(1).filter(_.forUser(user.name))
-        val toClient = (welcomeMessage ++ pings.merge(updates)).map { message =>
+        val toClient = (welcomeMessage ++ pings.mergeHaltBoth(updates)).map { message =>
           Text(Json.stringify(Json.toJson(message)))
         }
         val fromClient: Pipe[IO, WebSocketFrame, Unit] = _.evalMap {
