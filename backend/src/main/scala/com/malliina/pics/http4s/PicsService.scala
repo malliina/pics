@@ -15,6 +15,7 @@ import com.malliina.pics.auth.{Http4sAuth, UserPayload}
 import com.malliina.pics.html.PicsHtml
 import com.malliina.pics.http4s.PicsService.{log, noCache, ranges, version10}
 import com.malliina.storage.StorageLong
+import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, Email}
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.TwitterAuthFlow.{OauthTokenKey, OauthVerifierKey}
@@ -32,12 +33,11 @@ import org.http4s.util.CaseInsensitiveString
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame._
 import org.http4s.{Callback => _, _}
-import org.slf4j.LoggerFactory
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 object PicsService {
-  private val log = LoggerFactory.getLogger(getClass)
+  private val log = AppLogger(getClass)
   val version10 = mediaType"application/vnd.pics.v10+json"
   val noCache = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
 
@@ -53,7 +53,7 @@ object PicsService {
     val socials = Socials(conf.social, HttpClientIO())
     apply(
       PicsHtml.build(conf.mode.isProd),
-      Http4sAuth(conf.app, cs),
+      Http4sAuth(conf.app),
       socials,
       db,
       topic,

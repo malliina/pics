@@ -2,6 +2,7 @@ package com.malliina.pics.http4s
 
 import cats.data.Kleisli
 import cats.effect.{Blocker, ExitCode, IO, IOApp, Resource}
+import com.malliina.pics.BuildInfo
 import com.malliina.pics.db.{DoobieDatabase, DoobiePicsDatabase}
 import com.malliina.pics.{MetaSourceT, MultiSizeHandlerIO, PicsConf}
 import com.malliina.util.AppLogger
@@ -22,7 +23,7 @@ object PicsServer extends IOApp {
 
   def server(conf: PicsConf) = for {
     picsApp <- appResource(conf, MultiSizeHandlerIO.default())
-    _ = log.info(s"Binding on port $port...")
+    _ = log.info(s"Binding on port $port using app version ${BuildInfo.hash}...")
     server <- BlazeServerBuilder[IO](ExecutionContext.global)
       .bindHttp(port = port, "0.0.0.0")
       .withHttpApp(picsApp)

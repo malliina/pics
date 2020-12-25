@@ -12,9 +12,8 @@
         <username>${LOGSTREAMS_USER:-pics}</username>
         <password>${LOGSTREAMS_PASS}</password>
     </appender>
-    <logger name="play" level="INFO"/>
-    <logger name="application" level="INFO"/>
     <logger name="com" level="INFO"/>
+    <logger name="org.http4s.blaze.channel.nio1.NIO1SocketServerGroup" level="WARN"/>
     <root level="INFO">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="LOGSTREAMS"/>

@@ -18,14 +18,14 @@ import com.malliina.http.io.HttpClientIO
 import scala.concurrent.duration.DurationInt
 
 object Http4sAuth {
-  def apply(conf: AppConf, cs: ContextShift[IO]): Http4sAuth =
+  def apply(conf: AppConf): Http4sAuth =
     new Http4sAuth(
       JWT(conf.secret),
       Validators.picsAccess,
       Validators.picsId,
       Validators.google(HttpClientIO()),
       CookieConf.pics
-    )(cs)
+    )
 
   case class TwitterState(requestToken: AccessToken)
 
@@ -34,14 +34,13 @@ object Http4sAuth {
   }
 }
 
-// Contextshift required as long as we use Future-based GoogleTokenAuth.validate
 class Http4sAuth(
   val webJwt: JWT,
   ios: CognitoAccessValidator,
   android: CognitoIdValidator,
   google: GoogleTokenAuth,
   val cookieNames: CookieConf
-)(implicit cs: ContextShift[IO]) {
+) {
   val cookiePath = Option("/")
 
   def authenticate(headers: Headers): IO[Either[IO[Response[IO]], PicRequest]] = {
