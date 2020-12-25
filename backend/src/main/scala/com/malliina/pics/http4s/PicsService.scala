@@ -216,7 +216,7 @@ class PicsService(
         log.info(s"Opening socket for '${user.name}' using user agent $userAgent.")
         val welcomeMessage = fs2.Stream(PicMessage.welcome(user.name, user.readOnly))
         val pings = fs2.Stream.awakeEvery[IO](30.seconds).map(_ => PicMessage.ping)
-        val updates = topic.subscribe(1000).filter(_.forUser(user.name))
+        val updates = topic.subscribe(1000).drop(1).filter(_.forUser(user.name))
         val toClient = (welcomeMessage ++ pings.mergeHaltBoth(updates)).map { message =>
           Text(Json.stringify(Json.toJson(message)))
         }
