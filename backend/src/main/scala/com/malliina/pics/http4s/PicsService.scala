@@ -75,7 +75,7 @@ object PicsService {
     cs: ContextShift[IO],
     timer: Timer[IO]
   ): PicsService = {
-    val service = new PicServiceIO(db, handler)(cs)
+    val service = new PicServiceIO(db, handler)
     new PicsService(service, html, auth, socials, db, topic, handler, blocker)(cs, timer)
   }
 
@@ -216,14 +216,8 @@ class PicsService(
         log.info(s"Opening socket for '${user.name}' using user agent $userAgent.")
         val welcomeMessage = fs2.Stream(PicMessage.welcome(user.name, user.readOnly))
         val pings = fs2.Stream.awakeEvery[IO](30.seconds).map(_ => PicMessage.ping)
-        val updates = topic.subscribe(1000).filter { n =>
-          val passes = n.forUser(user.name)
-          log.info(s"$n passes for '${user.name}': $passes")
-          passes
-        }
+        val updates = topic.subscribe(1000).filter(_.forUser(user.name))
         val toClient = (welcomeMessage ++ pings.mergeHaltBoth(updates)).map { message =>
-          val stringified = Json.stringify(Json.toJson(message))
-          log.info(s"Sending '$stringified' to '${user.name}' using user agent $userAgent.")
           Text(Json.stringify(Json.toJson(message)))
         }
         val fromClient: Pipe[IO, WebSocketFrame, Unit] = _.evalMap {

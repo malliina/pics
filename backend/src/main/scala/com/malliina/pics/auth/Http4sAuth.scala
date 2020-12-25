@@ -1,7 +1,6 @@
 package com.malliina.pics.auth
 
 import cats.effect.{ContextShift, IO}
-import com.malliina.http.OkClient
 import com.malliina.pics.http4s.PicsImplicits._
 import com.malliina.pics.http4s.PicsService.{noCache, version10}
 import com.malliina.pics.http4s.{PicsService, Reverse}
@@ -56,9 +55,28 @@ class Http4sAuth(
     }
   }
 
+  /** Performs authentication disregarding the Accept header; tries opportunistically cookie-based auth first,
+    * falling back to Bearer token auth should cookie auth fail.
+    *
+    * @param headers request headers
+    */
   def authenticateAll(headers: Headers): IO[Either[IO[Response[IO]], PicRequest]] = {
-    IO.pure(web(headers)).flatMap { e =>
-      e.fold(_ => jwt(headers), user => IO.pure(Right(user)))
+    val userAuth: IO[Either[IdentityError, Username]] = IO.pure(user(headers)).flatMap { e =>
+      e.fold(
+        _ => readJwt(headers).fold(l => IO.pure(Left(l)), r => r.map(_.map(_.username))),
+        user => IO.pure(Right(user))
+      )
+    }
+    userAuth.map { e =>
+      e.fold(
+        {
+          case MissingCredentials(_, headers)
+              if !Cookie.from(headers).exists(_.values.exists(_.name == cookieNames.provider)) =>
+            Right(PicRequest.anon(headers))
+          case _ => Left(onUnauthorized(headers))
+        },
+        user => Right(PicRequest.forUser(user, headers))
+      )
     }
   }
 
