@@ -109,8 +109,9 @@ class PicsService(
   val cookieNames = auth.cookieNames
 
   val routes = HttpRoutes.of[IO] {
-    case GET -> Root          => SeeOther(Location(uri"/pics"))
-    case GET -> Root / "ping" => ok(Json.toJson(AppMeta.default))
+    case GET -> Root            => SeeOther(Location(uri"/pics"))
+    case GET -> Root / "ping"   => ok(Json.toJson(AppMeta.default))
+    case GET -> Root / "health" => ok(Json.toJson(AppMeta.default))
     case req @ GET -> Root / "version" =>
       val res = ok(Json.toJson(AppMeta.default))
       renderRanged(req)(res, res)
@@ -212,7 +213,10 @@ class PicsService(
       }
     case req @ GET -> Root / "sockets" =>
       authedAll(req) { user =>
-        val userAgent = user.rh.get(CaseInsensitiveString("User-Agent")).map(ua => s"'${ua.value}'").getOrElse("Unknown")
+        val userAgent = user.rh
+          .get(CaseInsensitiveString("User-Agent"))
+          .map(ua => s"'${ua.value}'")
+          .getOrElse("Unknown")
         log.info(s"Opening socket for '${user.name}' using user agent $userAgent.")
         val welcomeMessage = fs2.Stream(PicMessage.welcome(user.name, user.readOnly))
         val pings = fs2.Stream.awakeEvery[IO](30.seconds).map(_ => PicMessage.ping)
@@ -256,20 +260,21 @@ class PicsService(
       id match {
         case Twitter =>
           val twitter = socials.twitter
-          twitter.requestToken(Urls.hostOnly(req) / reverseSocial.twitter.callback.renderString)
-          .flatMap { e =>
-            // add requesttoken to session
-            e.fold(
-              err => unauthorized(Errors(err.message)),
-              token =>
-                SeeOther(Location(Uri.unsafeFromString(twitter.authTokenUrl(token).url))).map {
-                  res =>
-                    auth.withSession(TwitterState(token), req.isSecured, res)(
-                      TwitterState.json
-                    )
-                }
-            )
-          }
+          twitter
+            .requestToken(Urls.hostOnly(req) / reverseSocial.twitter.callback.renderString)
+            .flatMap { e =>
+              // add requesttoken to session
+              e.fold(
+                err => unauthorized(Errors(err.message)),
+                token =>
+                  SeeOther(Location(Uri.unsafeFromString(twitter.authTokenUrl(token).url))).map {
+                    res =>
+                      auth.withSession(TwitterState(token), req.isSecured, res)(
+                        TwitterState.json
+                      )
+                  }
+              )
+            }
         case Google =>
           startHinted(id, reverseSocial.google, socials.google, req)
         case Microsoft =>
@@ -299,7 +304,9 @@ class PicsService(
             verifier <- params
               .get(OauthVerifierKey)
               .toRight(OAuthError(s"Missing $OauthVerifierKey query paramater."))
-          } yield socials.twitter.validateTwitterCallback(token, requestToken.requestToken, verifier).flatMap { e =>
+          } yield socials.twitter
+            .validateTwitterCallback(token, requestToken.requestToken, verifier)
+            .flatMap { e =>
               e.flatMap(_.email.toRight(OAuthError("Email missing.")))
                 .fold(err => unauthorized(Errors(err.message)), ok => userResult(ok, id, req))
             }
@@ -322,7 +329,8 @@ class PicsService(
             req,
             id,
             cb =>
-              socials.amazon.validateCallback(cb)
+              socials.amazon
+                .validateCallback(cb)
                 .map(e => e.map(user => Email(user.username.value)))
           )
         case Facebook =>

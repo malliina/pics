@@ -1,6 +1,8 @@
 package com.malliina.pics.auth
 
-import cats.effect.{ContextShift, IO}
+import _root_.play.api.libs.json.{Json, OWrites, Reads, Writes}
+import cats.effect.IO
+import com.malliina.http.io.HttpClientIO
 import com.malliina.pics.http4s.PicsImplicits._
 import com.malliina.pics.http4s.PicsService.{noCache, version10}
 import com.malliina.pics.http4s.{PicsService, Reverse}
@@ -10,10 +12,8 @@ import com.malliina.values.{AccessToken, IdToken, Username}
 import com.malliina.web.{CognitoAccessValidator, CognitoIdValidator}
 import controllers.Social.AuthProvider
 import org.http4s.Credentials.Token
-import org.http4s.headers.{Authorization, Cookie, Location}
 import org.http4s._
-import _root_.play.api.libs.json.{Json, OWrites, Reads, Writes}
-import com.malliina.http.io.HttpClientIO
+import org.http4s.headers.{Authorization, Cookie, Location}
 
 import scala.concurrent.duration.DurationInt
 
