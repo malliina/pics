@@ -10,8 +10,8 @@ variables:
   DockerNamespace: malliinacr.azurecr.io
   DockerRepository: pics
   WebAppName: malliinapics
-  SbtVersion: 1.4.4
-  ContainerRegistry: malliinapicsconnection
+  SbtVersion: 1.4.6
+  ContainerRegistry: malliinacrconnection
 
 steps:
 
