@@ -7,7 +7,7 @@ pool:
 variables:
   azureSubscriptionEndpoint: malliinaresources
   ResourceGroupName: personal
-  DockerNamespace: malliinapics.azurecr.io
+  DockerNamespace: malliinacr.azurecr.io
   DockerRepository: pics
   WebAppName: malliinapics
   SbtVersion: 1.4.4

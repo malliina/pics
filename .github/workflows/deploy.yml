@@ -34,7 +34,7 @@ jobs:
         uses: azure/webapps-deploy@v2
         with:
           app-name: 'malliinapics'
-          images: 'malliinapics.azurecr.io/pics:${{ github.sha }}'
+          images: 'malliinacr.azurecr.io/pics:${{ github.sha }}'
 
       - name: Azure logout
         run: |
