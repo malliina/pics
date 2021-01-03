@@ -5,6 +5,10 @@
 
 This is a pic app. Available at [pics.malliina.com](https://pics.malliina.com).
 
+## Development
+
+    sbt ~reStart
+
 ## Documentation
 
 Check [pics-docs.malliina.com](https://pics-docs.malliina.com).
