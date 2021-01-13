@@ -8,16 +8,19 @@ import com.malliina.pics.http4s.PicsService.{noCache, version10}
 import com.malliina.pics.http4s.{PicsService, Reverse}
 import com.malliina.pics.{AppConf, Errors, PicRequest}
 import com.malliina.play.auth.Validators
+import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, IdToken, Username}
 import com.malliina.web.{CognitoAccessValidator, CognitoIdValidator}
 import controllers.Social.AuthProvider
 import org.http4s.Credentials.Token
 import org.http4s._
 import org.http4s.headers.{Authorization, Cookie, Location}
-
+import Http4sAuth.log
 import scala.concurrent.duration.DurationInt
 
 object Http4sAuth {
+  private val log = AppLogger(getClass)
+
   def apply(conf: AppConf): Http4sAuth =
     new Http4sAuth(
       JWT(conf.secret),
@@ -45,9 +48,11 @@ class Http4sAuth(
 
   def authenticate(headers: Headers): IO[Either[IO[Response[IO]], PicRequest]] = {
     val rs = PicsService.ranges(headers)
-    if (rs.exists(_.satisfies(MediaType.text.html))) {
+    if (rs.exists(r => r.satisfiedBy(MediaType.text.html))) {
       IO.pure(web(headers))
-    } else if (rs.exists(m => m.satisfies(version10) || m.satisfies(MediaType.application.json))) {
+    } else if (
+      rs.exists(m => m.satisfiedBy(version10) || m.satisfiedBy(MediaType.application.json))
+    ) {
       jwt(headers)
     } else {
       IO.pure(Left(NotAcceptable(Json.toJson(Errors.single("Not acceptable.")), noCache)))
