@@ -7,25 +7,25 @@ import scala.sys.process.Process
 import scala.util.Try
 
 val webAuthVersion = "6.0.0"
-val primitivesVersion = "1.18.0"
-val munitVersion = "0.7.19"
-val scalatagsVersion = "0.9.2"
-val awsSdk2Version = "2.15.45"
-val testContainersScalaVersion = "0.38.7"
+val primitivesVersion = "1.18.1"
+val munitVersion = "0.7.23"
+val scalatagsVersion = "0.9.4"
+val awsSdk2Version = "2.16.39"
+val testContainersScalaVersion = "0.39.3"
 val utilPlayDep = "com.malliina" %% "web-auth" % webAuthVersion
 
 inThisBuild(
   Seq(
     organization := "com.malliina",
     version := "0.0.1",
-    scalaVersion := "2.13.3"
+    scalaVersion := "2.13.5"
   )
 )
 
 val commonSettings = Seq(
   libraryDependencies ++= Seq(
     "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
-    "com.typesafe.play" %%% "play-json" % "2.9.1",
+    "com.typesafe.play" %%% "play-json" % "2.9.2",
     "com.malliina" %%% "primitives" % primitivesVersion,
     "com.malliina" %%% "util-html" % webAuthVersion
   )
@@ -102,16 +102,16 @@ val backend = project
     buildInfoPackage := "com.malliina.pics",
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "hash" -> gitHash),
     libraryDependencies ++= http4sModules.map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.21.14"
+      "org.http4s" %% s"http4s-$m" % "0.21.22"
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
-      "org.tpolecat" %% d % "0.9.4"
+      "org.tpolecat" %% d % "0.12.1"
     } ++ Seq(
-      "com.github.pureconfig" %% "pureconfig" % "0.14.0",
+      "com.github.pureconfig" %% "pureconfig" % "0.14.1",
       "org.apache.commons" % "commons-text" % "1.9",
       "software.amazon.awssdk" % "s3" % awsSdk2Version,
-      "org.flywaydb" % "flyway-core" % "7.3.1",
+      "org.flywaydb" % "flyway-core" % "7.7.3",
       "mysql" % "mysql-connector-java" % "5.1.49",
-      "com.sksamuel.scrimage" % "scrimage-core" % "4.0.6",
+      "com.sksamuel.scrimage" % "scrimage-core" % "4.0.17",
       "com.malliina" %% "logstreams-client" % "1.10.1",
       utilPlayDep,
       "org.slf4j" % "slf4j-api" % "1.7.30",
