@@ -9,7 +9,7 @@ import com.malliina.util.AppLogger
 import fs2.concurrent.Topic
 import org.http4s.server.Router
 import org.http4s.server.blaze.BlazeServerBuilder
-import org.http4s.server.middleware.HSTS
+import org.http4s.server.middleware.{GZip, HSTS}
 import org.http4s.{HttpRoutes, Request, Response}
 
 import scala.concurrent.ExecutionContext
@@ -50,12 +50,14 @@ object PicsServer extends IOApp {
     handler: MultiSizeHandlerIO,
     blocker: Blocker,
     topic: Topic[IO, PicMessage]
-  ) = HSTS {
-    orNotFound {
-      Router(
-        "/" -> PicsService(conf, db, topic, handler, blocker, contextShift, timer).routes,
-        "/assets" -> StaticService(blocker, contextShift).routes
-      )
+  ) = GZip {
+    HSTS {
+      orNotFound {
+        Router(
+          "/" -> PicsService(conf, db, topic, handler, blocker, contextShift, timer).routes,
+          "/assets" -> StaticService(blocker, contextShift).routes
+        )
+      }
     }
   }
 
