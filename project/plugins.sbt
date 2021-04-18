@@ -1,4 +1,4 @@
-scalaVersion := "2.12.12"
+scalaVersion := "2.12.13"
 
 Seq(
   "com.malliina" % "sbt-nodejs" % "1.1.0",
