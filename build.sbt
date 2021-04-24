@@ -6,7 +6,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossP
 import scala.sys.process.Process
 import scala.util.Try
 
-val webAuthVersion = "6.0.0"
+val webAuthVersion = "6.0.1"
 val primitivesVersion = "1.18.1"
 val munitVersion = "0.7.23"
 val scalatagsVersion = "0.9.4"
@@ -52,18 +52,18 @@ val frontend = project
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
-    version in webpack := "4.44.2",
+    webpack / version := "4.44.2",
 //    version in webpack := "5.8.0",
     webpackEmitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
-    npmDependencies in Compile ++= Seq(
+    Compile / npmDependencies ++= Seq(
       "@fortawesome/fontawesome-free" -> "5.15.3",
       "bootstrap" -> "4.6.0",
       "jquery" -> "3.6.0",
       "popper.js" -> "1.16.1"
     ),
-    npmDevDependencies in Compile ++= Seq(
+    Compile / npmDevDependencies ++= Seq(
       "autoprefixer" -> "10.2.5",
       "cssnano" -> "4.1.11",
       "css-loader" -> "5.2.1",
@@ -79,10 +79,10 @@ val frontend = project
       "url-loader" -> "4.1.1",
       "webpack-merge" -> "5.7.3"
     ),
-    webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.dev.config.js"),
-    webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.prod.config.js"),
-    webpackBundlingMode in (Compile, fastOptJS) := BundlingMode.LibraryOnly(),
-    webpackBundlingMode in (Compile, fullOptJS) := BundlingMode.Application
+    fastOptJS / webpackConfigFile := Some(baseDirectory.value / "webpack.dev.config.js"),
+    fullOptJS / webpackConfigFile := Some(baseDirectory.value / "webpack.prod.config.js"),
+    Compile / fastOptJS / webpackBundlingMode := BundlingMode.LibraryOnly(),
+    Compile / fullOptJS / webpackBundlingMode := BundlingMode.Application
   )
 
 val prodPort = 9000
@@ -121,54 +121,54 @@ val backend = project
       "com.dimafeng" %% "testcontainers-scala-mysql" % testContainersScalaVersion % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
-    name in Linux := "pics",
-    packageName in Linux := (name in Linux).value,
-    httpPort in Linux := Option(s"$prodPort"),
+    Linux / name := "pics",
+    Linux / packageName := (Linux / name).value,
+    Linux / httpPort := Option(s"$prodPort"),
     maintainer := "Michael Skogberg <malliina123@gmail.com>",
-    javaOptions in Universal ++= {
+    Universal / javaOptions ++= {
       Seq(
         "-J-Xmx1024m",
         s"-Dhttp.port=$prodPort",
         "-Dlogback.configurationFile=logback-prod.xml"
       )
     },
-    packageSummary in Linux := "This is the pics summary.",
+    Linux / packageSummary := "This is the pics summary.",
     rpmVendor := "Skogberg Labs",
-    unmanagedResourceDirectories in Compile += baseDirectory.value / "public",
-    httpPort in Linux := Option(s"$prodPort"),
+    Compile / unmanagedResourceDirectories += baseDirectory.value / "public",
+    Linux / httpPort := Option(s"$prodPort"),
     dockerVersion := Option(DockerVersion(19, 3, 5, None)),
     dockerBaseImage := "openjdk:11",
-    daemonUser in Docker := "pics",
-    version in Docker := gitHash,
+    Docker / daemonUser := "pics",
+    Docker / version := gitHash,
     dockerRepository := Option("malliinacr.azurecr.io"),
     dockerExposedPorts ++= Seq(prodPort),
-    publishArtifact in (Compile, packageDoc) := false,
-    publishArtifact in packageDoc := false,
-    sources in (Compile, doc) := Seq.empty,
-    packageName in Docker := "pics",
-    resources in Compile ++= Def.taskDyn {
-      val sjsStage = scalaJSStage.in(frontend).value match {
+    Compile / packageDoc / publishArtifact := false,
+    packageDoc / publishArtifact := false,
+    Compile / doc / sources := Seq.empty,
+    Docker / packageName := "pics",
+    Compile / resources ++= Def.taskDyn {
+      val sjsStage = (frontend / scalaJSStage).value match {
         case Stage.FastOpt => fastOptJS
         case Stage.FullOpt => fullOptJS
       }
       Def.task {
-        val webpackFiles = webpack.in(frontend, Compile, sjsStage).value.map(_.data)
-        val hashedFiles = hashAssets.in(frontend, Compile, sjsStage).value.map(_.hashedFile.toFile)
+        val webpackFiles = (frontend / Compile / sjsStage / webpack).value.map(_.data)
+        val hashedFiles = (frontend / Compile / sjsStage / hashAssets).value.map(_.hashedFile.toFile)
         webpackFiles ++ hashedFiles
       }
     }.value,
-    resourceDirectories in Compile += assetsDir.in(frontend).value.toFile,
-    reStart := reStart.dependsOn(webpack.in(frontend, Compile, fastOptJS)).evaluated,
-    watchSources ++= (watchSources in frontend).value,
-    sourceGenerators in Compile += Def.taskDyn {
-      val sjsStage = scalaJSStage.in(frontend).value match {
+    Compile / resourceDirectories += (frontend / assetsDir).value.toFile,
+    reStart := reStart.dependsOn(frontend / Compile / fastOptJS / webpack).evaluated,
+    watchSources ++= (frontend / watchSources).value,
+    Compile / sourceGenerators += Def.taskDyn {
+      val sjsStage = (frontend / scalaJSStage).value match {
         case Stage.FastOpt => fastOptJS
         case Stage.FullOpt => fullOptJS
       }
       Def.task {
-        val dest = (sourceManaged in Compile).value
-        val hashed = hashAssets.in(frontend, Compile, sjsStage).value
-        val prefix = assetsPrefix.in(frontend).value
+        val dest = (Compile / sourceManaged).value
+        val hashed = (frontend / Compile / sjsStage / hashAssets).value
+        val prefix = (frontend / assetsPrefix).value
         val log = streams.value.log
         val cached = FileFunction.cached(streams.value.cacheDirectory / "assets") { in =>
           makeAssetsFile(dest, prefix, hashed, log)
@@ -185,8 +185,8 @@ val pics = project
   .aggregate(frontend, backend)
   .settings(commonSettings)
   .settings(
-    runApp := (run in Compile).in(backend).evaluated,
-    reStart := reStart.in(backend).evaluated
+    runApp := (backend / (Compile / run)).evaluated,
+    reStart := (backend / reStart).evaluated
   )
 
 def gitHash: String =
