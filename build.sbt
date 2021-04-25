@@ -1,4 +1,3 @@
-import WebPlugin.makeAssetsFile
 import com.typesafe.sbt.packager.docker.DockerVersion
 import org.scalajs.sbtplugin.Stage
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
@@ -7,8 +6,8 @@ import scala.sys.process.Process
 import scala.util.Try
 
 val webAuthVersion = "6.0.1"
-val primitivesVersion = "1.18.1"
-val munitVersion = "0.7.23"
+val primitivesVersion = "1.19.0"
+val munitVersion = "0.7.25"
 val scalatagsVersion = "0.9.4"
 val awsSdk2Version = "2.16.39"
 val testContainersScalaVersion = "0.39.3"
@@ -41,11 +40,12 @@ val crossJs = cross.js
 
 val frontend = project
   .in(file("frontend"))
-  .enablePlugins(ScalaJSBundlerPlugin, NodeJsPlugin, WebPlugin)
+  .enablePlugins(NodeJsPlugin, ClientPlugin)
   .disablePlugins(RevolverPlugin)
   .dependsOn(crossJs)
   .settings(commonSettings)
   .settings(
+    assetsPackage := "com.malliina.pics.assets",
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "1.1.0",
       "be.doeraene" %%% "scalajs-jquery" % "1.0.0",
@@ -53,7 +53,6 @@ val frontend = project
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     webpack / version := "4.44.2",
-//    version in webpack := "5.8.0",
     webpackEmitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
@@ -94,19 +93,21 @@ val backend = project
     FileTreePlugin,
     JavaServerAppPackaging,
     SystemdPlugin,
-    BuildInfoPlugin
+    BuildInfoPlugin,
+    ServerPlugin
   )
   .dependsOn(crossJvm)
   .settings(commonSettings)
   .settings(
+    clientProject := frontend,
     buildInfoPackage := "com.malliina.pics",
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "hash" -> gitHash),
     libraryDependencies ++= http4sModules.map { m =>
       "org.http4s" %% s"http4s-$m" % "0.21.22"
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
-      "org.tpolecat" %% d % "0.12.1"
+      "org.tpolecat" %% d % "0.13.1"
     } ++ Seq(
-      "com.github.pureconfig" %% "pureconfig" % "0.14.1",
+      "com.github.pureconfig" %% "pureconfig" % "0.15.0",
       "org.apache.commons" % "commons-text" % "1.9",
       "software.amazon.awssdk" % "s3" % awsSdk2Version,
       "org.flywaydb" % "flyway-core" % "7.7.3",
@@ -145,37 +146,7 @@ val backend = project
     Compile / packageDoc / publishArtifact := false,
     packageDoc / publishArtifact := false,
     Compile / doc / sources := Seq.empty,
-    Docker / packageName := "pics",
-    Compile / resources ++= Def.taskDyn {
-      val sjsStage = (frontend / scalaJSStage).value match {
-        case Stage.FastOpt => fastOptJS
-        case Stage.FullOpt => fullOptJS
-      }
-      Def.task {
-        val webpackFiles = (frontend / Compile / sjsStage / webpack).value.map(_.data)
-        val hashedFiles = (frontend / Compile / sjsStage / hashAssets).value.map(_.hashedFile.toFile)
-        webpackFiles ++ hashedFiles
-      }
-    }.value,
-    Compile / resourceDirectories += (frontend / assetsDir).value.toFile,
-    reStart := reStart.dependsOn(frontend / Compile / fastOptJS / webpack).evaluated,
-    watchSources ++= (frontend / watchSources).value,
-    Compile / sourceGenerators += Def.taskDyn {
-      val sjsStage = (frontend / scalaJSStage).value match {
-        case Stage.FastOpt => fastOptJS
-        case Stage.FullOpt => fullOptJS
-      }
-      Def.task {
-        val dest = (Compile / sourceManaged).value
-        val hashed = (frontend / Compile / sjsStage / hashAssets).value
-        val prefix = (frontend / assetsPrefix).value
-        val log = streams.value.log
-        val cached = FileFunction.cached(streams.value.cacheDirectory / "assets") { in =>
-          makeAssetsFile(dest, prefix, hashed, log)
-        }
-        cached(hashed.map(_.hashedFile.toFile).toSet).toSeq
-      }
-    }.taskValue
+    Docker / packageName := "pics"
   )
 
 val runApp = inputKey[Unit]("Runs the app")
@@ -185,8 +156,7 @@ val pics = project
   .aggregate(frontend, backend)
   .settings(commonSettings)
   .settings(
-    runApp := (backend / (Compile / run)).evaluated,
-    reStart := (backend / reStart).evaluated
+    start := (backend / start).value
   )
 
 def gitHash: String =

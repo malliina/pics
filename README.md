@@ -7,7 +7,11 @@ This is a pic app. Available at [pics.malliina.com](https://pics.malliina.com).
 
 ## Development
 
-    sbt ~reStart
+    sbt ~start
+
+## Deployment
+
+Push to the `master` branch. See [azure-pipelines.yml](azure-pipelines.yml) for details.
 
 ## Documentation
 
