@@ -3,9 +3,9 @@ package com.malliina.pics.db
 import com.malliina.pics.db.DoobiePicsDatabase.log
 import com.malliina.pics.{Key, KeyMeta, MetaSourceT, PicOwner}
 import com.malliina.util.AppLogger
+import com.malliina.values.UserId
+import doobie.ConnectionIO
 import doobie.implicits._
-
-import scala.concurrent.Future
 
 object DoobiePicsDatabase {
   private val log = AppLogger(getClass)
@@ -16,20 +16,24 @@ object DoobiePicsDatabase {
 class DoobiePicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] {
   def load(from: Int, until: Int, user: PicOwner): F[List[KeyMeta]] = db.run {
     val limit = until - from
-    sql"""select `key`, owner, added
-          from pics 
-          where owner = $user 
-          order by added desc limit $limit offset $from"""
+    sql"""select p.`key`, u.username, p.added
+          from pics p, users u
+          where p.user = u.id and u.username = $user 
+          order by p.added desc limit $limit offset $from"""
       .query[KeyMeta]
       .to[List]
   }
 
   def saveMeta(key: Key, owner: PicOwner): F[KeyMeta] = db.run {
     for {
-      _ <- sql"insert into pics(`key`, owner) values ($key, $owner)".update.run
-      row <- sql"select `key`, owner, added from pics where `key` = $key and owner = $owner"
-        .query[KeyMeta]
-        .unique
+      userId <- fetchOrCreateUser(owner)
+      _ <- sql"insert into pics(`key`, user) values ($key, $userId)".update.run
+      row <-
+        sql"""select p.`key`, u.username, p.added 
+              from pics p, users u 
+              where p.user = u.id and p.`key` = $key and u.username = $owner"""
+          .query[KeyMeta]
+          .unique
     } yield {
       log.info(s"Inserted '$key' by '$owner'.")
       row
@@ -37,15 +41,16 @@ class DoobiePicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] {
   }
 
   def remove(key: Key, user: PicOwner): F[Boolean] = db.run {
-    sql"delete from pics where owner = $user and `key` = $key".update.run.map { deleted =>
-      val wasDeleted = deleted > 0
-      if (wasDeleted) {
-        log.info(s"Deleted '$key' by '$user'.")
-      } else {
-        log.warn(s"Tried to remove '$key' by '$user' but found no matching rows.")
+    sql"delete from pics where `key` = $key and user = (select id from users where username = $user)".update.run
+      .map { deleted =>
+        val wasDeleted = deleted > 0
+        if (wasDeleted) {
+          log.info(s"Deleted '$key' by '$user'.")
+        } else {
+          log.warn(s"Tried to remove '$key' by '$user' but found no matching rows.")
+        }
+        wasDeleted
       }
-      wasDeleted
-    }
   }
 
   def contains(key: Key): F[Boolean] = db.run {
@@ -57,10 +62,26 @@ class DoobiePicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] {
       sql"select exists(select `key` from pics where `key` = ${meta.key})".query[Boolean].unique
     q.flatMap { exists =>
       if (exists) {
-        AsyncConnectionIO.pure(0)
+        pure(0)
       } else {
-        sql"insert into pics(`key`, owner, added) values(${meta.key}, ${meta.owner}, ${meta.added})".update.run
+        for {
+          userId <- fetchOrCreateUser(meta.owner)
+          rows <-
+            sql"insert into pics(`key`, user, added) values(${meta.key}, $userId, ${meta.added})".update.run
+        } yield rows
       }
     }
   }
+
+  private def fetchOrCreateUser(name: PicOwner): ConnectionIO[UserId] = for {
+    userRow <- sql"select id from users where username = $name".query[UserId].option
+    userId <- userRow
+      .map(pure)
+      .getOrElse(
+        sql"insert into users(username) values ($name)".update
+          .withUniqueGeneratedKeys[UserId]("id")
+      )
+  } yield userId
+
+  def pure[T](t: T) = AsyncConnectionIO.pure(t)
 }

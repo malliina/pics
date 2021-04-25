@@ -16,3 +16,4 @@ hydra.sbt
 .bsp
 out
 site
+venv
