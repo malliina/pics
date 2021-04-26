@@ -30,7 +30,7 @@ try:
     for foo in camera.capture_continuous(stream, "jpeg"):
         # Rewind the stream and send the image data over the wire
         stream.seek(0)
-        requests.post(url, data = stream)
+        requests.post(url, data = stream, headers = {"Authorization": "token todo", "Accept": "application/json"})
         # If we've been capturing for more than 30 seconds, quit
         if time.time() - start > 30:
             break

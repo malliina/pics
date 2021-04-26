@@ -1,9 +1,9 @@
 package com.malliina.pics.db
 
 import com.malliina.pics.db.DoobiePicsDatabase.log
-import com.malliina.pics.{Key, KeyMeta, MetaSourceT, PicOwner}
+import com.malliina.pics.{Key, KeyMeta, MetaSourceT, PicOwner, UserDatabase}
 import com.malliina.util.AppLogger
-import com.malliina.values.UserId
+import com.malliina.values.{AccessToken, UserId, Username}
 import doobie.ConnectionIO
 import doobie.implicits._
 
@@ -13,7 +13,7 @@ object DoobiePicsDatabase {
   def apply[F[_]](db: DatabaseRunner[F]): DoobiePicsDatabase[F] = new DoobiePicsDatabase(db)
 }
 
-class DoobiePicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] {
+class DoobiePicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with UserDatabase[F] {
   def load(from: Int, until: Int, user: PicOwner): F[List[KeyMeta]] = db.run {
     val limit = until - from
     sql"""select p.`key`, u.username, p.added
@@ -71,6 +71,12 @@ class DoobiePicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] {
         } yield rows
       }
     }
+  }
+
+  def userByToken(token: AccessToken): F[Option[Username]] = db.run {
+    sql"""select u.username from users u, tokens t where t.user = u.id and t.token = $token"""
+      .query[Username]
+      .option
   }
 
   private def fetchOrCreateUser(name: PicOwner): ConnectionIO[UserId] = for {

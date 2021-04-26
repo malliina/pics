@@ -3,30 +3,34 @@ package com.malliina.pics.auth
 import _root_.play.api.libs.json.{Json, OWrites, Reads, Writes}
 import cats.effect.IO
 import com.malliina.http.io.HttpClientIO
+import com.malliina.pics.auth.CredentialsResult.{AccessTokenResult, IdTokenResult, NoCredentials}
+import com.malliina.pics.db.DoobiePicsDatabase
 import com.malliina.pics.http4s.PicsImplicits._
 import com.malliina.pics.http4s.PicsService.{noCache, version10}
 import com.malliina.pics.http4s.{PicsService, Reverse}
 import com.malliina.pics.{AppConf, Errors, PicRequest}
-import com.malliina.play.auth.Validators
+import com.malliina.play.auth.{JWTUsers, Validators}
 import com.malliina.util.AppLogger
-import com.malliina.values.{AccessToken, IdToken, Username}
-import com.malliina.web.{CognitoAccessValidator, CognitoIdValidator}
+import com.malliina.values.{AccessToken, ErrorMessage, IdToken, Username}
+import com.malliina.web.{CognitoAccessValidator, CognitoIdValidator, JWTUser, OAuthError}
 import controllers.Social.AuthProvider
 import org.http4s.Credentials.Token
 import org.http4s._
 import org.http4s.headers.{Authorization, Cookie, Location}
-import Http4sAuth.log
+import org.http4s.util.CaseInsensitiveString
+
 import scala.concurrent.duration.DurationInt
 
 object Http4sAuth {
   private val log = AppLogger(getClass)
 
-  def apply(conf: AppConf): Http4sAuth =
+  def apply(conf: AppConf, db: DoobiePicsDatabase[IO]): Http4sAuth =
     new Http4sAuth(
       JWT(conf.secret),
       Validators.picsAccess,
       Validators.picsId,
       Validators.google(HttpClientIO()),
+      db,
       CookieConf.pics
     )
 
@@ -42,6 +46,7 @@ class Http4sAuth(
   ios: CognitoAccessValidator,
   android: CognitoIdValidator,
   google: GoogleTokenAuth,
+  db: DoobiePicsDatabase[IO],
   val cookieNames: CookieConf
 ) {
   val cookiePath = Option("/")
@@ -49,12 +54,15 @@ class Http4sAuth(
   def authenticate(headers: Headers): IO[Either[IO[Response[IO]], PicRequest]] = {
     val rs = PicsService.ranges(headers)
     if (rs.exists(r => r.satisfiedBy(MediaType.text.html))) {
+      println("HTML headers")
       IO.pure(web(headers))
     } else if (
       rs.exists(m => m.satisfiedBy(version10) || m.satisfiedBy(MediaType.application.json))
     ) {
+      println("JWT headers")
       jwt(headers)
     } else {
+      println("No headers")
       IO.pure(Left(NotAcceptable(Json.toJson(Errors.single("Not acceptable.")), noCache)))
     }
   }
@@ -106,32 +114,47 @@ class Http4sAuth(
       }
       .fold(_ => IO.pure(Right(PicRequest.anon(headers))), identity)
 
-  private def readJwt(headers: Headers) = token(headers)
-    .map { token =>
-      IO(ios.validate(AccessToken(token.value)).orElse(android.validate(token)))
-        .flatMap { e =>
-          e.fold(
-            err =>
-              google.validate(token).map { e =>
-                e.map { email => EmailUser(email) }
-              },
-            user => IO.pure(Right(user))
-          )
+  private def readJwt(headers: Headers): Either[IdentityError, IO[Either[TokenError, JWTUser]]] =
+    token(headers) match {
+      case AccessTokenResult(token) =>
+        val res = db.userByToken(token).map { opt =>
+          opt
+            .map { u => JWTUsers.user(u) }
+            .toRight(TokenError(OAuthError(ErrorMessage("Invalid access token.")), headers))
         }
-        .map { e =>
-          e.left.map { error =>
-            JWTError(error, headers)
+        Right(res)
+      case IdTokenResult(token) =>
+        val res = IO(ios.validate(AccessToken(token.value)).orElse(android.validate(token)))
+          .flatMap { e =>
+            e.fold(
+              err =>
+                google.validate(token).map { e =>
+                  e.map { email => EmailUser(email) }
+                },
+              user => IO.pure(Right(user))
+            )
           }
-        }
+          .map { e =>
+            e.left.map { error =>
+              TokenError(error, headers)
+            }
+          }
+        Right(res)
+      case NoCredentials(headers) => Left(MissingCredentials("Creds required.", headers))
     }
 
-  def token(headers: Headers) = headers
+  def token(headers: Headers): CredentialsResult = headers
     .get(Authorization)
-    .toRight(MissingCredentials("Missing Authorization header", headers))
-    .flatMap(_.credentials match {
-      case Token(_, token) => Right(IdToken(token))
-      case _               => Left(MissingCredentials("Missing token.", headers))
-    })
+    .fold[CredentialsResult](NoCredentials(headers)) { h =>
+      h.credentials match {
+        case Token(scheme, token) =>
+          println(s"Token scheme $scheme token $token")
+          if (scheme == CaseInsensitiveString("token")) AccessTokenResult(AccessToken(token))
+          else IdTokenResult(IdToken(token))
+        case _ =>
+          NoCredentials(headers)
+      }
+    }
 
   def session[T: Reads](from: Headers): Either[IdentityError, T] =
     read[T](cookieNames.session, from)
@@ -199,7 +222,7 @@ class Http4sAuth(
         .map(c => IdToken(c.content))
         .toRight(MissingCredentials(s"Cookie not found: '$cookieName'.", headers))
       t <- webJwt.verify[T](cookie).left.map { err =>
-        JWTError(err, headers)
+        TokenError(err, headers)
       }
     } yield t
 

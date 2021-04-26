@@ -5,7 +5,8 @@ import com.malliina.values.Username
 import com.malliina.web.JWTUser
 
 object JWTUsers {
-  def anon = new JWTUser {
-    override def username: Username = Username(PicOwner.anon.name)
+  def anon = user(Username(PicOwner.anon.name))
+  def user(user: Username) = new JWTUser {
+    override def username: Username = user
   }
 }

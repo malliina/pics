@@ -1,7 +1,9 @@
 package com.malliina.pics
 
 import cats.effect.IO
+import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
 
+import java.text.Normalizer
 import scala.concurrent.duration.{DurationLong, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -28,6 +30,21 @@ object Util {
         }
       }
     }
+
+  private val generator = new RandomStringGenerator.Builder()
+    .withinRange('a', 'z')
+    .filteredBy(CharacterPredicates.LETTERS)
+    .build()
+
+  def randomString(length: Int) = generator.generate(length).toLowerCase
+
+  def normalize(input: String): String =
+    Normalizer
+      .normalize(input, Normalizer.Form.NFD)
+      .replaceAll("[^\\p{ASCII}]", "")
+      .toLowerCase
+      .replaceAll("[^-a-zA-Z0-9]", "-")
+      .trim
 }
 
 case class Timed[T](result: T, duration: FiniteDuration)

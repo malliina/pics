@@ -1,9 +1,9 @@
 package tests
 
-import java.nio.file.{Files, Paths}
-
-import com.malliina.pics.{ContentType, Resizer, ScrimageResizerIO}
+import com.malliina.pics.{ContentType, Resizer, ScrimageResizerIO, Util}
 import com.malliina.storage.StorageInt
+
+import java.nio.file.{Files, Paths}
 import javax.imageio.ImageIO
 
 class ImageTests extends munit.FunSuite {

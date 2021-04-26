@@ -32,7 +32,7 @@ object PicsServer extends IOApp {
 
   def appResource(conf: PicsConf, handler: MultiSizeHandlerIO) = for {
     blocker <- Blocker[IO]
-    topic <- Resource.liftF(Topic[IO, PicMessage](PicMessage.ping))
+    topic <- Resource.eval(Topic[IO, PicMessage](PicMessage.ping))
     tx <- DoobieDatabase.migratedResource(conf.db, blocker)
   } yield {
     val db = DoobiePicsDatabase(DoobieDatabase(tx))
@@ -46,7 +46,7 @@ object PicsServer extends IOApp {
 
   private def app(
     conf: PicsConf,
-    db: MetaSourceT[IO],
+    db: DoobiePicsDatabase[IO],
     handler: MultiSizeHandlerIO,
     blocker: Blocker,
     topic: Topic[IO, PicMessage]

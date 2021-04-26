@@ -19,4 +19,4 @@ sealed trait IdentityError {
 }
 
 case class MissingCredentials(message: String, headers: Headers) extends IdentityError
-case class JWTError(error: AuthError, headers: Headers) extends IdentityError
+case class TokenError(error: AuthError, headers: Headers) extends IdentityError

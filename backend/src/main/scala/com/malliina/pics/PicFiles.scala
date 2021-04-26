@@ -1,9 +1,9 @@
 package com.malliina.pics
 
 import java.nio.file.{Files, Path}
-
 import cats.effect.IO
 import com.malliina.storage.{StorageLong, StorageSize}
+import com.malliina.values.{AccessToken, Username}
 
 sealed trait DataResponse {
   def contentLength: Option[StorageSize]
@@ -58,4 +58,8 @@ trait MetaSourceT[F[_]] extends SourceLike[F] {
   def saveMeta(key: Key, owner: PicOwner): F[KeyMeta]
   def putMetaIfNotExists(meta: KeyMeta): F[Int]
   def remove(key: Key, user: PicOwner): F[Boolean]
+}
+
+trait UserDatabase[F[_]] {
+  def userByToken(token: AccessToken): F[Option[Username]]
 }

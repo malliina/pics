@@ -1,7 +1,6 @@
 package com.malliina.pics.http4s
 
 import java.nio.file.Files
-
 import _root_.play.api.libs.json.{Json, Writes}
 import cats.data.NonEmptyList
 import cats.effect._
@@ -12,6 +11,7 @@ import com.malliina.pics.PicsStrings.{XClientPic, XKey, XName}
 import com.malliina.pics._
 import com.malliina.pics.auth.Http4sAuth.TwitterState
 import com.malliina.pics.auth.{Http4sAuth, UserPayload}
+import com.malliina.pics.db.DoobiePicsDatabase
 import com.malliina.pics.html.PicsHtml
 import com.malliina.pics.http4s.PicsService.{log, noCache, ranges, version10}
 import com.malliina.storage.StorageLong
@@ -43,7 +43,7 @@ object PicsService {
 
   def apply(
     conf: PicsConf,
-    db: MetaSourceT[IO],
+    db: DoobiePicsDatabase[IO],
     topic: Topic[IO, PicMessage],
     handler: MultiSizeHandlerIO,
     blocker: Blocker,
@@ -53,7 +53,7 @@ object PicsService {
     val socials = Socials(conf.social, HttpClientIO())
     apply(
       PicsHtml.build(conf.mode.isProd),
-      Http4sAuth(conf.app),
+      Http4sAuth(conf.app, db),
       socials,
       db,
       topic,

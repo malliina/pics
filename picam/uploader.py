@@ -10,7 +10,9 @@ logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"),
 log = logging.getLogger("campi")
 log.info("Opening file...")
 
+#url = "https://pics.malliina.com/pics"
+url = "http://localhost:9000/pics"
 with open("image.jpg", "rb") as file:
     log.info("Uploading file...")
-    requests.post('https://pics.malliina.com/pics', data = file)
+    requests.post(url, data = file, headers = {"Authorization": "token todo", "Accept": "application/json"})
     log.info("File uploaded.")
