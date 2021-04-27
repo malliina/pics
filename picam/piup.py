@@ -27,15 +27,19 @@ try:
     # our protocol simple)
     start = time.time()
     stream = io.BytesIO()
+    log.info("Capturing images...")
     for foo in camera.capture_continuous(stream, "jpeg"):
+        log.info("Sending image...")
         # Rewind the stream and send the image data over the wire
         stream.seek(0)
         requests.post(url, data = stream, headers = {"Authorization": "token todo", "Accept": "application/json"})
-        # If we've been capturing for more than 30 seconds, quit
-        if time.time() - start > 30:
+        # If we've been capturing for more than 3600*24*7 seconds, quit
+        if time.time() - start > 3600*24*7:
             break
         # Reset the stream for the next capture
         stream.seek(0)
         stream.truncate()
+        # Sleep five minutes
+        time.sleep(60*5)
 finally:
     log.info("Done.")

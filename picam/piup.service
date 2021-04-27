@@ -1,0 +1,11 @@
+[Unit]
+Description=Up pics with piup
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/python3 /home/pi/piup.py
+User=pi
+
+[Install]
+WantedBy=multi-user.target
