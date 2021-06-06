@@ -3,7 +3,7 @@ package com.malliina.pics.http4s
 import cats.data.Kleisli
 import cats.effect.{Blocker, ExitCode, IO, IOApp, Resource}
 import com.malliina.pics.BuildInfo
-import com.malliina.pics.db.{DoobieDatabase, DoobiePicsDatabase}
+import com.malliina.pics.db.{DoobieDatabase, PicsDatabase}
 import com.malliina.pics.{MetaSourceT, MultiSizeHandlerIO, PicsConf}
 import com.malliina.util.AppLogger
 import fs2.concurrent.Topic
@@ -35,7 +35,7 @@ object PicsServer extends IOApp {
     topic <- Resource.eval(Topic[IO, PicMessage](PicMessage.ping))
     tx <- DoobieDatabase.migratedResource(conf.db, blocker)
   } yield {
-    val db = DoobiePicsDatabase(DoobieDatabase(tx))
+    val db = PicsDatabase(DoobieDatabase(tx))
 //    val csrf =
 //      CSRF.generateSigningKey[IO].map { key =>
 //        CSRF[IO, IO](key, _ => true)
@@ -46,7 +46,7 @@ object PicsServer extends IOApp {
 
   private def app(
     conf: PicsConf,
-    db: DoobiePicsDatabase[IO],
+    db: PicsDatabase[IO],
     handler: MultiSizeHandlerIO,
     blocker: Blocker,
     topic: Topic[IO, PicMessage]

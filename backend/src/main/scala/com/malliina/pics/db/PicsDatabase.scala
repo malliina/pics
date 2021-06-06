@@ -1,25 +1,24 @@
 package com.malliina.pics.db
 
-import com.malliina.pics.db.DoobiePicsDatabase.log
+import com.malliina.pics.db.PicsDatabase.log
 import com.malliina.pics.{Key, KeyMeta, MetaSourceT, PicOwner, UserDatabase}
 import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, UserId, Username}
 import doobie.ConnectionIO
 import doobie.implicits._
 
-object DoobiePicsDatabase {
+object PicsDatabase {
   private val log = AppLogger(getClass)
 
-  def apply[F[_]](db: DatabaseRunner[F]): DoobiePicsDatabase[F] = new DoobiePicsDatabase(db)
+  def apply[F[_]](db: DatabaseRunner[F]): PicsDatabase[F] = new PicsDatabase(db)
 }
 
-class DoobiePicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with UserDatabase[F] {
-  def load(from: Int, until: Int, user: PicOwner): F[List[KeyMeta]] = db.run {
-    val limit = until - from
+class PicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with UserDatabase[F] {
+  def load(offset: Int, limit: Int, user: PicOwner): F[List[KeyMeta]] = db.run {
     sql"""select p.`key`, u.username, p.added
           from pics p, users u
           where p.user = u.id and u.username = $user 
-          order by p.added desc limit $limit offset $from"""
+          order by p.added desc limit $limit offset $offset"""
       .query[KeyMeta]
       .to[List]
   }

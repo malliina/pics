@@ -11,7 +11,7 @@ import com.malliina.pics.PicsStrings.{XClientPic, XKey, XName}
 import com.malliina.pics._
 import com.malliina.pics.auth.Http4sAuth.TwitterState
 import com.malliina.pics.auth.{Http4sAuth, UserPayload}
-import com.malliina.pics.db.DoobiePicsDatabase
+import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.html.PicsHtml
 import com.malliina.pics.http4s.PicsService.{log, noCache, ranges, version10}
 import com.malliina.storage.StorageLong
@@ -43,7 +43,7 @@ object PicsService {
 
   def apply(
     conf: PicsConf,
-    db: DoobiePicsDatabase[IO],
+    db: PicsDatabase[IO],
     topic: Topic[IO, PicMessage],
     handler: MultiSizeHandlerIO,
     blocker: Blocker,

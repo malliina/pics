@@ -3,10 +3,10 @@ package com.malliina.pics.db
 import com.malliina.pics.{Keys, PicOwner}
 import tests.{BaseSuite, DoobieSuite}
 
-class DoobiePicsDatabaseTests extends BaseSuite with DoobieSuite {
+class PicsDatabaseTests extends BaseSuite with DoobieSuite {
   test("can CRUD pic meta") {
     val data = doobie()
-    val picsDatabase = DoobiePicsDatabase(data)
+    val picsDatabase = PicsDatabase(data)
     val user = PicOwner("testuser")
     val key = Keys.randomish()
     val _ = picsDatabase.saveMeta(key, user).unsafeRunSync()

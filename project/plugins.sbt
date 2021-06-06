@@ -1,4 +1,4 @@
-scalaVersion := "2.12.13"
+scalaVersion := "2.12.14"
 
 val utilsVersion = "1.2.3"
 

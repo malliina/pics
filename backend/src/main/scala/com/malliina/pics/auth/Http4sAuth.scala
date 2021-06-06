@@ -4,7 +4,7 @@ import _root_.play.api.libs.json.{Json, OWrites, Reads, Writes}
 import cats.effect.IO
 import com.malliina.http.io.HttpClientIO
 import com.malliina.pics.auth.CredentialsResult.{AccessTokenResult, IdTokenResult, NoCredentials}
-import com.malliina.pics.db.DoobiePicsDatabase
+import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.http4s.PicsImplicits._
 import com.malliina.pics.http4s.PicsService.{noCache, version10}
 import com.malliina.pics.http4s.{PicsService, Reverse}
@@ -24,7 +24,7 @@ import scala.concurrent.duration.DurationInt
 object Http4sAuth {
   private val log = AppLogger(getClass)
 
-  def apply(conf: AppConf, db: DoobiePicsDatabase[IO]): Http4sAuth =
+  def apply(conf: AppConf, db: PicsDatabase[IO]): Http4sAuth =
     new Http4sAuth(
       JWT(conf.secret),
       Validators.picsAccess,
@@ -46,7 +46,7 @@ class Http4sAuth(
   ios: CognitoAccessValidator,
   android: CognitoIdValidator,
   google: GoogleTokenAuth,
-  db: DoobiePicsDatabase[IO],
+  db: PicsDatabase[IO],
   val cookieNames: CookieConf
 ) {
   val cookiePath = Option("/")
