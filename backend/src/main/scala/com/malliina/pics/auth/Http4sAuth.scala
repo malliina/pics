@@ -145,7 +145,6 @@ class Http4sAuth(
     .fold[CredentialsResult](NoCredentials(headers)) { h =>
       h.credentials match {
         case Token(scheme, token) =>
-          println(s"Token scheme $scheme token $token")
           if (scheme == CaseInsensitiveString("token")) AccessTokenResult(AccessToken(token))
           else IdTokenResult(IdToken(token))
         case _ =>
