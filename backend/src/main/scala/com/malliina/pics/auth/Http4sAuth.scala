@@ -54,15 +54,12 @@ class Http4sAuth(
   def authenticate(headers: Headers): IO[Either[IO[Response[IO]], PicRequest]] = {
     val rs = PicsService.ranges(headers)
     if (rs.exists(r => r.satisfiedBy(MediaType.text.html))) {
-      println("HTML headers")
       IO.pure(web(headers))
     } else if (
       rs.exists(m => m.satisfiedBy(version10) || m.satisfiedBy(MediaType.application.json))
     ) {
-      println("JWT headers")
       jwt(headers)
     } else {
-      println("No headers")
       IO.pure(Left(NotAcceptable(Json.toJson(Errors.single("Not acceptable.")), noCache)))
     }
   }
