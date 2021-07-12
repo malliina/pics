@@ -30,6 +30,7 @@ object PicsServer extends IOApp {
       .withHttpApp(picsApp)
       .withIdleTimeout(60.minutes)
       .withResponseHeaderTimeout(30.minutes)
+      .withServiceErrorHandler(ErrorHandler[IO, IO])
       .resource
   } yield server
 

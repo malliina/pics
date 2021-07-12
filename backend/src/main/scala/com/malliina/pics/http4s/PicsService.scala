@@ -29,7 +29,6 @@ import org.http4s.CacheDirective._
 import org.http4s.headers.{Accept, Location, `Cache-Control`, `WWW-Authenticate`}
 import org.http4s.server.websocket.WebSocketBuilder
 import org.http4s.syntax.literals.http4sLiteralsSyntax
-import org.http4s.util.CaseInsensitiveString
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame._
 import org.http4s.{Callback => _, _}
@@ -165,11 +164,11 @@ class PicsService(
                   .save(
                     file.toPath,
                     user,
-                    req.headers.get(CaseInsensitiveString(XName)).map(_.value)
+                    req.headers.get(XName.ci).map(_.value)
                   )
                   .flatMap { keyMeta =>
                     val clientPic = req.headers
-                      .get(CaseInsensitiveString(XClientPic))
+                      .get(XClientPic.ci)
                       .map(h => Key(h.value))
                       .getOrElse(keyMeta.key)
                     val picMeta = PicMetas.from(keyMeta, req)
@@ -222,7 +221,7 @@ class PicsService(
     case req @ GET -> Root / "sockets" =>
       authedAll(req) { user =>
         val userAgent = user.rh
-          .get(CaseInsensitiveString("User-Agent"))
+          .get("User-Agent".ci)
           .map(ua => s"'${ua.value}'")
           .getOrElse("Unknown")
         log.info(s"Opening socket for '${user.name}' using user agent $userAgent.")
