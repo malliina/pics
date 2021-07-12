@@ -4,7 +4,7 @@ import cats.data.Kleisli
 import cats.effect.{Blocker, ExitCode, IO, IOApp, Resource}
 import com.malliina.pics.BuildInfo
 import com.malliina.pics.db.{DoobieDatabase, PicsDatabase}
-import com.malliina.pics.{MetaSourceT, MultiSizeHandlerIO, PicsConf}
+import com.malliina.pics.{MultiSizeHandlerIO, PicsConf}
 import com.malliina.util.AppLogger
 import fs2.concurrent.Topic
 import org.http4s.server.Router
@@ -13,6 +13,7 @@ import org.http4s.server.middleware.{GZip, HSTS}
 import org.http4s.{HttpRoutes, Request, Response}
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.DurationInt
 
 object PicsServer extends IOApp {
   type AppService = Kleisli[IO, Request[IO], Response[IO]]
@@ -27,6 +28,7 @@ object PicsServer extends IOApp {
     server <- BlazeServerBuilder[IO](ExecutionContext.global)
       .bindHttp(port = port, "0.0.0.0")
       .withHttpApp(picsApp)
+      .withIdleTimeout(60.minutes)
       .resource
   } yield server
 
