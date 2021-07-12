@@ -29,6 +29,7 @@ object PicsServer extends IOApp {
       .bindHttp(port = port, "0.0.0.0")
       .withHttpApp(picsApp)
       .withIdleTimeout(60.minutes)
+      .withResponseHeaderTimeout(30.minutes)
       .resource
   } yield server
 
