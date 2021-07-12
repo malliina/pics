@@ -152,11 +152,15 @@ class PicsService(
         .authenticate(req.headers)
         .flatMap { e =>
           e.fold(
-            err => err,
+            err => {
+              IO(log.error(s"Failed to authenticate $req.")).flatMap(_ => err)
+            },
             user => {
-              val decoder =
-                EntityDecoder.binFile[IO](Files.createTempFile("pic", ".jpg").toFile, blocker)
-              req.decodeWith(decoder, strict = true) { file =>
+              val tempFile = Files.createTempFile("pic", ".jpg")
+              val logging =
+                IO(log.info(s"Saving new pic by ${user.name} to '${tempFile.toAbsolutePath}'..."))
+              val decoder = EntityDecoder.binFile[IO](tempFile.toFile, blocker)
+              val receive = req.decodeWith(decoder, strict = true) { file =>
                 service
                   .save(
                     file.toPath,
@@ -186,6 +190,10 @@ class PicsService(
                       }
                   }
               }
+              for {
+                _ <- logging
+                r <- receive
+              } yield r
             }
           )
         }
