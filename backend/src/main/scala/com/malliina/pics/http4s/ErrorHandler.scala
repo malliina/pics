@@ -15,7 +15,7 @@ object ErrorHandler {
     F: Monad[F]
   ): Request[G] => PartialFunction[Throwable, F[Response[G]]] =
     req => { case NonFatal(t) =>
-      log.error(s"Server error: ${req.method} ${req.pathInfo}.", t)
+      log.error(s"Server error: ${req.method} ${req.pathInfo}. Exception $t", t)
       F.pure(
         Response(
           Status.InternalServerError,

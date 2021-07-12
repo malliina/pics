@@ -157,7 +157,7 @@ class PicsService(
             user => {
               val tempFile = Files.createTempFile("pic", ".jpg")
               val logging =
-                IO(log.info(s"Saving new pic by ${user.name} to '${tempFile.toAbsolutePath}'..."))
+                IO(log.info(s"Saving new pic by '${user.name}' to '${tempFile.toAbsolutePath}'..."))
               val decoder = EntityDecoder.binFile[IO](tempFile.toFile, blocker)
               val receive = req.decodeWith(decoder, strict = true) { file =>
                 service
