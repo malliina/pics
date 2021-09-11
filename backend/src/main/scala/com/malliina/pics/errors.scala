@@ -7,7 +7,8 @@ import cats.data.NonEmptyList
 import com.malliina.values.ErrorMessage
 import com.malliina.web.JWTError
 import com.sksamuel.scrimage.ImageParseException
-import play.api.libs.json.{Format, JsError, JsSuccess, Json, Reads, Writes}
+import io.circe.Codec
+import io.circe.generic.semiauto.deriveCodec
 
 sealed trait ImageFailure
 
@@ -21,7 +22,7 @@ class KeyNotFound(key: Key) extends Exception(s"Key not found: '$key'.")
 case class SingleError(message: String, key: String)
 
 object SingleError {
-  implicit val json = Json.format[SingleError]
+  implicit val json: Codec[SingleError] = deriveCodec[SingleError]
 
   def apply(message: String): SingleError = apply(message, "generic")
 
@@ -32,19 +33,19 @@ object SingleError {
 case class Errors(errors: NonEmptyList[SingleError])
 
 object Errors {
-  implicit val se = SingleError.json
+  implicit val se: Codec[SingleError] = SingleError.json
   import cats.implicits._
-  implicit def nelJson[T: Format]: Format[NonEmptyList[T]] =
-    Format(
-      Reads { json =>
-        json
-          .validate[List[T]]
-          .flatMap(_.toNel.map(t => JsSuccess(t)).getOrElse(JsError(s"Empty list: '$json'.")))
-      },
-      Writes.list[T].contramap(_.toList)
-    )
+//  implicit def nelJson[T: Format]: Format[NonEmptyList[T]] =
+//    Format(
+//      Reads { json =>
+//        json
+//          .validate[List[T]]
+//          .flatMap(_.toNel.map(t => JsSuccess(t)).getOrElse(JsError(s"Empty list: '$json'.")))
+//      },
+//      Writes.list[T].contramap(_.toList)
+//    )
 
-  implicit val json = Json.format[Errors]
+  implicit val json: Codec[Errors] = deriveCodec[Errors]
 
   def apply(message: ErrorMessage): Errors = Errors.single(message.message)
   def single(message: String): Errors = Errors(NonEmptyList.of(SingleError(message)))

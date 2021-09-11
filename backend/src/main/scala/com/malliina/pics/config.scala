@@ -1,19 +1,36 @@
 package com.malliina.pics
 
+import com.malliina.config.ConfigReadable
+import com.malliina.pics.PicsConf.ConfigOps
 import com.malliina.pics.app.LocalConf
 import com.malliina.pics.auth.SecretKey
 import com.malliina.pics.db.DatabaseConf
+import com.malliina.values.ErrorMessage
 import com.malliina.web.{AuthConf, ClientId, ClientSecret}
+import com.typesafe.config.{Config, ConfigFactory}
 import controllers.Social
-import pureconfig._
-import pureconfig.error.CannotConvert
 
 case class SocialConf(id: ClientId, secret: ClientSecret) {
   def auth = AuthConf(id, secret)
 }
 
+object SocialConf {
+  implicit val config: ConfigReadable[SocialConf] = ConfigReadable.config.emap { obj =>
+    for {
+      id <- obj.read[ClientId]("id")
+      secret <- obj.read[ClientSecret]("secret")
+    } yield SocialConf(id, secret)
+  }
+}
+
 case class SocialClientConf(client: SocialConf) {
   def conf = client.auth
+}
+
+object SocialClientConf {
+  implicit val config: ConfigReadable[SocialClientConf] = ConfigReadable.config.emap { obj =>
+    obj.read[SocialConf]("client").map(apply)
+  }
 }
 
 case class GoogleConf(web: SocialConf) {
@@ -30,10 +47,10 @@ object AppMode {
   case object Prod extends AppMode
   case object Dev extends AppMode
 
-  implicit val reader: ConfigReader[AppMode] = ConfigReader.stringConfigReader.emap {
+  implicit val reader: ConfigReadable[AppMode] = ConfigReadable.string.emap {
     case "prod" => Right(Prod)
     case "dev"  => Right(Dev)
-    case other  => Left(CannotConvert(other, "AppMode", "Must be 'prod' or 'dev'."))
+    case other  => Left(ErrorMessage("Must be 'prod' or 'dev'."))
   }
 }
 
@@ -63,10 +80,31 @@ case class PicsConf(
 case class WrappedConf(pics: PicsConf)
 
 object PicsConf {
-  import pureconfig.generic.auto.exportReader
+  implicit val secret: ConfigReadable[SecretKey] = ConfigReadable.string.map(s => SecretKey(s))
 
-  val load: PicsConf = ConfigObjectSource(Right(LocalConf.localConfig))
-    .withFallback(ConfigSource.default)
-    .loadOrThrow[WrappedConf]
-    .pics
+  implicit class ConfigOps(c: Config) extends AnyVal {
+    def read[T](key: String)(implicit r: ConfigReadable[T]): Either[ErrorMessage, T] =
+      r.read(key, c)
+    def unsafe[T: ConfigReadable](key: String): T =
+      c.read[T](key).fold(err => throw new IllegalArgumentException(err.message), identity)
+  }
+  def picsConf = ConfigFactory.load(LocalConf.localConfig).resolve().getConfig("pics")
+
+  def unsafeLoad(c: Config = picsConf): PicsConf = unsafeLoadWith(c, c.unsafe[DatabaseConf]("db"))
+
+  def unsafeLoadWith(c: Config, db: => DatabaseConf): PicsConf = {
+    def client(name: String) = c.unsafe[SocialClientConf](name)
+    PicsConf(
+      c.unsafe[AppMode]("mode"),
+      AppConf(c.unsafe[Config]("app").unsafe[SecretKey]("secret")),
+      db,
+      GoogleConf(c.unsafe[Config]("google").unsafe[SocialConf]("web")),
+      client("github"),
+      client("microsoft"),
+      client("facebook"),
+      client("twitter"),
+      client("apple"),
+      client("amazon")
+    )
+  }
 }

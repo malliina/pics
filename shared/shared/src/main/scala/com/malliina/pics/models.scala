@@ -3,8 +3,10 @@ package com.malliina.pics
 import java.util.Date
 
 import com.malliina.http.FullUrl
-import com.malliina.json.ValidatingCompanion
-import play.api.libs.json._
+import com.malliina.values.{ValidatingCompanion, ErrorMessage}
+import io.circe.generic.semiauto.deriveCodec
+import io.circe.{Codec, Json, Decoder, Encoder}
+import io.circe.syntax.EncoderOps
 
 case class PicOwner(name: String) extends AnyVal {
   override def toString = name
@@ -13,7 +15,7 @@ case class PicOwner(name: String) extends AnyVal {
 object PicOwner extends ValidatingCompanion[String, PicOwner] {
   val anon = PicOwner("anon")
 
-  override def build(input: String): Option[PicOwner] = Option(apply(input))
+  override def build(input: String): Either[ErrorMessage, PicOwner] = Right(apply(input))
 
   override def write(t: PicOwner): String = t.name
 }
@@ -22,7 +24,7 @@ case class ProfileInfo(user: PicOwner, readOnly: Boolean)
 
 object ProfileInfo {
   val Welcome = "welcome"
-  implicit val json = PicsJson.evented(Welcome, Json.format[ProfileInfo])
+  implicit val json: Codec[ProfileInfo] = PicsJson.evented(Welcome, deriveCodec[ProfileInfo])
 }
 
 case class Key(key: String) extends AnyVal {
@@ -34,11 +36,7 @@ case class Key(key: String) extends AnyVal {
 object Key {
   val Length = 7
 
-  implicit val json = valueFormat[Key, String](_.validate[String].map(Key.apply), _.key)
-
-  def valueFormat[A, B: Writes](read: JsValue => JsResult[A], write: A => B): Format[A] =
-    Format[A](Reads(read), Writes(a => Json.toJson(write(a))))
-
+  implicit val json: Codec[Key] = Codec.from(Decoder.decodeString.map(s => apply(s)), Encoder.encodeString.contramap(_.key))
 }
 
 object KeyParam {
@@ -50,7 +48,7 @@ case class PicsRemoved(keys: Seq[Key])
 
 object PicsRemoved {
   val Removed = "removed"
-  implicit val json = PicsJson.evented(Removed, Json.format[PicsRemoved])
+  implicit val json: Codec[PicsRemoved] = PicsJson.evented(Removed, deriveCodec[PicsRemoved])
 }
 
 trait BaseMeta {
@@ -77,17 +75,17 @@ case class PicMeta(
 }
 
 object PicMeta {
-  implicit val dateFormat = Format[Date](
-    Reads[Date](_.validate[Long].map(l => new Date(l))),
-    Writes[Date](d => Json.toJson(d.getTime))
+  implicit val dateFormat: Codec[Date] = Codec.from(
+    Decoder.decodeLong.map(l => new Date(l)),
+    Encoder.encodeLong.contramap(_.getTime)
   )
-  implicit val json = Json.format[PicMeta]
+  implicit val json: Codec[PicMeta] = deriveCodec[PicMeta]
 }
 
 case class Pics(pics: List[PicMeta])
 
 object Pics {
-  implicit val json = Json.format[Pics]
+  implicit val json: Codec[Pics] = deriveCodec[Pics]
 }
 
 case class ClientPicMeta(
@@ -101,24 +99,22 @@ case class ClientPicMeta(
 ) extends BaseMeta
 
 object ClientPicMeta {
-  implicit val dateformat = PicMeta.dateFormat
-  implicit val json = Json.format[ClientPicMeta]
+  implicit val dateformat: Codec[Date] = PicMeta.dateFormat
+  implicit val json: Codec[ClientPicMeta] = deriveCodec[ClientPicMeta]
 }
 
 case class PicsAdded(pics: Seq[ClientPicMeta])
 
 object PicsAdded {
   val Added = "added"
-  implicit val json: Format[PicsAdded] = PicsJson.evented(Added, Json.format[PicsAdded])
+  implicit val json: Codec[PicsAdded] = PicsJson.evented(Added, deriveCodec[PicsAdded])
 }
 
 object PicsJson {
   val EventKey = "event"
 
-  def evented[T](event: String, f: OFormat[T]): Format[T] = {
-    val withEvent = Writes[T] { t =>
-      Json.obj(EventKey -> event) ++ f.writes(t)
-    }
-    Format[T](f, withEvent)
-  }
+  def evented[T](event: String, f: Codec[T]): Codec[T] = Codec.from(
+    f,
+    (t: T) => f(t).deepMerge(Json.obj(EventKey -> event.asJson))
+  )
 }

@@ -1,14 +1,13 @@
 package com.malliina.pics.http4s
 
-import java.nio.file.Files
-import _root_.play.api.libs.json.{Json, Writes}
 import cats.data.NonEmptyList
-import cats.effect._
-import cats.implicits.{catsSyntaxApplicativeId, catsSyntaxFlatten}
+import cats.syntax.applicative.catsSyntaxApplicativeId
+import cats.syntax.all.catsSyntaxFlatten
+import cats.effect.*
 import com.malliina.html.UserFeedback
 import com.malliina.http.io.HttpClientIO
+import com.malliina.pics.*
 import com.malliina.pics.PicsStrings.{XClientPic, XKey, XName}
-import com.malliina.pics._
 import com.malliina.pics.auth.Http4sAuth.TwitterState
 import com.malliina.pics.auth.{Http4sAuth, UserPayload}
 import com.malliina.pics.db.PicsDatabase
@@ -17,22 +16,25 @@ import com.malliina.pics.http4s.PicsService.{log, noCache, ranges, version10}
 import com.malliina.storage.StorageLong
 import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, Email}
+import com.malliina.web.*
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.TwitterAuthFlow.{OauthTokenKey, OauthVerifierKey}
 import com.malliina.web.Utils.randomString
-import com.malliina.web._
 import controllers.Social
-import controllers.Social._
-import fs2._
+import controllers.Social.*
 import fs2.concurrent.Topic
-import org.http4s.CacheDirective._
+import io.circe.syntax.EncoderOps
+import io.circe.{Codec, Decoder, Encoder, Json}
+import org.http4s.CacheDirective.*
 import org.http4s.headers.{Accept, Location, `Cache-Control`, `WWW-Authenticate`}
+import org.typelevel.ci.{CIString, CIStringSyntax}
 import org.http4s.server.websocket.WebSocketBuilder
-import org.http4s.syntax.literals.http4sLiteralsSyntax
+import org.http4s.syntax.literals.mediaType
 import org.http4s.websocket.WebSocketFrame
-import org.http4s.websocket.WebSocketFrame._
+import org.http4s.websocket.WebSocketFrame.*
 import org.http4s.{Callback => _, _}
 
+import java.nio.file.Files
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 object PicsService {
@@ -79,7 +81,7 @@ object PicsService {
   }
 
   def ranges(headers: Headers) = headers
-    .get(Accept)
+    .get[Accept]
     .map(_.values.map(_.mediaRange))
     .getOrElse(NonEmptyList.of(MediaRange.`*/*`))
 }
@@ -109,10 +111,10 @@ class PicsService(
 
   val routes = HttpRoutes.of[IO] {
     case GET -> Root            => SeeOther(Location(uri"/pics"))
-    case GET -> Root / "ping"   => ok(Json.toJson(AppMeta.default))
-    case GET -> Root / "health" => ok(Json.toJson(AppMeta.default))
+    case GET -> Root / "ping"   => ok(AppMeta.default.asJson)
+    case GET -> Root / "health" => ok(AppMeta.default.asJson)
     case req @ GET -> Root / "version" =>
-      val res = ok(Json.toJson(AppMeta.default))
+      val res = ok(AppMeta.default.asJson)
       renderRanged(req)(res, res)
     case req @ GET -> Root / "pics" =>
       auth
@@ -164,12 +166,12 @@ class PicsService(
                   .save(
                     file.toPath,
                     user,
-                    req.headers.get(XName.ci).map(_.value)
+                    req.headers.get(CIString(XName)).map(_.head.value)
                   )
                   .flatMap { keyMeta =>
                     val clientPic = req.headers
-                      .get(XClientPic.ci)
-                      .map(h => Key(h.value))
+                      .get(CIString(XClientPic))
+                      .map(h => Key(h.head.value))
                       .getOrElse(keyMeta.key)
                     val picMeta = PicMetas.from(keyMeta, req)
                     log.info(s"Saved '${picMeta.key}' by '${user.name}' with URL '${picMeta.url}'.")
@@ -179,11 +181,11 @@ class PicsService(
                           .AddedMessage(PicsAdded(Seq(picMeta.withClient(clientPic))), user.name)
                       )
                       .flatMap { _ =>
-                        Accepted(Json.toJson(PicResponse(picMeta))).map { res =>
+                        Accepted(PicResponse(picMeta).asJson).map { res =>
                           res.putHeaders(
                             Location(Uri.unsafeFromString(picMeta.url.url)),
-                            Header(XKey, picMeta.key.key),
-                            Header(XClientPic, clientPic.key)
+                            Header.Raw(CIString(XKey), picMeta.key.key),
+                            Header.Raw(CIString(XClientPic), clientPic.key)
                           )
                         }
                       }
@@ -201,7 +203,7 @@ class PicsService(
     case req @ DELETE -> Root / KeyParam(key) =>
       removeKey(key, Reverse.drop, req)
     case req @ POST -> Root / "sync" =>
-      import cats.implicits._
+      import cats.implicits.*
       val adminUser = PicOwner("malliina123@gmail.com")
       authed(req) { user =>
         if (user.name == adminUser) {
@@ -221,17 +223,17 @@ class PicsService(
     case req @ GET -> Root / "sockets" =>
       authedAll(req) { user =>
         val userAgent = user.rh
-          .get("User-Agent".ci)
-          .map(ua => s"'${ua.value}'")
+          .get(ci"User-Agent")
+          .map(ua => s"'${ua.head.value}'")
           .getOrElse("Unknown")
         log.info(s"Opening socket for '${user.name}' using user agent $userAgent.")
         val welcomeMessage = fs2.Stream(PicMessage.welcome(user.name, user.readOnly))
         val pings = fs2.Stream.awakeEvery[IO](30.seconds).map(_ => PicMessage.ping)
         val updates = topic.subscribe(1000).drop(1).filter(_.forUser(user.name))
         val toClient = (welcomeMessage ++ pings.mergeHaltBoth(updates)).map { message =>
-          Text(Json.stringify(Json.toJson(message)))
+          Text(message.asJson.noSpaces)
         }
-        val fromClient: Pipe[IO, WebSocketFrame, Unit] = _.evalMap {
+        val fromClient: fs2.Pipe[IO, WebSocketFrame, Unit] = _.evalMap {
           case Text(message, _) => IO(log.info(message))
           case f                => IO(log.debug(s"Unknown WebSocket frame: $f"))
         }
@@ -261,7 +263,7 @@ class PicsService(
           case Twitter   => reverseSocial.twitter
           case Apple     => reverseSocial.apple
         }
-        .map(r => TemporaryRedirect(r.start))
+        .map(r => TemporaryRedirect(Location(r.start)))
         .getOrElse(ok(html.signIn(None).tags))
     case req @ GET -> Root / "sign-in" / AuthProvider(id) =>
       id match {
@@ -347,7 +349,7 @@ class PicsService(
       }
     case GET -> Root / "sign-out" / "leave" =>
       SeeOther(Location(Reverse.signOutCallback)).map { res =>
-        import Social._
+        import Social.*
         auth
           .clearSession(res)
           .removeCookie(ResponseCookie(cookieNames.lastId, "", path = auth.cookiePath))
@@ -415,7 +417,7 @@ class PicsService(
               topic.publish1(PicMessage.RemovedMessage(PicsRemoved(Seq(key)), user.name)).flatMap {
                 _ =>
                   renderRanged(req)(
-                    json = Accepted(Json.toJson(Json.obj("message" -> "ok"))),
+                    json = Accepted(Json.obj("message" -> "ok".asJson), noCache),
                     html = SeeOther(Location(redir))
                   )
               }
@@ -473,7 +475,7 @@ class PicsService(
     (url, sessionParams)
   }.flatMap { case (url, sessionParams) =>
     SeeOther(Location(Uri.unsafeFromString(url.url))).map { res =>
-      val session = Json.toJsObject(sessionParams.toMap)
+      val session = sessionParams.toMap.asJson
       auth
         .withSession(session, isSecure, res)
         .putHeaders(noCache)
@@ -547,12 +549,12 @@ class PicsService(
   def authedAll(req: Request[IO])(code: PicRequest => IO[Response[IO]]): IO[Response[IO]] =
     auth.authenticateAll(req.headers).flatMap(_.fold(identity, code))
 
-  private def render[A: Writes, B](req: Request[IO])(json: A, html: B)(implicit
+  private def render[A: Encoder, B](req: Request[IO])(json: A, html: B)(implicit
     w: EntityEncoder[IO, B]
   ): IO[Response[IO]] =
-    renderRanged[A, B](req)(ok(Json.toJson(json)), ok(html))
+    renderRanged[A, B](req)(ok(json.asJson), ok(html))
 
-  private def renderRanged[A: Writes, B](
+  private def renderRanged[A: Encoder, B](
     req: Request[IO]
   )(json: IO[Response[IO]], html: IO[Response[IO]]): IO[Response[IO]] = {
     val rs = ranges(req.headers)
@@ -561,7 +563,7 @@ class PicsService(
     else if (rs.exists(_.satisfies(MediaType.text.html))) html
     else if (rs.exists(_.satisfies(version10))) json
     else if (rs.exists(_.satisfies(MediaType.application.json))) json
-    else NotAcceptable(Json.toJson(Errors.single("Not acceptable.")), noCache)
+    else NotAcceptable(Errors.single("Not acceptable.").asJson, noCache)
   }
 
   private def failResize(error: ImageFailure, by: PicRequest): IO[Response[IO]] = error match {
@@ -586,14 +588,14 @@ class PicsService(
   private def ok[A](a: A)(implicit w: EntityEncoder[IO, A]) = Ok(a, noCache)
   private def badRequestWith(message: String) = badRequest(Errors.single(message))
   private def badRequest(errors: Errors): IO[Response[IO]] =
-    BadRequest(Json.toJson(errors), noCache)
+    BadRequest(errors.asJson, noCache)
   private def unauthorized(errors: Errors): IO[Response[IO]] = Unauthorized(
     `WWW-Authenticate`(NonEmptyList.of(Challenge("myscheme", "myrealm"))),
-    Json.toJson(errors)
+    errors.asJson
   ).map(r => auth.clearSession(r.removeCookie(cookieNames.provider)))
   private def keyNotFound(key: Key) = notFoundWith(s"Not found: '$key'.")
   private def notFound(req: Request[IO]) = notFoundWith(s"Not found: '${req.uri}'.")
-  private def notFoundWith(message: String) = NotFound(Json.toJson(Errors.single(message)), noCache)
+  private def notFoundWith(message: String) = NotFound(Errors.single(message).asJson, noCache)
   private def serverError(message: String) =
-    InternalServerError(Json.toJson(Errors.single(message)), noCache)
+    InternalServerError(Errors.single(message).asJson, noCache)
 }

@@ -70,7 +70,7 @@ object DoobieDatabase {
 
 // Temporary migration tool
 class DoobieDatabase(tx: DataSourceTransactor[IO]) extends DatabaseRunner[IO] {
-  implicit val logHandler = LogHandler {
+  implicit val logHandler: LogHandler = LogHandler {
     case Success(sql, args, exec, processing) =>
       log.info(s"OK '$sql' exec ${exec.toMillis} ms processing ${processing.toMillis} ms.")
     case ProcessingFailure(sql, args, exec, processing, failure) =>
@@ -89,7 +89,7 @@ trait DatabaseRunner[F[_]] {
 }
 
 class DoobieDatabaseLegacy(ds: HikariDataSource, cs: ContextShift[IO]) extends DatabaseRunner[IO] {
-  implicit val cShift = cs
+  implicit val cShift: ContextShift[IO] = cs
   private val tx = DoobieDatabase.resource(ds)
 
   def run[T](io: ConnectionIO[T]): IO[T] =

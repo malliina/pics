@@ -13,7 +13,7 @@ class PicsServiceTests extends FunSuite with Http4sSuite {
   test("can make request") {
     val res = getUri(uri"/ping")
     assertEquals(res.status, Status.Ok)
-    implicit val dec = jsonOf[IO, AppMeta]
+    implicit val dec: EntityDecoder[IO, AppMeta] = jsonOf[IO, AppMeta]
     val result = res.as[AppMeta].unsafeRunSync()
     assertEquals(result, AppMeta.default)
   }

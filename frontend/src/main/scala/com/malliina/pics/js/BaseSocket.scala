@@ -6,7 +6,9 @@ import org.scalajs.dom
 import org.scalajs.dom.CloseEvent
 import org.scalajs.dom.raw.{Event, MessageEvent}
 import org.scalajs.jquery.JQuery
-import play.api.libs.json._
+import io.circe._
+import io.circe.syntax.EncoderOps
+import io.circe.parser.parse
 
 import scala.util.Try
 
@@ -22,10 +24,10 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
 
   def elem(id: String): JQuery = MyJQuery(s"#$id")
 
-  def handlePayload(payload: JsValue): Unit = ()
+  def handlePayload(payload: Json): Unit = ()
 
-  def handleValidated[T: Reads](json: JsValue)(process: T => Unit): Unit =
-    json.validate[T].fold(err => onJsonFailure(JsError(err)), process)
+  def handleValidated[T: Decoder](json: Json)(process: T => Unit): Unit =
+    json.as[T].fold(err => onJsonFailure(err), process)
 
   def showConnected(): Unit = {
     setFeedback("Connected to socket.")
@@ -35,21 +37,22 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
     setFeedback("Connection closed.")
   }
 
-  def send[T: Writes](payload: T): Unit = {
-    val asString = Json.stringify(Json.toJson(payload))
+  def send[T: Encoder](payload: T): Unit = {
+    val asString = payload.asJson.noSpaces
     socket.send(asString)
   }
 
   def onMessage(msg: MessageEvent): Unit = {
     log.info(s"Got message: ${msg.data.toString}")
-    Try(Json.parse(msg.data.toString))
-      .map { json =>
-        val isPing = (json \ EventKey).validate[String].filter(_ == Ping).isSuccess
+    parse(msg.data.toString).fold(
+      pf => onJsonException(pf),
+      json => {
+        val isPing = json.hcursor.downField(EventKey).as[String].toOption.contains(Ping)
         if (!isPing) {
           handlePayload(json)
         }
       }
-      .recover { case e => onJsonException(e) }
+    )
   }
 
   def onConnected(e: Event): Unit = showConnected()
@@ -79,11 +82,11 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
     //    statusElem.innerHTML = feedback
   }
 
-  def onJsonException(t: Throwable): Unit = {
-    log error t
+  def onJsonException(f: ParsingFailure): Unit = {
+    log.info(s"Parsing failure $f")
   }
 
-  protected def onJsonFailure(result: JsError): Unit = {
-    log info s"JSON error $result"
+  protected def onJsonFailure(result: DecodingFailure): Unit = {
+    log.info(s"JSON error $result")
   }
 }

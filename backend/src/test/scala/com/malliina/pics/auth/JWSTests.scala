@@ -2,8 +2,8 @@ package com.malliina.pics.auth
 
 import com.malliina.values.Username
 import munit.FunSuite
-import play.api.libs.json.Json
-
+import io.circe.Codec
+import io.circe.generic.semiauto.deriveCodec
 import scala.concurrent.duration.DurationInt
 
 class JWSTests extends FunSuite {
@@ -12,7 +12,7 @@ class JWSTests extends FunSuite {
   case class MyData(username: Username)
 
   object MyData {
-    implicit val json = Json.format[MyData]
+    implicit val json: Codec[MyData] = deriveCodec[MyData]
   }
 
   test("sign-verify") {

@@ -10,7 +10,8 @@ import com.malliina.values.Username
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
 import org.http4s.{Headers, Request, Uri}
-import play.api.libs.json._
+import io.circe.Codec
+import io.circe.generic.semiauto.deriveCodec
 
 trait BaseRequest {
   def name: PicOwner
@@ -61,7 +62,7 @@ case class PicBundle(small: Path, medium: Path, large: Path, original: Path)
 case class AppMeta(name: String, version: String, gitHash: String)
 
 object AppMeta {
-  implicit val json = Json.format[AppMeta]
+  implicit val json: Codec[AppMeta] = deriveCodec[AppMeta]
 
   val default = AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.hash)
 }
@@ -105,7 +106,7 @@ object PicMetas {
 case class PicResponse(pic: PicMeta)
 
 object PicResponse {
-  implicit val json = Json.format[PicResponse]
+  implicit val json: Codec[PicResponse] = deriveCodec[PicResponse]
 }
 
 case class BucketName(name: String) extends AnyVal {

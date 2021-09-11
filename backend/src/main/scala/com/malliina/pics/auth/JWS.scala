@@ -4,8 +4,9 @@ import com.malliina.web.{AuthError, InvalidSignature, JsonError}
 import com.malliina.values.{IdToken, TokenValue}
 import com.nimbusds.jose.crypto.{MACSigner, MACVerifier}
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader, JWSObject, Payload}
-import play.api.libs.json.{JsError, Json, OWrites, Reads}
-
+import io.circe._
+import io.circe.syntax.EncoderOps
+import io.circe.parser.parse
 import scala.util.Try
 
 /** @see https://connect2id.com/products/nimbus-jose-jwt/examples/jws-with-hmac
@@ -37,17 +38,17 @@ object JsonJWS {
 }
 
 class JsonJWS(jws: JWS) {
-  def sign[T: OWrites](payload: T): IdToken = jws.sign(Json.stringify(Json.toJson(payload)))
+  def sign[T: Encoder](payload: T): IdToken = jws.sign(payload.asJson.noSpaces)
 
-  def verify[T: Reads](token: IdToken): Either[AuthError, T] =
+  def verify[T: Decoder](token: IdToken): Either[AuthError, T] =
     jws.verify(token).flatMap { str =>
-      Try(Json.parse(str)).toEither.left
+      parse(str).left
         .map { _ =>
           JsonError(s"Not JSON: '$str'.")
         }
         .flatMap { json =>
-          json.validate[T].asEither.left.map { errors =>
-            JsonError(JsError(errors))
+          json.as[T].left.map { errors =>
+            JsonError(errors.message)
           }
         }
     }

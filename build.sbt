@@ -5,29 +5,29 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossP
 import scala.sys.process.Process
 import scala.util.Try
 
-val webAuthVersion = "6.0.1"
-val primitivesVersion = "1.19.0"
-val munitVersion = "0.7.26"
+val webAuthVersion = "6.0.2"
+val primitivesVersion = "2.0.2"
+val munitVersion = "0.7.28"
 val scalatagsVersion = "0.9.4"
 val awsSdk2Version = "2.16.78"
-val testContainersScalaVersion = "0.39.5"
-val utilPlayDep = "com.malliina" %% "web-auth" % webAuthVersion
+val testContainersScalaVersion = "0.39.6"
 
 inThisBuild(
   Seq(
     organization := "com.malliina",
     version := "0.0.1",
-    scalaVersion := "2.13.6"
+    scalaVersion := "3.0.1"
   )
 )
 
+val circeModules = Seq("generic", "parser")
 val commonSettings = Seq(
-  libraryDependencies ++= Seq(
-    "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
-    "com.typesafe.play" %%% "play-json" % "2.9.2",
-    "com.malliina" %%% "primitives" % primitivesVersion,
-    "com.malliina" %%% "util-html" % webAuthVersion
-  )
+  libraryDependencies ++=
+    circeModules.map(m => "io.circe" %%% s"circe-$m" % "0.14.1") ++ Seq(
+//    ("com.lihaoyi" %%% "scalatags" % scalaTagsVersion).cross(CrossVersion.for3Use2_13),
+      "com.malliina" %%% "primitives" % primitivesVersion,
+      "com.malliina" %%% "util-html" % webAuthVersion
+    )
 )
 
 val cross = portableProject(JSPlatform, JVMPlatform)
@@ -47,8 +47,8 @@ val frontend = project
   .settings(
     assetsPackage := "com.malliina.pics.assets",
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "1.1.0",
-      "be.doeraene" %%% "scalajs-jquery" % "1.0.0",
+      ("org.scala-js" %%% "scalajs-dom" % "1.1.0").cross(CrossVersion.for3Use2_13),
+      ("be.doeraene" %%% "scalajs-jquery" % "1.0.0").cross(CrossVersion.for3Use2_13),
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
@@ -85,7 +85,7 @@ val frontend = project
   )
 
 val prodPort = 9000
-val http4sModules = Seq("blaze-server", "blaze-client", "dsl", "scalatags", "play-json")
+val http4sModules = Seq("blaze-server", "blaze-client", "dsl", "circe")
 
 val backend = project
   .in(file("backend"))
@@ -103,21 +103,21 @@ val backend = project
     buildInfoPackage := "com.malliina.pics",
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "hash" -> gitHash),
     libraryDependencies ++= http4sModules.map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.21.24"
+      "org.http4s" %% s"http4s-$m" % "0.22.2"
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
       "org.tpolecat" %% d % "0.13.4"
+    } ++ Seq("classic", "core").map { m =>
+      "ch.qos.logback" % s"logback-$m" % "1.2.5"
     } ++ Seq(
-      "com.github.pureconfig" %% "pureconfig" % "0.15.0",
+      "com.typesafe" % "config" % "1.4.1",
       "org.apache.commons" % "commons-text" % "1.9",
       "software.amazon.awssdk" % "s3" % awsSdk2Version,
       "org.flywaydb" % "flyway-core" % "7.9.2",
       "mysql" % "mysql-connector-java" % "5.1.49",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.19",
-      "com.malliina" %% "logstreams-client" % "1.11.3",
-      utilPlayDep,
-      "org.slf4j" % "slf4j-api" % "1.7.30",
-      "ch.qos.logback" % "logback-classic" % "1.2.3",
-      "ch.qos.logback" % "logback-core" % "1.2.3",
+      "com.malliina" %% "logstreams-client" % "1.11.13",
+      "com.malliina" %% "web-auth" % webAuthVersion,
+      "org.slf4j" % "slf4j-api" % "1.7.32",
       "org.scalameta" %% "munit" % munitVersion % Test,
       "com.dimafeng" %% "testcontainers-scala-mysql" % testContainersScalaVersion % Test
     ),

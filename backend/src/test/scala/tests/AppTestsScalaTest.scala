@@ -2,14 +2,16 @@ package tests
 
 import cats.effect.{ContextShift, IO, Timer}
 import com.dimafeng.testcontainers.MySQLContainer
-import com.malliina.pics._
+import com.malliina.pics.*
+import com.malliina.pics.PicsConf.ConfigOps
 import com.malliina.pics.app.LocalConf
 import com.malliina.pics.db.{DatabaseConf, DatabaseRunner, DoobieDatabase}
 import com.malliina.pics.http4s.PicsServer
 import com.malliina.pics.http4s.PicsServer.AppService
 import munit.FunSuite
-import pureconfig.{ConfigObjectSource, ConfigSource}
+import org.slf4j.LoggerFactory
 import org.testcontainers.utility.DockerImageName
+import tests.MUnitDatabaseSuite.log
 
 import scala.concurrent.Promise
 import scala.util.Try
@@ -17,13 +19,19 @@ import scala.util.Try
 case class TestPicsConf(testdb: DatabaseConf)
 case class WrappedTestConf(pics: TestPicsConf)
 
+object MUnitDatabaseSuite {
+  private val log = LoggerFactory.getLogger(getClass)
+}
+
 trait MUnitDatabaseSuite { self: munit.Suite =>
   val db: Fixture[DatabaseConf] = new Fixture[DatabaseConf]("database") {
     var container: Option[MySQLContainer] = None
     var conf: Option[DatabaseConf] = None
     def apply() = conf.get
+
     override def beforeAll(): Unit = {
-      val testDb = readTestConf.getOrElse {
+      val testDb = readTestConf.recover { err =>
+        log.info(s"No local test database configured, falling back to Docker. $err")
         val c = MySQLContainer(mysqlImageVersion = DockerImageName.parse("mysql:5.7.29"))
         c.start()
         container = Option(c)
@@ -35,23 +43,13 @@ trait MUnitDatabaseSuite { self: munit.Suite =>
       container.foreach(_.stop())
     }
 
-    def readTestConf = {
-      import pureconfig.generic.auto.exportReader
-
-      Try(
-        ConfigObjectSource(Right(LocalConf.localConfig))
-          .withFallback(ConfigSource.default)
-          .loadOrThrow[WrappedTestConf]
-          .pics
-          .testdb
-      )
-    }
+    def readTestConf = PicsConf.picsConf.read[DatabaseConf]("testdb")
   }
 
   override def munitFixtures: Seq[Fixture[_]] = Seq(db)
 }
 
-import cats.syntax.flatMap._
+import cats.syntax.flatMap.*
 // https://github.com/typelevel/munit-cats-effect
 trait Http4sSuite extends MUnitDatabaseSuite { self: FunSuite =>
   implicit def munitContextShift: ContextShift[IO] =
@@ -67,7 +65,10 @@ trait Http4sSuite extends MUnitDatabaseSuite { self: FunSuite =>
     override def apply(): AppService = service.get
 
     override def beforeAll(): Unit = {
-      val resource = PicsServer.appResource(PicsConf.load.copy(db = db()), MultiSizeHandlerIO.empty())
+      val resource = PicsServer.appResource(
+        PicsConf.unsafeLoadWith(PicsConf.picsConf, db()),
+        MultiSizeHandlerIO.empty()
+      )
       val resourceEffect = resource.allocated[IO, AppService]
       val setupEffect =
         resourceEffect

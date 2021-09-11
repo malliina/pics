@@ -10,7 +10,7 @@ import scalatags.Text.all.{defer => _, _}
 import PicsHtml.reverse
 import com.malliina.html.HtmlTags.{fullUrl => _, _}
 import org.http4s.Uri
-
+import com.malliina.pics.AssetsSource
 import scala.language.implicitConversions
 
 object PicsHtml {

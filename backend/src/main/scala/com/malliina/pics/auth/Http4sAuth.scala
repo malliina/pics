@@ -1,11 +1,10 @@
 package com.malliina.pics.auth
 
-import _root_.play.api.libs.json.{Json, OWrites, Reads, Writes}
 import cats.effect.IO
 import com.malliina.http.io.HttpClientIO
 import com.malliina.pics.auth.CredentialsResult.{AccessTokenResult, IdTokenResult, NoCredentials}
 import com.malliina.pics.db.PicsDatabase
-import com.malliina.pics.http4s.PicsImplicits._
+import com.malliina.pics.http4s.PicsImplicits.*
 import com.malliina.pics.http4s.PicsService.{noCache, version10}
 import com.malliina.pics.http4s.{PicsService, Reverse}
 import com.malliina.pics.{AppConf, Errors, PicRequest}
@@ -14,10 +13,13 @@ import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, ErrorMessage, IdToken, Username}
 import com.malliina.web.{CognitoAccessValidator, CognitoIdValidator, JWTUser, OAuthError}
 import controllers.Social.AuthProvider
+import io.circe.*
+import io.circe.syntax.EncoderOps
+import io.circe.generic.semiauto.deriveCodec
 import org.http4s.Credentials.Token
-import org.http4s._
+import org.http4s.*
 import org.http4s.headers.{Authorization, Cookie, Location}
-import org.http4s.util.CaseInsensitiveString
+import org.typelevel.ci.CIStringSyntax
 
 import scala.concurrent.duration.DurationInt
 
@@ -37,7 +39,7 @@ object Http4sAuth {
   case class TwitterState(requestToken: AccessToken)
 
   object TwitterState {
-    implicit val json = Json.format[TwitterState]
+    implicit val json: Codec[TwitterState] = deriveCodec[TwitterState]
   }
 }
 
@@ -60,7 +62,7 @@ class Http4sAuth(
     ) {
       jwt(headers)
     } else {
-      IO.pure(Left(NotAcceptable(Json.toJson(Errors.single("Not acceptable.")), noCache)))
+      IO.pure(Left(NotAcceptable(Errors.single("Not acceptable.").asJson, noCache)))
     }
   }
 
@@ -80,7 +82,7 @@ class Http4sAuth(
       e.fold(
         {
           case MissingCredentials(_, headers)
-              if !Cookie.from(headers).exists(_.values.exists(_.name == cookieNames.provider)) =>
+              if !headers.get[Cookie].exists(_.values.exists(_.name == cookieNames.provider)) =>
             Right(PicRequest.anon(headers))
           case _ => Left(onUnauthorized(headers))
         },
@@ -92,7 +94,7 @@ class Http4sAuth(
   private def web(headers: Headers): Either[IO[Response[IO]], PicRequest] = user(headers).fold(
     {
       case MissingCredentials(_, headers)
-          if !Cookie.from(headers).exists(_.values.exists(_.name == cookieNames.provider)) =>
+          if !headers.get[Cookie].exists(_.values.exists(_.name == cookieNames.provider)) =>
         Right(PicRequest.anon(headers))
       case _ => Left(onUnauthorized(headers))
     },
@@ -141,21 +143,21 @@ class Http4sAuth(
     }
 
   def token(headers: Headers): CredentialsResult = headers
-    .get(Authorization)
+    .get[Authorization]
     .fold[CredentialsResult](NoCredentials(headers)) { h =>
       h.credentials match {
         case Token(scheme, token) =>
-          if (scheme == CaseInsensitiveString("token")) AccessTokenResult(AccessToken(token))
+          if (scheme == ci"token") AccessTokenResult(AccessToken(token))
           else IdTokenResult(IdToken(token))
         case _ =>
           NoCredentials(headers)
       }
     }
 
-  def session[T: Reads](from: Headers): Either[IdentityError, T] =
+  def session[T: Decoder](from: Headers): Either[IdentityError, T] =
     read[T](cookieNames.session, from)
 
-  def withSession[T: OWrites](t: T, isSecure: Boolean, res: Response[IO]): res.Self =
+  def withSession[T: Encoder](t: T, isSecure: Boolean, res: Response[IO]): res.Self =
     withJwt(cookieNames.session, t, isSecure, res)
 
   def clearSession(res: Response[IO]): res.Self =
@@ -177,10 +179,10 @@ class Http4sAuth(
       .addCookie(responseCookie(cookieNames.lastId, user.username.name))
       .addCookie(responseCookie(cookieNames.provider, provider.name))
 
-  def withUser[T: Writes](t: T, isSecure: Boolean, res: Response[IO]): res.Self =
+  def withUser[T: Encoder](t: T, isSecure: Boolean, res: Response[IO]): res.Self =
     withJwt(cookieNames.user, t, isSecure, res)
 
-  def withJwt[T: Writes](
+  def withJwt[T: Encoder](
     cookieName: String,
     t: T,
     isSecure: Boolean,
@@ -210,9 +212,9 @@ class Http4sAuth(
   private def readUser(cookieName: String, headers: Headers): Either[IdentityError, Username] =
     read[UserPayload](cookieName, headers).map(_.username)
 
-  private def read[T: Reads](cookieName: String, headers: Headers): Either[IdentityError, T] =
+  private def read[T: Decoder](cookieName: String, headers: Headers): Either[IdentityError, T] =
     for {
-      header <- Cookie.from(headers).toRight(MissingCredentials("Cookie parsing error.", headers))
+      header <- headers.get[Cookie].toRight(MissingCredentials("Cookie parsing error.", headers))
       cookie <- header.values
         .find(_.name == cookieName)
         .map(c => IdToken(c.content))

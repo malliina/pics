@@ -4,8 +4,8 @@ import cats.effect.IO
 import com.malliina.values.{Email, Username}
 import com.malliina.web.JWTUser
 import org.http4s.Request
-import play.api.libs.json.Json
-
+import io.circe.Codec
+import io.circe.generic.semiauto.deriveCodec
 import scala.concurrent.Future
 
 trait EmailAuth {
@@ -24,7 +24,7 @@ case class EmailUser(email: Email) extends JWTUser {
 case class UserPayload(username: Username)
 
 object UserPayload {
-  implicit val json = Json.format[UserPayload]
+  implicit val json: Codec[UserPayload] = deriveCodec[UserPayload]
 
   def email(email: Email): UserPayload = apply(Username(email.value))
 }

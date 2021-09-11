@@ -7,8 +7,8 @@ import com.malliina.pics.db.{DoobieDatabase, PicsDatabase}
 import com.malliina.pics.{MultiSizeHandlerIO, PicsConf}
 import com.malliina.util.AppLogger
 import fs2.concurrent.Topic
-import org.http4s.server.Router
-import org.http4s.server.blaze.BlazeServerBuilder
+import org.http4s.server.{Router, Server}
+import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.middleware.{GZip, HSTS}
 import org.http4s.{HttpRoutes, Request, Response}
 
@@ -22,7 +22,7 @@ object PicsServer extends IOApp {
 
   val port = 9000
 
-  def server(conf: PicsConf) = for {
+  def server(conf: PicsConf): Resource[IO, Server] = for {
     picsApp <- appResource(conf, MultiSizeHandlerIO.default())
     _ = log.info(s"Binding on port $port using app version ${BuildInfo.hash}...")
     server <- BlazeServerBuilder[IO](ExecutionContext.global)
@@ -69,5 +69,5 @@ object PicsServer extends IOApp {
     Kleisli(req => rs.run(req).getOrElseF(BasicService.notFound(req)))
 
   override def run(args: List[String]): IO[ExitCode] =
-    server(PicsConf.load).use(_ => IO.never).as(ExitCode.Success)
+    server(PicsConf.unsafeLoad()).use(_ => IO.never).as(ExitCode.Success)
 }

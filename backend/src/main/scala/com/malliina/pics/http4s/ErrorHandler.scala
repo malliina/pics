@@ -5,6 +5,7 @@ import com.malliina.pics.http4s.PicsImplicits._
 import com.malliina.util.AppLogger
 import org.http4s.headers.{Connection, `Content-Length`}
 import org.http4s.{Headers, Request, Response, Status}
+import org.typelevel.ci.CIStringSyntax
 
 import scala.util.control.NonFatal
 
@@ -20,7 +21,7 @@ object ErrorHandler {
         Response(
           Status.InternalServerError,
           req.httpVersion,
-          Headers(Connection("close".ci) :: `Content-Length`.zero :: Nil)
+          Headers(Connection(ci"close"), `Content-Length`.zero)
         )
       )
     }

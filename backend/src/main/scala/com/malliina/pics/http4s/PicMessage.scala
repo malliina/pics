@@ -1,7 +1,8 @@
 package com.malliina.pics.http4s
 
 import com.malliina.pics.{PicOwner, PicsAdded, PicsRemoved, ProfileInfo}
-import play.api.libs.json.{Json, Writes}
+import io.circe._
+import io.circe.syntax.EncoderOps
 
 sealed trait PicMessage {
   def forUser(user: PicOwner): Boolean
@@ -13,13 +14,14 @@ sealed trait UnicastMessage extends PicMessage {
 }
 
 object PicMessage {
-  private val pingJson = Json.obj("event" -> "ping")
-  implicit val json: Writes[PicMessage] = Writes[PicMessage] {
-    case AddedMessage(pics, _)   => Json.toJson(pics)
-    case RemovedMessage(pics, _) => Json.toJson(pics)
-    case PingBroadcast           => pingJson
-    case Welcome(info)           => Json.toJson(info)
-  }
+  private val pingJson = Json.obj("event" -> "ping".asJson)
+  implicit val json: Encoder[PicMessage] = (msg: PicMessage) =>
+    msg match {
+      case AddedMessage(pics, _)   => pics.asJson
+      case RemovedMessage(pics, _) => pics.asJson
+      case PingBroadcast           => pingJson
+      case Welcome(info)           => info.asJson
+    }
   case object PingBroadcast extends PicMessage {
     def forUser(user: PicOwner): Boolean = true
   }

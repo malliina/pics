@@ -9,10 +9,9 @@ Seq(
   "com.malliina" % "sbt-filetree" % "0.4.1",
   "com.typesafe.sbt" % "sbt-native-packager" % "1.8.1",
   "org.portable-scala" % "sbt-scalajs-crossproject" % "1.0.0",
-  "org.scala-js" % "sbt-scalajs" % "1.5.1",
+  "org.scala-js" % "sbt-scalajs" % "1.6.0",
   "ch.epfl.scala" % "sbt-scalajs-bundler" % "0.20.0",
   "com.eed3si9n" % "sbt-buildinfo" % "0.10.0",
-  "ch.epfl.scala" % "sbt-bloop" % "1.4.8",
-  "org.scalameta" % "sbt-scalafmt" % "2.4.2",
+  "org.scalameta" % "sbt-scalafmt" % "2.4.3",
   "io.spray" % "sbt-revolver" % "0.9.1"
 ) map addSbtPlugin

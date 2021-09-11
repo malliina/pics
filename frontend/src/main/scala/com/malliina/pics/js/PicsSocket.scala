@@ -4,8 +4,8 @@ import com.malliina.pics._
 import org.scalajs.dom
 import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
 import org.scalajs.dom.{Element, Event, Node}
-import play.api.libs.json.{JsError, JsValue}
-
+import io.circe._
+//import io.circe.syntax.Enco
 import scala.concurrent.duration.DurationDouble
 import scala.scalajs.js
 import scala.scalajs.js.timers._
@@ -56,22 +56,22 @@ class PicsSocket extends BaseSocket("/sockets") {
       }
     )
 
-  override def handlePayload(payload: JsValue): Unit = {
-    val result = (payload \ PicsJson.EventKey).validate[String].flatMap {
+  override def handlePayload(payload: Json): Unit = {
+    val result = payload.hcursor.downField(PicsJson.EventKey).as[String].flatMap {
       case PicsAdded.Added =>
-        payload.validate[PicsAdded].map { pics =>
+        payload.as[PicsAdded].map { pics =>
           pics.pics.foreach(prepend)
         }
       case PicsRemoved.Removed =>
-        payload.validate[PicsRemoved].map { keys =>
+        payload.as[PicsRemoved].map { keys =>
           keys.keys.foreach(remove)
         }
       case ProfileInfo.Welcome =>
-        payload.validate[ProfileInfo].map { profile =>
+        payload.as[ProfileInfo].map { profile =>
           onProfile(profile)
         }
       case other =>
-        JsError(s"Unknown '${PicsJson.EventKey}' value: '$other'.")
+        Left(DecodingFailure(s"Unknown '${PicsJson.EventKey}' value: '$other'.", Nil))
     }
     result.fold(err => log.info(s"Failed to parse '$payload': '$err'."), _ => ())
   }
