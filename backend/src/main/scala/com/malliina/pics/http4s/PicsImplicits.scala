@@ -7,7 +7,7 @@ import org.http4s.{Charset, DefaultCharset, EntityEncoder, MediaType, syntax}
 import org.http4s.circe.CirceInstances
 import scalatags.generic.Frag
 
-trait MyScalatagsInstances {
+trait MyScalatagsInstances:
   implicit def scalatagsEncoder[F[_], C <: Frag[?, String]](implicit
     charset: Charset = DefaultCharset
   ): EntityEncoder[F, C] =
@@ -20,7 +20,6 @@ trait MyScalatagsInstances {
       .stringEncoder[F]
       .contramap[C](content => content.render)
       .withContentType(`Content-Type`(mediaType, charset))
-}
 
 abstract class PicsImplicits[F[_]]
   extends syntax.AllSyntaxBinCompat

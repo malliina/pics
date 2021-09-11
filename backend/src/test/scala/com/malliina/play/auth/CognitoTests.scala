@@ -3,7 +3,7 @@ package com.malliina.play.auth
 import com.malliina.values.{AccessToken, IdToken}
 import com.malliina.web.Expired
 
-class CognitoTests extends munit.FunSuite {
+class CognitoTests extends munit.FunSuite:
   val validator = Validators.picsAccess
 
   test("valid token passes validation".ignore) {
@@ -40,4 +40,3 @@ class CognitoTests extends munit.FunSuite {
     val result = Validators.picsId.validate(token)
     //println(result)
   }
-}

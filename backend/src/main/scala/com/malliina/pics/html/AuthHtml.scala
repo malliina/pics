@@ -3,19 +3,18 @@ package com.malliina.pics.html
 import com.malliina.html.UserFeedback
 import com.malliina.pics.AssetsSource
 import com.malliina.pics.http4s.{Reverse, ReverseSocial, SocialRoute}
-import scalatags.Text.all._
+import scalatags.Text.all.*
 
-object AuthHtml {
+object AuthHtml:
   def apply(assets: AssetsSource) = new AuthHtml(assets)
-}
 
-class AuthHtml(assets: AssetsSource) extends BaseHtml {
+class AuthHtml(assets: AssetsSource) extends BaseHtml:
   val reverseSocial = ReverseSocial
   val reverse = Reverse
 
-  import tags._
+  import tags.*
 
-  def signIn(feedback: Option[UserFeedback] = None): PageConf = {
+  def signIn(feedback: Option[UserFeedback] = None): PageConf =
     val heading = fullRow(h1("Sign in"))
     val socials = rowColumn(s"${col.md.twelve} social-container")(
       socialButton("google", reverseSocial.google, "Sign in with Google"),
@@ -50,9 +49,8 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml {
       ),
       extraHeader = cognitoHeaders
     )
-  }
 
-  def signUp(feedback: Option[UserFeedback] = None) = {
+  def signUp(feedback: Option[UserFeedback] = None) =
     val heading = fullRow(h1("Sign up"))
 
     PageConf(
@@ -70,7 +68,6 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml {
       ),
       extraHeader = cognitoHeaders
     )
-  }
 
   def profile: PageConf = PageConf(
     "Pics - Profile",
@@ -225,4 +222,3 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml {
         a(`class` := navbars.Brand, href := reverse.list)("Pics")
       )
     )
-}

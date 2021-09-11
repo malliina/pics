@@ -4,7 +4,7 @@ import com.malliina.web.AuthConf
 
 import scala.concurrent.duration.{Duration, DurationInt}
 
-object Social {
+object Social:
   val PromptKey = "prompt"
   val LoginCookieDuration: Duration = 3650.days
   val SelectAccount = "select_account"
@@ -23,7 +23,7 @@ object Social {
 
   sealed abstract class AuthProvider(val name: String)
 
-  object AuthProvider {
+  object AuthProvider:
     def forString(s: String): Either[String, AuthProvider] =
       Seq(Google, Microsoft, Amazon, Twitter, Facebook, GitHub, Apple)
         .find(_.name == s)
@@ -31,7 +31,6 @@ object Social {
 
     def unapply(str: String): Option[AuthProvider] =
       forString(str).toOption
-  }
 
   case object Google extends AuthProvider("google")
   case object Microsoft extends AuthProvider("microsoft")
@@ -40,4 +39,3 @@ object Social {
   case object Facebook extends AuthProvider("facebook")
   case object GitHub extends AuthProvider("github")
   case object Apple extends AuthProvider("apple")
-}

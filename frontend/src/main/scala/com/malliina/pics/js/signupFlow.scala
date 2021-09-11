@@ -5,24 +5,23 @@ import org.scalajs.dom.raw.{Event, HTMLAnchorElement, HTMLFormElement}
 import scala.concurrent.{Future, Promise}
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
-class SignUp(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log) {
+class SignUp(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log):
   val signupForm = elem[HTMLFormElement](SignUpFormId)
-  signupForm.onsubmit = (e: Event) => {
+  signupForm.onsubmit = (e: Event) =>
     signUp()
     e.preventDefault()
-  }
   val confirm = Confirm(log)
 
-  def signUp(): Unit = {
+  def signUp(): Unit =
     val email = emailIn.value
     userPool
       .signUpEmail(email, passIn.value)
       .map { res =>
-        if (res.userConfirmed) {
+        if res.userConfirmed then
           // Logs in
           log.info(s"User '$email' already confirmed.")
           login(CognitoUser(email, userPool))
-        } else {
+        else {
           log.info(s"User '$email' is not confirmed, awaiting confirmation code...")
           // Shows confirm
           hide()
@@ -33,7 +32,6 @@ class SignUp(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log) {
         }
       }
       .feedbackTo(SignUpFeedbackId)
-  }
 
   def hide(): Unit = signupForm.setAttribute("hidden", "hidden")
 
@@ -44,28 +42,23 @@ class SignUp(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log) {
         submitToken(success.accessToken, LoginTokenId, signupForm)
       }
       .feedbackTo(SignUpFeedbackId)
-}
 
-object Confirm {
+object Confirm:
   def apply(log: BaseLogger) = new Confirm(log)
-}
 
-class Confirm(log: BaseLogger) extends AuthFrontend(log) {
+class Confirm(log: BaseLogger) extends AuthFrontend(log):
   private val success = Promise[CognitoUser]()
   val confirmed = success.future
 
   val confirmForm = elem[HTMLFormElement](ConfirmFormId)
-  confirmForm.onsubmit = (e: Event) => {
+  confirmForm.onsubmit = (e: Event) =>
     confirm()
     e.preventDefault()
-  }
-  elem[HTMLAnchorElement](ResendId).onclick = (_: Event) => {
-    resend()
-  }
+  elem[HTMLAnchorElement](ResendId).onclick = (_: Event) => resend()
 
   def show(): Unit = confirmForm.removeAttribute("hidden")
 
-  def confirm(): Unit = {
+  def confirm(): Unit =
     val username = emailIn.value
     val user = CognitoUser(username, userPool)
     val code = input(CodeId).value
@@ -76,9 +69,8 @@ class Confirm(log: BaseLogger) extends AuthFrontend(log) {
         success.trySuccess(user)
       }
       .feedbackTo(ConfirmFeedbackId)
-  }
 
-  def resend(): Future[Unit] = {
+  def resend(): Future[Unit] =
     val username = emailIn.value
     val user = CognitoUser(username, userPool)
     log.info(s"Resending confirmation code...")
@@ -88,5 +80,3 @@ class Confirm(log: BaseLogger) extends AuthFrontend(log) {
         log.info(s"Confirmation code resent for '$username'.")
       }
       .feedbackTo(ConfirmFeedbackId)
-  }
-}

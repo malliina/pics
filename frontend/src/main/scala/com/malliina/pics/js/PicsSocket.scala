@@ -1,22 +1,21 @@
 package com.malliina.pics.js
 
-import com.malliina.pics._
+import com.malliina.pics.*
 import org.scalajs.dom
 import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
 import org.scalajs.dom.{Element, Event, Node}
-import io.circe._
+import io.circe.*
 //import io.circe.syntax.Enco
 import scala.concurrent.duration.DurationDouble
 import scala.scalajs.js
-import scala.scalajs.js.timers._
+import scala.scalajs.js.timers.*
 
 @js.native
-trait Popovers extends js.Object {
+trait Popovers extends js.Object:
   def popover(): Unit = js.native
   def popover(in: String): Unit = js.native
-}
 
-class PicsSocket extends BaseSocket("/sockets") {
+class PicsSocket extends BaseSocket("/sockets"):
   val jsHtml = BaseHtml
   val document = dom.document
 
@@ -31,14 +30,11 @@ class PicsSocket extends BaseSocket("/sockets") {
   // hides popovers on outside click
   document.body.addEventListener(
     "click",
-    (e: Event) => {
+    (e: Event) =>
       val isPopover = e.target.isInstanceOf[HTMLElement] && Option(
         e.target.asInstanceOf[HTMLElement].getAttribute("data-original-title")
       ).isDefined
-      if (!isPopover) {
-        MyJQuery("[data-original-title]").asInstanceOf[Popovers].popover("hide")
-      }
-    }
+      if !isPopover then MyJQuery("[data-original-title]").asInstanceOf[Popovers].popover("hide")
   )
 
   def installCopyListeners(parent: Element): Unit =
@@ -49,14 +45,13 @@ class PicsSocket extends BaseSocket("/sockets") {
   def addClickListener(node: Node): Unit =
     node.addEventListener(
       "click",
-      (e: Event) => {
+      (e: Event) =>
         log.info("Copying...")
         val url = e.target.asInstanceOf[HTMLElement].getAttribute(jsHtml.dataIdAttr.name)
         copyToClipboard(url)
-      }
     )
 
-  override def handlePayload(payload: Json): Unit = {
+  override def handlePayload(payload: Json): Unit =
     val result = payload.hcursor.downField(PicsJson.EventKey).as[String].flatMap {
       case PicsAdded.Added =>
         payload.as[PicsAdded].map { pics =>
@@ -74,46 +69,38 @@ class PicsSocket extends BaseSocket("/sockets") {
         Left(DecodingFailure(s"Unknown '${PicsJson.EventKey}' value: '$other'.", Nil))
     }
     result.fold(err => log.info(s"Failed to parse '$payload': '$err'."), _ => ())
-  }
 
   def prepend(pic: BaseMeta) =
-    elemById(jsHtml.galleryId)
-      .map { gallery =>
-        val newElem =
-          jsHtml.thumbnail(pic, readOnly = isReadOnly, visible = false, lazyLoaded = false).render
-        installListeners(newElem)
-        gallery.insertBefore(newElem, gallery.firstChild)
-        // enables the transition
-        setTimeout(0.1.seconds) {
-          newElem.classList.remove("invisible")
-        }
+    elemById(jsHtml.galleryId).map { gallery =>
+      val newElem =
+        jsHtml.thumbnail(pic, readOnly = isReadOnly, visible = false, lazyLoaded = false).render
+      installListeners(newElem)
+      gallery.insertBefore(newElem, gallery.firstChild)
+      // enables the transition
+      setTimeout(0.1.seconds) {
+        newElem.classList.remove("invisible")
       }
-      .getOrElse {
-        fill(jsHtml.picsId, jsHtml.gallery(Seq(pic), readOnly = isReadOnly, lazyLoaded = false))
-        elemById(jsHtml.galleryId).foreach(installListeners)
-      }
-
-  def installListeners(elem: Element): Unit = {
-    installCopyListeners(elem)
-    PicsJS.csrf.installCsrf(elem)
-  }
-
-  import jsHtml.tags.impl.all._
-
-  def remove(key: Key): Unit =
-    for {
-      gallery <- elemById(jsHtml.galleryId)
-      thumb <- Option(gallery.querySelector(s"[data-id='$key']"))
-    } yield {
-      gallery.removeChild(thumb)
-      if (Option(gallery.firstChild).isEmpty) {
-        fill(jsHtml.picsId, jsHtml.noPictures)
-      }
+    }.getOrElse {
+      fill(jsHtml.picsId, jsHtml.gallery(Seq(pic), readOnly = isReadOnly, lazyLoaded = false))
+      elemById(jsHtml.galleryId).foreach(installListeners)
     }
 
-  def onProfile(info: ProfileInfo): Unit = {
+  def installListeners(elem: Element): Unit =
+    installCopyListeners(elem)
+    PicsJS.csrf.installCsrf(elem)
+
+  import jsHtml.tags.impl.all.*
+
+  def remove(key: Key): Unit =
+    for
+      gallery <- elemById(jsHtml.galleryId)
+      thumb <- Option(gallery.querySelector(s"[data-id='$key']"))
+    yield
+      gallery.removeChild(thumb)
+      if Option(gallery.firstChild).isEmpty then fill(jsHtml.picsId, jsHtml.noPictures)
+
+  def onProfile(info: ProfileInfo): Unit =
     isReadOnly = info.readOnly
-  }
 
   def fill(id: String, content: Frag): Unit =
     elemById(id).foreach { elem =>
@@ -124,13 +111,14 @@ class PicsSocket extends BaseSocket("/sockets") {
   def elemById(id: String): Option[Element] = Option(document.getElementById(id))
 
   def removeChildren(elem: Element): Unit =
-    while (Option(elem.firstChild).isDefined) elem.removeChild(elem.firstChild)
+    while Option(elem.firstChild).isDefined do elem.removeChild(elem.firstChild)
 
   /** http://stackoverflow.com/a/30905277
     *
-    * @param text to copy
+    * @param text
+    *   to copy
     */
-  def copyToClipboard(text: String): Unit = {
+  def copyToClipboard(text: String): Unit =
     // Create a "hidden" input
     val aux = dom.document.createElement("input").asInstanceOf[HTMLInputElement]
     // Assign it the value of the supplied parameter
@@ -144,5 +132,3 @@ class PicsSocket extends BaseSocket("/sockets") {
     // Remove it from the body
     document.body.removeChild(aux)
     log.info("Copied.")
-  }
-}

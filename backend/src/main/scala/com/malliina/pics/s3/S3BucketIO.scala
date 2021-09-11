@@ -7,16 +7,15 @@ import com.malliina.util.AppLogger
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.model.{CreateBucketRequest, CreateBucketResponse, HeadBucketRequest}
 
-object S3BucketIO {
+object S3BucketIO:
   private val log = AppLogger(getClass)
 
   def apply(client: S3AsyncClient): S3BucketIO = new S3BucketIO(client)
-}
 
-class S3BucketIO(client: S3AsyncClient) {
+class S3BucketIO(client: S3AsyncClient):
   def createIfNotExists(bucket: BucketName): IO[Boolean] =
     exists(bucket).flatMap { doesExist =>
-      if (doesExist) IO.pure(true)
+      if doesExist then IO.pure(true)
       else create(bucket).map(_ => true)
     }
 
@@ -32,4 +31,3 @@ class S3BucketIO(client: S3AsyncClient) {
         log.warn(s"Unable to make HEAD request to bucket '$bucket'.", e)
         IO.pure(false)
       }
-}

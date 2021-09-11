@@ -7,16 +7,13 @@ class MissingCredentialsException(error: MissingCredentials) extends IdentityExc
 
 class IdentityException(val error: IdentityError) extends Exception
 
-object IdentityException {
-  def apply(error: IdentityError): IdentityException = error match {
+object IdentityException:
+  def apply(error: IdentityError): IdentityException = error match
     case mc @ MissingCredentials(_, _) => new MissingCredentialsException(mc)
     case other                         => new IdentityException(other)
-  }
-}
 
-sealed trait IdentityError {
+sealed trait IdentityError:
   def headers: Headers
-}
 
 case class MissingCredentials(message: String, headers: Headers) extends IdentityError
 case class TokenError(error: AuthError, headers: Headers) extends IdentityError

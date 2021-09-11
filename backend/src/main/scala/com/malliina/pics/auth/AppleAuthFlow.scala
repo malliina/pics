@@ -7,30 +7,27 @@ import com.malliina.http.{FullUrl, HttpClient}
 import com.malliina.oauth.TokenResponse
 import com.malliina.pics.auth.AppleAuthFlow.staticConf
 import com.malliina.values.{Email, ErrorMessage, IdToken}
-import com.malliina.web.OAuthKeys._
-import com.malliina.web._
+import com.malliina.web.OAuthKeys.*
+import com.malliina.web.*
 
 case class AppleResponse(code: Code, state: String)
 
-object AppleResponse {
-  def apply(form: Map[String, Seq[String]]): Either[ErrorMessage, AppleResponse] = {
+object AppleResponse:
+  def apply(form: Map[String, Seq[String]]): Either[ErrorMessage, AppleResponse] =
     def read(key: String) =
       form.get(key).flatMap(_.headOption).toRight(ErrorMessage(s"Not found: '$key' in $form."))
-    for {
+    for
       code <- read(CodeKey).map(Code.apply)
       state <- read(State)
-    } yield AppleResponse(code, state)
-  }
-}
+    yield AppleResponse(code, state)
 
-object AppleTokenValidator {
+object AppleTokenValidator:
   val appleIssuer = Issuer("https://appleid.apple.com")
 
   def apply(clientIds: Seq[ClientId]) = new AppleTokenValidator(clientIds, Seq(appleIssuer))
-}
 
 class AppleTokenValidator(clientIds: Seq[ClientId], issuers: Seq[Issuer])
-  extends TokenValidator(issuers) {
+  extends TokenValidator(issuers):
   override protected def validateClaims(
     parsed: ParsedJWT,
     now: Instant
@@ -39,9 +36,7 @@ class AppleTokenValidator(clientIds: Seq[ClientId], issuers: Seq[Issuer])
       parsed
     }
 
-}
-
-object AppleAuthFlow {
+object AppleAuthFlow:
   val emailScope = "email"
   val host = FullUrl.host("appleid.apple.com")
 
@@ -53,20 +48,20 @@ object AppleAuthFlow {
     new AppleAuthFlow(conf, validator, http)
 
   def staticConf(conf: AuthConf) = StaticConf(emailScope, authUrl, tokensUrl, conf)
-}
 
-/** @see https://developer.apple.com/documentation/signinwithapplejs/incorporating_sign_in_with_apple_into_other_platforms
+/** @see
+  *   https://developer.apple.com/documentation/signinwithapplejs/incorporating_sign_in_with_apple_into_other_platforms
   */
 class AppleAuthFlow(authConf: AuthConf, validator: AppleTokenValidator, http: HttpClient[IO])
   extends StaticFlowStart
-  with CallbackValidator[Email] {
+  with CallbackValidator[Email]:
   override val conf: StaticConf = staticConf(authConf)
 
   override def validate(
     code: Code,
     redirectUrl: FullUrl,
     requestNonce: Option[String]
-  ): IO[Either[AuthError, Email]] = {
+  ): IO[Either[AuthError, Email]] =
     val params = tokenParameters(code, redirectUrl)
     http.postFormAs[TokenResponse](conf.tokenEndpoint, params).flatMap { tokens =>
       http.getAs[JWTKeys](AppleAuthFlow.jwksUri).map { keys =>
@@ -75,7 +70,6 @@ class AppleAuthFlow(authConf: AuthConf, validator: AppleTokenValidator, http: Ht
         }
       }
     }
-  }
 
   override def extraRedirParams(redirectUrl: FullUrl): Map[String, String] =
     Map(ResponseType -> CodeKey, "response_mode" -> "form_post")
@@ -87,4 +81,3 @@ class AppleAuthFlow(authConf: AuthConf, validator: AppleTokenValidator, http: Ht
     CodeKey -> code.code,
     RedirectUri -> redirUrl.url
   )
-}

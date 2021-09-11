@@ -6,14 +6,13 @@ import io.circe.Codec
 import io.circe.generic.semiauto.deriveCodec
 import scala.concurrent.duration.DurationInt
 
-class JWSTests extends FunSuite {
+class JWSTests extends FunSuite:
   val secretKey = SecretKey("top-secret-secret-at-least-256-bits")
 
   case class MyData(username: Username)
 
-  object MyData {
+  object MyData:
     implicit val json: Codec[MyData] = deriveCodec[MyData]
-  }
 
   test("sign-verify") {
     val in = """{"a": "b"}"""
@@ -31,4 +30,3 @@ class JWSTests extends FunSuite {
     assert(actual.isRight)
     assertEquals(actual.toOption.get, expected)
   }
-}

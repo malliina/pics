@@ -5,13 +5,12 @@ import java.nio.file.{Files, Path}
 import cats.effect.IO
 import com.sksamuel.scrimage.ImmutableImage
 
-object ImageHandlerIO {
+object ImageHandlerIO:
   def apply(prefix: String, resizer: ImageResizerIO, storage: DataSourceIO) =
     new ImageHandlerIO(prefix, resizer, storage)
-}
 
 class ImageHandlerIO(prefix: String, resizer: ImageResizerIO, val storage: DataSourceIO)
-  extends ImageService[IO] {
+  extends ImageService[IO]:
   def createTempFile = IO(Files.createTempFile(prefix, null))
 
   override def handle(original: Path, key: Key): IO[Path] =
@@ -26,20 +25,19 @@ class ImageHandlerIO(prefix: String, resizer: ImageResizerIO, val storage: DataS
   }
 
   override def remove(key: Key): IO[PicResult] = storage.remove(key)
-}
 
-trait ImageHandlerLike[F[_]] {
+trait ImageHandlerLike[F[_]]:
   def handleImage(image: ImmutableImage, key: Key): F[Path]
   def remove(key: Key): F[PicResult]
-}
 
-trait ImageService[F[_]] extends ImageHandlerLike[F] {
+trait ImageService[F[_]] extends ImageHandlerLike[F]:
 
   /** Might fail with Exception, ImageParseException, IllegalArgumentException, ...
     *
-    * @param original orig image
-    * @param key      desired key
+    * @param original
+    *   orig image
+    * @param key
+    *   desired key
     * @return
     */
   def handle(original: Path, key: Key): F[Path]
-}

@@ -9,7 +9,6 @@ case class CookieConf(
   prompt: String
 )
 
-object CookieConf {
+object CookieConf:
   val pics =
     CookieConf("picsUser", "picsState", "picsReturnUri", "picsLastId", "picsProvider", "picsPrompt")
-}

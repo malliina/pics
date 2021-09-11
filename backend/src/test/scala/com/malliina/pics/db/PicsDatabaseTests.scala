@@ -3,7 +3,7 @@ package com.malliina.pics.db
 import com.malliina.pics.{Keys, PicOwner}
 import tests.{BaseSuite, DoobieSuite}
 
-class PicsDatabaseTests extends BaseSuite with DoobieSuite {
+class PicsDatabaseTests extends BaseSuite with DoobieSuite:
   test("can CRUD pic meta") {
     val data = doobie()
     val picsDatabase = PicsDatabase(data)
@@ -16,4 +16,3 @@ class PicsDatabaseTests extends BaseSuite with DoobieSuite {
     picsDatabase.remove(key, user).unsafeRunSync()
     assert(!picsDatabase.contains(key).unsafeRunSync())
   }
-}

@@ -23,7 +23,7 @@ import org.typelevel.ci.CIStringSyntax
 
 import scala.concurrent.duration.DurationInt
 
-object Http4sAuth {
+object Http4sAuth:
   private val log = AppLogger(getClass)
 
   def apply(conf: AppConf, db: PicsDatabase[IO]): Http4sAuth =
@@ -38,10 +38,8 @@ object Http4sAuth {
 
   case class TwitterState(requestToken: AccessToken)
 
-  object TwitterState {
+  object TwitterState:
     implicit val json: Codec[TwitterState] = deriveCodec[TwitterState]
-  }
-}
 
 class Http4sAuth(
   val webJwt: JWT,
@@ -50,28 +48,25 @@ class Http4sAuth(
   google: GoogleTokenAuth,
   db: PicsDatabase[IO],
   val cookieNames: CookieConf
-) {
+):
   val cookiePath = Option("/")
 
-  def authenticate(headers: Headers): IO[Either[IO[Response[IO]], PicRequest]] = {
+  def authenticate(headers: Headers): IO[Either[IO[Response[IO]], PicRequest]] =
     val rs = PicsService.ranges(headers)
-    if (rs.exists(r => r.satisfiedBy(MediaType.text.html))) {
-      IO.pure(web(headers))
-    } else if (
-      rs.exists(m => m.satisfiedBy(version10) || m.satisfiedBy(MediaType.application.json))
-    ) {
-      jwt(headers)
-    } else {
-      IO.pure(Left(NotAcceptable(Errors.single("Not acceptable.").asJson, noCache)))
-    }
-  }
+    if rs.exists(r => r.satisfiedBy(MediaType.text.html)) then IO.pure(web(headers))
+    else if rs.exists(m =>
+        m.satisfiedBy(version10) || m.satisfiedBy(MediaType.application.json)
+      )
+    then jwt(headers)
+    else IO.pure(Left(NotAcceptable(Errors.single("Not acceptable.").asJson, noCache)))
 
-  /** Performs authentication disregarding the Accept header; tries opportunistically cookie-based auth first,
-    * falling back to Bearer token auth should cookie auth fail.
+  /** Performs authentication disregarding the Accept header; tries opportunistically cookie-based
+    * auth first, falling back to Bearer token auth should cookie auth fail.
     *
-    * @param headers request headers
+    * @param headers
+    *   request headers
     */
-  def authenticateAll(headers: Headers): IO[Either[IO[Response[IO]], PicRequest]] = {
+  def authenticateAll(headers: Headers): IO[Either[IO[Response[IO]], PicRequest]] =
     val userAuth: IO[Either[IdentityError, Username]] = IO.pure(user(headers)).flatMap { e =>
       e.fold(
         _ => readJwt(headers).fold(l => IO.pure(Left(l)), r => r.map(_.map(_.username))),
@@ -89,7 +84,6 @@ class Http4sAuth(
         user => Right(PicRequest.forUser(user, headers))
       )
     }
-  }
 
   private def web(headers: Headers): Either[IO[Response[IO]], PicRequest] = user(headers).fold(
     {
@@ -102,29 +96,27 @@ class Http4sAuth(
   )
 
   private def jwt(headers: Headers) =
-    readJwt(headers)
-      .map { io =>
-        io.map { e =>
-          e.fold(
-            _ => Left(onUnauthorized(headers)),
-            user => Right(PicRequest.forUser(user.username, headers))
-          )
-        }
+    readJwt(headers).map { io =>
+      io.map { e =>
+        e.fold(
+          _ => Left(onUnauthorized(headers)),
+          user => Right(PicRequest.forUser(user.username, headers))
+        )
       }
+    }
       .fold(_ => IO.pure(Right(PicRequest.anon(headers))), identity)
 
   private def readJwt(headers: Headers): Either[IdentityError, IO[Either[TokenError, JWTUser]]] =
-    token(headers) match {
+    token(headers) match
       case AccessTokenResult(token) =>
         val res = db.userByToken(token).map { opt =>
-          opt
-            .map { u => JWTUsers.user(u) }
+          opt.map { u => JWTUsers.user(u) }
             .toRight(TokenError(OAuthError(ErrorMessage("Invalid access token.")), headers))
         }
         Right(res)
       case IdTokenResult(token) =>
-        val res = IO(ios.validate(AccessToken(token.value)).orElse(android.validate(token)))
-          .flatMap { e =>
+        val res =
+          IO(ios.validate(AccessToken(token.value)).orElse(android.validate(token))).flatMap { e =>
             e.fold(
               err =>
                 google.validate(token).map { e =>
@@ -132,26 +124,23 @@ class Http4sAuth(
                 },
               user => IO.pure(Right(user))
             )
-          }
-          .map { e =>
+          }.map { e =>
             e.left.map { error =>
               TokenError(error, headers)
             }
           }
         Right(res)
       case NoCredentials(headers) => Left(MissingCredentials("Creds required.", headers))
-    }
 
   def token(headers: Headers): CredentialsResult = headers
     .get[Authorization]
     .fold[CredentialsResult](NoCredentials(headers)) { h =>
-      h.credentials match {
+      h.credentials match
         case Token(scheme, token) =>
-          if (scheme == ci"token") AccessTokenResult(AccessToken(token))
+          if scheme == ci"token" then AccessTokenResult(AccessToken(token))
           else IdTokenResult(IdToken(token))
         case _ =>
           NoCredentials(headers)
-      }
     }
 
   def session[T: Decoder](from: Headers): Either[IdentityError, T] =
@@ -187,7 +176,7 @@ class Http4sAuth(
     t: T,
     isSecure: Boolean,
     res: Response[IO]
-  ): res.Self = {
+  ): res.Self =
     val signed = webJwt.sign(t, 12.hours)
     res.addCookie(
       ResponseCookie(
@@ -198,7 +187,6 @@ class Http4sAuth(
         path = cookiePath
       )
     )
-  }
 
   def responseCookie(name: String, value: String) = ResponseCookie(
     name,
@@ -213,7 +201,7 @@ class Http4sAuth(
     read[UserPayload](cookieName, headers).map(_.username)
 
   private def read[T: Decoder](cookieName: String, headers: Headers): Either[IdentityError, T] =
-    for {
+    for
       header <- headers.get[Cookie].toRight(MissingCredentials("Cookie parsing error.", headers))
       cookie <- header.values
         .find(_.name == cookieName)
@@ -222,8 +210,7 @@ class Http4sAuth(
       t <- webJwt.verify[T](cookie).left.map { err =>
         TokenError(err, headers)
       }
-    } yield t
+    yield t
 
   private def onUnauthorized(headers: Headers) =
     SeeOther(Location(Reverse.signIn))
-}

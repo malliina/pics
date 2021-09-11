@@ -4,9 +4,7 @@ import com.malliina.pics.PicOwner
 import com.malliina.values.Username
 import com.malliina.web.JWTUser
 
-object JWTUsers {
+object JWTUsers:
   def anon = user(Username(PicOwner.anon.name))
-  def user(user: Username) = new JWTUser {
+  def user(user: Username) = new JWTUser:
     override def username: Username = user
-  }
-}

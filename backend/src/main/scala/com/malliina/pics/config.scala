@@ -10,40 +10,34 @@ import com.malliina.web.{AuthConf, ClientId, ClientSecret}
 import com.typesafe.config.{Config, ConfigFactory}
 import controllers.Social
 
-case class SocialConf(id: ClientId, secret: ClientSecret) {
+case class SocialConf(id: ClientId, secret: ClientSecret):
   def auth = AuthConf(id, secret)
-}
 
-object SocialConf {
+object SocialConf:
   implicit val config: ConfigReadable[SocialConf] = ConfigReadable.config.emap { obj =>
-    for {
+    for
       id <- obj.read[ClientId]("id")
       secret <- obj.read[ClientSecret]("secret")
-    } yield SocialConf(id, secret)
+    yield SocialConf(id, secret)
   }
-}
 
-case class SocialClientConf(client: SocialConf) {
+case class SocialClientConf(client: SocialConf):
   def conf = client.auth
-}
 
-object SocialClientConf {
+object SocialClientConf:
   implicit val config: ConfigReadable[SocialClientConf] = ConfigReadable.config.emap { obj =>
     obj.read[SocialConf]("client").map(apply)
   }
-}
 
-case class GoogleConf(web: SocialConf) {
+case class GoogleConf(web: SocialConf):
   def conf = web.auth
-}
 
 case class AppConf(secret: SecretKey)
 
-sealed trait AppMode {
+sealed trait AppMode:
   def isProd = this == AppMode.Prod
-}
 
-object AppMode {
+object AppMode:
   case object Prod extends AppMode
   case object Dev extends AppMode
 
@@ -52,7 +46,6 @@ object AppMode {
     case "dev"  => Right(Dev)
     case other  => Left(ErrorMessage("Must be 'prod' or 'dev'."))
   }
-}
 
 case class PicsConf(
   mode: AppMode,
@@ -65,7 +58,7 @@ case class PicsConf(
   twitter: SocialClientConf,
   apple: SocialClientConf,
   amazon: SocialClientConf
-) {
+):
   def social = Social.SocialConf(
     github.conf,
     microsoft.conf,
@@ -75,24 +68,22 @@ case class PicsConf(
     amazon.conf,
     apple.conf
   )
-}
 
 case class WrappedConf(pics: PicsConf)
 
-object PicsConf {
+object PicsConf:
   implicit val secret: ConfigReadable[SecretKey] = ConfigReadable.string.map(s => SecretKey(s))
 
-  implicit class ConfigOps(c: Config) extends AnyVal {
+  implicit class ConfigOps(c: Config) extends AnyVal:
     def read[T](key: String)(implicit r: ConfigReadable[T]): Either[ErrorMessage, T] =
       r.read(key, c)
     def unsafe[T: ConfigReadable](key: String): T =
       c.read[T](key).fold(err => throw new IllegalArgumentException(err.message), identity)
-  }
   def picsConf = ConfigFactory.load(LocalConf.localConfig).resolve().getConfig("pics")
 
   def unsafeLoad(c: Config = picsConf): PicsConf = unsafeLoadWith(c, c.unsafe[DatabaseConf]("db"))
 
-  def unsafeLoadWith(c: Config, db: => DatabaseConf): PicsConf = {
+  def unsafeLoadWith(c: Config, db: => DatabaseConf): PicsConf =
     def client(name: String) = c.unsafe[SocialClientConf](name)
     PicsConf(
       c.unsafe[AppMode]("mode"),
@@ -106,5 +97,3 @@ object PicsConf {
       client("apple"),
       client("amazon")
     )
-  }
-}

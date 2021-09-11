@@ -13,22 +13,20 @@ import org.http4s.{Headers, Request, Uri}
 import io.circe.Codec
 import io.circe.generic.semiauto.deriveCodec
 
-trait BaseRequest {
+trait BaseRequest:
   def name: PicOwner
   def readOnly: Boolean
   def isAnon = readOnly
-}
 
 case class PicRequest(name: PicOwner, readOnly: Boolean, rh: Headers) extends BaseRequest
 
-object PicRequest {
+object PicRequest:
   val AnonUser = PicOwner("anon")
 
   def anon(headers: Headers): PicRequest = PicRequest(AnonUser, true, headers)
   def forUser(user: Username, headers: Headers): PicRequest = apply(PicOwner(user.name), headers)
   def apply(user: PicOwner, headers: Headers): PicRequest =
     apply(PicOwner(user.name), user == AnonUser, headers)
-}
 
 sealed trait PicResult
 
@@ -37,55 +35,50 @@ case object PicSuccess extends PicResult
 
 sealed abstract class PicSize(val value: String)
 
-object PicSize {
+object PicSize:
   val Key = "s"
 
   def apply[F[_]](request: Request[F]): Either[SingleError, PicSize] =
     request.uri.query.params.get(Key).map(parse).getOrElse(Right(Original))
 
-  def parse(in: String): Either[SingleError, PicSize] = in match {
+  def parse(in: String): Either[SingleError, PicSize] = in match
     case Small.value    => Right(Small)
     case Medium.value   => Right(Medium)
     case Large.value    => Right(Large)
     case Original.value => Right(Original)
     case other          => Left(SingleError(s"Invalid size: '$other'."))
-  }
 
   case object Small extends PicSize("s")
   case object Medium extends PicSize("m")
   case object Large extends PicSize("l")
   case object Original extends PicSize("o")
-}
 
 case class PicBundle(small: Path, medium: Path, large: Path, original: Path)
 
 case class AppMeta(name: String, version: String, gitHash: String)
 
-object AppMeta {
+object AppMeta:
   implicit val json: Codec[AppMeta] = deriveCodec[AppMeta]
 
   val default = AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.hash)
-}
 
-object Keys {
+object Keys:
   val generator = new RandomStringGenerator.Builder()
     .withinRange('0', 'z')
     .filteredBy(CharacterPredicates.LETTERS, CharacterPredicates.DIGITS)
     .build()
 
   def randomish(): Key = Key(generator.generate(Key.Length).toLowerCase)
-}
 
-case class FlatMeta(key: Key, lastModified: Instant) {
+case class FlatMeta(key: Key, lastModified: Instant):
   def withUser(user: PicOwner) = KeyMeta(key, user, lastModified)
-}
 
 case class KeyMeta(key: Key, owner: PicOwner, added: Instant)
 
-object PicMetas {
+object PicMetas:
   def from[F[_]](meta: KeyMeta, rh: Request[F]): PicMeta = fromHost(meta, Urls.hostOnly(rh))
 
-  def fromHost(meta: KeyMeta, host: FullUrl): PicMeta = {
+  def fromHost(meta: KeyMeta, host: FullUrl): PicMeta =
     val key = meta.key
     PicMeta(
       key,
@@ -95,29 +88,24 @@ object PicMetas {
       picUrl(key, PicSize.Medium, host),
       picUrl(key, PicSize.Large, host)
     )
-  }
 
   def picUrl(key: Key, size: PicSize, host: FullUrl) =
     host / query(Reverse.pic(key), PicSize.Key, size.value).renderString
 
   def query(call: Uri, key: String, value: String) = call.withQueryParam(key, value)
-}
 
 case class PicResponse(pic: PicMeta)
 
-object PicResponse {
+object PicResponse:
   implicit val json: Codec[PicResponse] = deriveCodec[PicResponse]
-}
 
-case class BucketName(name: String) extends AnyVal {
+case class BucketName(name: String) extends AnyVal:
   override def toString = name
-}
 
-case class ContentType(contentType: String) extends AnyVal {
+case class ContentType(contentType: String) extends AnyVal:
   def isImage = contentType startsWith "image"
-}
 
-object ContentType {
+object ContentType:
   val ImageJpeg = image("jpeg")
   val ImagePng = image("png")
   val ImageBmp = image("bmp")
@@ -128,7 +116,7 @@ object ContentType {
 
   def parseFile(path: Path) = parse(path.getFileName.toString)
 
-  def parse(name: String): Option[ContentType] = {
+  def parse(name: String): Option[ContentType] =
     val attempt: PartialFunction[String, ContentType] = {
       case "jpg"  => ImageJpeg
       case "jpeg" => ImageJpeg
@@ -137,5 +125,3 @@ object ContentType {
       case "bmp"  => ImageBmp
     }
     attempt.lift(FilenameUtils.getExtension(name))
-  }
-}

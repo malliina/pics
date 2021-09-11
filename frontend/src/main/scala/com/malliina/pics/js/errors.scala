@@ -4,9 +4,9 @@ import scala.scalajs.js
 
 class CognitoException(val friendlyMessage: String) extends Exception(friendlyMessage)
 
-object CognitoException {
+object CognitoException:
   // Cognito error codes
-  def apply(failure: CognitoAuthFailure) = failure.code match {
+  def apply(failure: CognitoAuthFailure) = failure.code match
     case "UserNotConfirmedException" => new NotConfirmedException(failure)
     case "CodeMismatchException"     => new ConfirmException(failure)
     case "UsernameExistsException"   => new UserAlreadyExists(failure)
@@ -15,10 +15,8 @@ object CognitoException {
     case "InvalidParameterException" => new CognitoException("Invalid input.")
     case "UnknownError"              => new AuthException("An error occurred.", failure)
     case _                           => new AuthException("Authentication failed.", failure)
-  }
 
   def apply(error: js.Error): CognitoException = new CognitoException(error.message)
-}
 
 class TotpRequiredException extends CognitoException("TOTP required.")
 

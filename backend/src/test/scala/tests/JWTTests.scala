@@ -5,7 +5,7 @@ import com.malliina.values.AccessToken
 import com.malliina.web.Expired
 import com.nimbusds.jwt.JWTClaimsSet
 
-class JWTTests extends munit.FunSuite {
+class JWTTests extends munit.FunSuite:
   val validator = LiberalValidators.auth0
 
   test("expired JWT fails") {
@@ -34,4 +34,3 @@ class JWTTests extends munit.FunSuite {
       .toJSONObject
     assert(asJson.get("aud") == "world")
   }
-}

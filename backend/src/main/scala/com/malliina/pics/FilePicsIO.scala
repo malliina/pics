@@ -8,7 +8,7 @@ import com.malliina.util.AppLogger
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
-object FilePicsIO {
+object FilePicsIO:
   private val log = AppLogger(getClass)
   val tmpDir = Paths.get(sys.props("java.io.tmpdir"))
 
@@ -20,9 +20,8 @@ object FilePicsIO {
   def default(): FilePicsIO = apply(picsDir)
   def thumbs(): FilePicsIO = named("thumbs")
   def named(name: String) = apply(picsDir.resolve(name))
-}
 
-class FilePicsIO(val dir: Path) extends DataSourceIO {
+class FilePicsIO(val dir: Path) extends DataSourceIO:
   import FilePicsIO.log
   Files.createDirectories(dir)
   log.info(s"Using pics dir '$dir'.")
@@ -62,4 +61,3 @@ class FilePicsIO(val dir: Path) extends DataSourceIO {
     }
 
   private def fileAt(key: Key) = dir resolve key.key
-}

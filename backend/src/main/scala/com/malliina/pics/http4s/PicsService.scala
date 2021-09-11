@@ -32,12 +32,12 @@ import org.http4s.server.websocket.WebSocketBuilder
 import org.http4s.syntax.literals.mediaType
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.*
-import org.http4s.{Callback => _, _}
+import org.http4s.{Callback as _, *}
 
 import java.nio.file.Files
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
-object PicsService {
+object PicsService:
   private val log = AppLogger(getClass)
   val version10 = mediaType"application/vnd.pics.v10+json"
   val noCache = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
@@ -50,7 +50,7 @@ object PicsService {
     blocker: Blocker,
     cs: ContextShift[IO],
     timer: Timer[IO]
-  ): PicsService = {
+  ): PicsService =
     val socials = Socials(conf.social, HttpClientIO())
     apply(
       PicsHtml.build(conf.mode.isProd),
@@ -63,7 +63,6 @@ object PicsService {
       cs,
       timer
     )
-  }
 
   def apply(
     html: PicsHtml,
@@ -75,16 +74,14 @@ object PicsService {
     blocker: Blocker,
     cs: ContextShift[IO],
     timer: Timer[IO]
-  ): PicsService = {
+  ): PicsService =
     val service = new PicServiceIO(db, handler)
     new PicsService(service, html, auth, socials, db, topic, handler, blocker)(cs, timer)
-  }
 
   def ranges(headers: Headers) = headers
     .get[Accept]
     .map(_.values.map(_.mediaRange))
     .getOrElse(NonEmptyList.of(MediaRange.`*/*`))
-}
 
 class PicsService(
   service: PicServiceIO,
@@ -96,7 +93,7 @@ class PicsService(
   handler: MultiSizeHandlerIO,
   blocker: Blocker
 )(implicit cs: ContextShift[IO], timer: Timer[IO])
-  extends BasicService[IO] {
+  extends BasicService[IO]:
   val pong = "pong"
 
   def cached(duration: FiniteDuration) = `Cache-Control`(
@@ -121,14 +118,11 @@ class PicsService(
         .authenticate(req.headers)
         .map { e =>
           e.flatMap { picReq =>
-            Limits(req.uri.query)
-              .map { limits =>
-                ListRequest(limits, picReq)
-              }
-              .left
-              .map { errors =>
-                badRequest(errors)
-              }
+            Limits(req.uri.query).map { limits =>
+              ListRequest(limits, picReq)
+            }.left.map { errors =>
+              badRequest(errors)
+            }
           }
         }
         .map { e =>
@@ -139,10 +133,9 @@ class PicsService(
               }
               render(req)(
                 json = Pics(entries),
-                html = {
+                html =
                   val feedback = None // UserFeedbacks.flashed(req.rh.flash)
                   html.pics(entries, feedback, listRequest.user).tags
-                }
               )
             }
           }
@@ -153,10 +146,8 @@ class PicsService(
         .authenticate(req.headers)
         .flatMap { e =>
           e.fold(
-            err => {
-              IO(log.error(s"Failed to authenticate $req.")).flatMap(_ => err)
-            },
-            user => {
+            err => IO(log.error(s"Failed to authenticate $req.")).flatMap(_ => err),
+            user =>
               val tempFile = Files.createTempFile("pic", ".jpg")
               val logging =
                 IO(log.info(s"Saving new pic by '${user.name}' to '${tempFile.toAbsolutePath}'..."))
@@ -191,11 +182,10 @@ class PicsService(
                       }
                   }
               }
-              for {
+              for
                 _ <- logging
                 r <- receive
-              } yield r
-            }
+              yield r
           )
         }
     case req @ POST -> Root / "pics" / KeyParam(key) / "delete" =>
@@ -206,19 +196,16 @@ class PicsService(
       import cats.implicits.*
       val adminUser = PicOwner("malliina123@gmail.com")
       authed(req) { user =>
-        if (user.name == adminUser) {
+        if user.name == adminUser then
           handler.originals.storage.load(0, 1000000).flatMap { keys =>
             log.info(s"Syncing ${keys.length} keys...")
-            keys.toList
-              .traverse { key => db.putMetaIfNotExists(key.withUser(adminUser)) }
-              .flatMap { changes =>
+            keys.toList.traverse { key => db.putMetaIfNotExists(key.withUser(adminUser)) }.flatMap {
+              changes =>
                 log.info(s"Sync complete. Upserted ${changes.sum} rows.")
                 SeeOther(Location(Reverse.drop))
-              }
+            }
           }
-        } else {
-          unauthorized(Errors.single("Admin required."))
-        }
+        else unauthorized(Errors.single("Admin required."))
       }
     case req @ GET -> Root / "sockets" =>
       authedAll(req) { user =>
@@ -266,7 +253,7 @@ class PicsService(
         .map(r => TemporaryRedirect(Location(r.start)))
         .getOrElse(ok(html.signIn(None).tags))
     case req @ GET -> Root / "sign-in" / AuthProvider(id) =>
-      id match {
+      id match
         case Twitter =>
           val twitter = socials.twitter
           twitter
@@ -296,12 +283,11 @@ class PicsService(
           start(socials.facebook, reverseSocial.facebook, req)
         case Apple =>
           start(socials.apple, reverseSocial.apple, req)
-      }
     case req @ GET -> Root / "sign-in" / "callbacks" / AuthProvider(id) =>
-      id match {
+      id match
         case Twitter =>
           val params = req.uri.query.params
-          val maybe = for {
+          val maybe = for
             token <- params
               .get(OauthTokenKey)
               .map(AccessToken.apply)
@@ -313,17 +299,16 @@ class PicsService(
             verifier <- params
               .get(OauthVerifierKey)
               .toRight(OAuthError(s"Missing $OauthVerifierKey query paramater."))
-          } yield socials.twitter
+          yield socials.twitter
             .validateTwitterCallback(token, requestToken.requestToken, verifier)
             .flatMap { e =>
               e.flatMap(_.email.toRight(OAuthError("Email missing.")))
                 .fold(err => unauthorized(Errors(err.message)), ok => userResult(ok, id, req))
             }
           maybe.fold(
-            err => {
+            err =>
               log.warn(s"$err in $req")
-              unauthorized(Errors.single(s"Invalid callback parameters."))
-            },
+              unauthorized(Errors.single(s"Invalid callback parameters.")),
             identity
           )
         case Google =>
@@ -346,7 +331,6 @@ class PicsService(
           handleCallbackV(socials.facebook, reverseSocial.facebook, req, id)
         case Apple =>
           handleCallbackV(socials.apple, reverseSocial.apple, req, id)
-      }
     case GET -> Root / "sign-out" / "leave" =>
       SeeOther(Location(Reverse.signOutCallback)).map { res =>
         import Social.*
@@ -380,38 +364,34 @@ class PicsService(
     case req @ GET -> Root / KeyParam(key) / "large" =>
       sendPic(key, PicSize.Large, req)
     case req @ GET -> Root / rest if ContentType.parse(rest).exists(_.isImage) =>
-      PicSize(req)
-        .map { size =>
-          sendPic(Key(rest), size, req)
-        }
-        .recover { err =>
-          badRequest(Errors(NonEmptyList.of(err)))
-        }
+      PicSize(req).map { size =>
+        sendPic(Key(rest), size, req)
+      }.recover { err =>
+        badRequest(Errors(NonEmptyList.of(err)))
+      }
   }
 
   private def sendPic(key: Key, size: PicSize, req: Request[IO]) =
     handler(size).storage.find(key).flatMap { maybeFile =>
-      maybeFile
-        .map { file =>
-          StaticFile
-            .fromFile(file.file.toFile, blocker, Option(req))
-            .map(_.putHeaders(cached(365.days)))
-            .getOrElseF(notFound(req))
-        }
-        .getOrElse {
-          notFoundWith(s"Not found: '$key'.")
-        }
+      maybeFile.map { file =>
+        StaticFile
+          .fromFile(file.file.toFile, blocker, Option(req))
+          .map(_.putHeaders(cached(365.days)))
+          .getOrElseF(notFound(req))
+      }.getOrElse {
+        notFoundWith(s"Not found: '$key'.")
+      }
     }
 
   private def removeKey(key: Key, redir: Uri, req: Request[IO]) =
     authed(req) { user =>
-      if (user.readOnly) {
+      if user.readOnly then
         IO(log.warn(s"User '${user.name}' is not authorized to delete '$key'.")).flatMap { _ =>
           unauthorized(Errors.single(s"Unauthorized."))
         }
-      } else {
+      else
         db.remove(key, user.name).flatMap { wasDeleted =>
-          if (wasDeleted) {
+          if wasDeleted then
             log.info(s"Key '$key' removed by '${user.name}' from '$req'.")
             handler.remove(key).flatMap { _ =>
               topic.publish1(PicMessage.RemovedMessage(PicsRemoved(Seq(key)), user.name)).flatMap {
@@ -422,12 +402,10 @@ class PicsService(
                   )
               }
             }
-          } else {
+          else
             log.error(s"Key not found: '$key'.")
             keyNotFound(key)
-          }
         }
-      }
     }
 
   private def start(validator: FlowStart[IO], reverse: SocialRoute, req: Request[IO]) =
@@ -508,7 +486,7 @@ class PicsService(
     req: Request[IO],
     provider: AuthProvider,
     validate: Callback => IO[Either[AuthError, Email]]
-  ): IO[Response[IO]] = {
+  ): IO[Response[IO]] =
     val params = req.uri.query.params
     val session = auth.session[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
     val cb = Callback(
@@ -524,13 +502,12 @@ class PicsService(
         email => userResult(email, provider, req)
       )
     }
-  }
 
   private def userResult(
     email: Email,
     provider: AuthProvider,
     req: Request[IO]
-  ): IO[Response[IO]] = {
+  ): IO[Response[IO]] =
     val returnUri: Uri = req.cookies
       .find(_.name == cookieNames.returnUri)
       .flatMap(c => Uri.fromString(c.content).toOption)
@@ -538,7 +515,6 @@ class PicsService(
     SeeOther(Location(returnUri)).map { r =>
       auth.withPicsUser(UserPayload.email(email), req.isSecured, provider, r)
     }
-  }
 
   def stringify(map: Map[String, String]): String =
     map.map { case (key, value) => s"$key=$value" }.mkString("&")
@@ -556,17 +532,16 @@ class PicsService(
 
   private def renderRanged[A: Encoder, B](
     req: Request[IO]
-  )(json: IO[Response[IO]], html: IO[Response[IO]]): IO[Response[IO]] = {
+  )(json: IO[Response[IO]], html: IO[Response[IO]]): IO[Response[IO]] =
     val rs = ranges(req.headers)
     val qp = req.uri.query.params
-    if (qp.get("f").contains("json") || qp.contains("json")) json
-    else if (rs.exists(_.satisfies(MediaType.text.html))) html
-    else if (rs.exists(_.satisfies(version10))) json
-    else if (rs.exists(_.satisfies(MediaType.application.json))) json
+    if qp.get("f").contains("json") || qp.contains("json") then json
+    else if rs.exists(_.satisfies(MediaType.text.html)) then html
+    else if rs.exists(_.satisfies(version10)) then json
+    else if rs.exists(_.satisfies(MediaType.application.json)) then json
     else NotAcceptable(Errors.single("Not acceptable.").asJson, noCache)
-  }
 
-  private def failResize(error: ImageFailure, by: PicRequest): IO[Response[IO]] = error match {
+  private def failResize(error: ImageFailure, by: PicRequest): IO[Response[IO]] = error match
     case UnsupportedFormat(format, supported) =>
       val msg = s"Unsupported format: '$format', must be one of: '${supported.mkString(", ")}'"
       log.error(msg)
@@ -583,7 +558,6 @@ class PicsService(
     case ResizeException(ipa) =>
       log.error(s"Unable to parse image by '${by.name}'.", ipa)
       badRequestWith("Unable to parse image.")
-  }
 
   private def ok[A](a: A)(implicit w: EntityEncoder[IO, A]) = Ok(a, noCache)
   private def badRequestWith(message: String) = badRequest(Errors.single(message))
@@ -598,4 +572,3 @@ class PicsService(
   private def notFoundWith(message: String) = NotFound(Errors.single(message).asJson, noCache)
   private def serverError(message: String) =
     InternalServerError(Errors.single(message).asJson, noCache)
-}

@@ -1,15 +1,15 @@
 package com.malliina.pics.http4s
 
 import cats.data.NonEmptyList
-import cats.effect._
+import cats.effect.*
 import com.malliina.pics.AppMeta
-import com.malliina.pics.http4s.PicsImplicits._
+import com.malliina.pics.http4s.PicsImplicits.*
 import munit.FunSuite
-import org.http4s._
+import org.http4s.*
 import org.http4s.headers.{Accept, MediaRangeAndQValue}
 import tests.Http4sSuite
 
-class PicsServiceTests extends FunSuite with Http4sSuite {
+class PicsServiceTests extends FunSuite with Http4sSuite:
   test("can make request") {
     val res = getUri(uri"/ping")
     assertEquals(res.status, Status.Ok)
@@ -50,10 +50,9 @@ class PicsServiceTests extends FunSuite with Http4sSuite {
     assertEquals(res.status, Status.Unauthorized)
   }
 
-  private def getUri(uri: Uri, mediaType: MediaType = PicsService.version10) = {
+  private def getUri(uri: Uri, mediaType: MediaType = PicsService.version10) =
     val req = get(uri, mediaType)
     app().run(req).unsafeRunSync()
-  }
 
   def get(uri: Uri, mediaType: MediaType) =
     make(uri, Method.GET, mediaType)
@@ -61,4 +60,3 @@ class PicsServiceTests extends FunSuite with Http4sSuite {
   def make(uri: Uri, method: Method, mediaType: MediaType) = Request[IO](method, uri).putHeaders(
     Accept(NonEmptyList.of(MediaRangeAndQValue.withDefaultQValue(mediaType)))
   )
-}

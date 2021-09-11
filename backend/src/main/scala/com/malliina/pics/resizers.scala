@@ -9,7 +9,7 @@ import com.malliina.util.AppLogger
 import com.sksamuel.scrimage.ImmutableImage
 import com.sksamuel.scrimage.nio.JpegWriter
 
-object ScrimageResizerIO {
+object ScrimageResizerIO:
   private val log = AppLogger(getClass)
 
   def apply(maxWidth: Int, maxHeight: Int): ScrimageResizerIO =
@@ -18,9 +18,8 @@ object ScrimageResizerIO {
   val Small = ScrimageResizerIO(400, 300)
   val Medium = ScrimageResizerIO(1440, 1080)
   val Large = ScrimageResizerIO(2880, 2160)
-}
 
-class ScrimageResizerIO(maxWidth: Int, maxHeight: Int) extends ImageResizerIO {
+class ScrimageResizerIO(maxWidth: Int, maxHeight: Int) extends ImageResizerIO:
   override def resize(
     image: ImmutableImage,
     dest: Path
@@ -34,21 +33,18 @@ class ScrimageResizerIO(maxWidth: Int, maxHeight: Int) extends ImageResizerIO {
     )
     resizedSize
   }
-}
 
-object AsIsResizerIO extends ImageResizerIO {
+object AsIsResizerIO extends ImageResizerIO:
   override def resize(image: ImmutableImage, dest: Path): IO[Either[ImageException, StorageSize]] =
     recovered {
       image.output(JpegWriter.Default, dest)
       Files.size(dest).bytes
     }
-}
 
-object ImageResizerIO {
+object ImageResizerIO:
   val log = AppLogger(getClass)
-}
 
-trait ImageResizerIO extends ImageResizerT[IO] {
+trait ImageResizerIO extends ImageResizerT[IO]:
   def recovered[T](work: => T): IO[Either[ImageException, T]] =
     IO(work).redeemWith(
       {
@@ -61,9 +57,8 @@ trait ImageResizerIO extends ImageResizerT[IO] {
       },
       t => IO.pure(Right(t))
     )
-}
 
-trait ImageResizerT[F[_]] {
+trait ImageResizerT[F[_]]:
   def resizeStream(src: InputStream, dest: Path): F[Either[ImageException, StorageSize]] =
     resize(ImmutableImage.loader().fromStream(src), dest)
 
@@ -71,4 +66,3 @@ trait ImageResizerT[F[_]] {
     resize(ImmutableImage.loader().fromPath(src), dest)
 
   def resize(image: ImmutableImage, dest: Path): F[Either[ImageException, StorageSize]]
-}

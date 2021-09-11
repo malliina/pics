@@ -1,25 +1,23 @@
 package com.malliina.pics.js
 
-import org.scalajs.dom.raw._
+import org.scalajs.dom.raw.*
 
 import scala.concurrent.Promise
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
-class Login(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log) {
+class Login(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log):
   val loginForm = elem[HTMLFormElement](LoginFormId)
-  loginForm.onsubmit = (e: Event) => {
+  loginForm.onsubmit = (e: Event) =>
     authenticate()
     e.preventDefault()
-  }
   val confirm = Confirm(log)
   val forgot = ForgotPassword(log)
 
-  elem[HTMLAnchorElement](ForgotPasswordLinkId).onclick = (_: Event) => {
+  elem[HTMLAnchorElement](ForgotPasswordLinkId).onclick = (_: Event) =>
     hide()
     forgot.show()
-  }
 
-  def authenticate(): Unit = {
+  def authenticate(): Unit =
     val email = emailIn.value
     val pass = passIn.value
     val user = CognitoUser(email, userPool)
@@ -45,28 +43,23 @@ class Login(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log) {
         submitToken(success.accessToken, LoginTokenId, loginForm)
       }
       .feedbackTo(LoginFeedbackId)
-  }
 
   def hide(): Unit = loginForm.setAttribute(Hidden, Hidden)
-}
 
-object ForgotPassword {
+object ForgotPassword:
   def apply(log: BaseLogger): ForgotPassword = new ForgotPassword(log)
-}
 
-class ForgotPassword(log: BaseLogger) extends AuthFrontend(log) {
+class ForgotPassword(log: BaseLogger) extends AuthFrontend(log):
   private val forgotForm = elem[HTMLFormElement](ForgotFormId)
-  forgotForm.onsubmit = (e: Event) => {
+  forgotForm.onsubmit = (e: Event) =>
     sendCode()
     e.preventDefault()
-  }
   private val resetForm = elem[HTMLFormElement](ResetFormId)
-  resetForm.onsubmit = (e: Event) => {
+  resetForm.onsubmit = (e: Event) =>
     reset()
     e.preventDefault()
-  }
 
-  private def sendCode(): Unit = {
+  private def sendCode(): Unit =
     val email = elem[HTMLInputElement](ForgotEmailId).value
     val user = CognitoUser(email, userPool)
     user
@@ -81,9 +74,8 @@ class ForgotPassword(log: BaseLogger) extends AuthFrontend(log) {
         resetForm.removeAttribute(Hidden)
       }
       .feedbackTo(ForgotFeedbackId)
-  }
 
-  private def reset(): Unit = {
+  private def reset(): Unit =
     val email = resetEmailIn.value
     val user = CognitoUser(email, userPool)
     val code = elem[HTMLInputElement](ResetCodeId).value
@@ -98,30 +90,26 @@ class ForgotPassword(log: BaseLogger) extends AuthFrontend(log) {
         submitToken(success.accessToken, ResetTokenId, resetForm)
       }
       .feedbackTo(ResetFeedbackId)
-  }
 
   private def resetEmailIn = elem[HTMLInputElement](ResetEmailId)
 
   def hide(): Unit = forgotForm.setAttribute(Hidden, Hidden)
 
   def show(): Unit = forgotForm.removeAttribute(Hidden)
-}
 
-object Mfa {
+object Mfa:
   def apply(user: CognitoUser, log: BaseLogger): Mfa = new Mfa(user, log)
-}
 
-class Mfa(user: CognitoUser, log: BaseLogger) extends AuthFrontend(log) {
+class Mfa(user: CognitoUser, log: BaseLogger) extends AuthFrontend(log):
   private val success = Promise[CognitoSession]()
   val session = success.future
 
   private val mfaForm = elem[HTMLFormElement](MfaFormId)
-  mfaForm.onsubmit = (e: Event) => {
+  mfaForm.onsubmit = (e: Event) =>
     sendMfa()
     e.preventDefault()
-  }
 
-  private def sendMfa() = {
+  private def sendMfa() =
     val code = elem[HTMLInputElement](MfaCodeId).value
     user
       .sendMFA(code)
@@ -129,7 +117,5 @@ class Mfa(user: CognitoUser, log: BaseLogger) extends AuthFrontend(log) {
         success.trySuccess(session)
       }
       .feedbackTo(MfaFeedbackId)
-  }
 
   def show(): Unit = mfaForm.removeAttribute(Hidden)
-}

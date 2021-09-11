@@ -5,43 +5,38 @@ import java.nio.file.Path
 import cats.effect.IO
 import com.malliina.storage.StorageSize
 
-object FileCachingPicsIO {
+object FileCachingPicsIO:
   def apply(cache: FilePicsIO, origin: DataSourceT[IO]): FileCachingPicsIO =
     new FileCachingPicsIO(cache, origin)
-}
 
-class FileCachingPicsIO(cache: FilePicsIO, origin: DataSourceT[IO]) extends DataSourceIO {
+class FileCachingPicsIO(cache: FilePicsIO, origin: DataSourceT[IO]) extends DataSourceIO:
   override def load(from: Int, until: Int) = origin.load(from, until)
 
-  override def contains(key: Key): IO[Boolean] = {
+  override def contains(key: Key): IO[Boolean] =
     cache.contains(key).flatMap { isCached =>
-      if (isCached) IO.pure(true)
+      if isCached then IO.pure(true)
       else origin.contains(key)
     }
-  }
 
   override def get(key: Key): IO[DataFile] =
     cache.contains(key).flatMap { isCached =>
-      if (isCached) {
-        cache.get(key)
-      } else {
+      if isCached then cache.get(key)
+      else
         origin.get(key).flatMap { r =>
           cache.putData(key, r).map { file =>
             DataFile(file)
           }
         }
-      }
     }
 
   override def saveBody(key: Key, file: Path): IO[StorageSize] =
-    for {
+    for
       size <- origin.saveBody(key, file)
       _ <- cache.saveBody(key, file)
-    } yield size
+    yield size
 
   override def remove(key: Key): IO[PicResult] =
-    for {
+    for
       result <- origin.remove(key)
       _ <- cache.remove(key)
-    } yield result
-}
+    yield result

@@ -2,7 +2,7 @@ package com.malliina.play.auth
 
 import com.malliina.web.KeyConf
 
-object KeyConfs {
+object KeyConfs:
   val cognito = KeyConf.rsa(
     "poGdLTTbCHKgSg8uXc8jCNmzBg6CBbREelhbdwNwdt0HpbEKnt5D3IeateCPVv2zAwXHaRmT0OzgOz2T9nZnD1nLRO_cisIwfFQfrlooKO3xklLUleTnkBx2mLqgzvpvZ6y9oqgduH2ekGt7Pz8z9sB3T7X-4QBeuDaV67mxhoGtRnldDrOpHAXf4ILeuDXL-8-R7WfDHehlDofU4OU6Xhpe5gT0oj-L9q5T63IfTpblS5aKx346YfVjN1dx3G1Urclf6cTPSQpqgYYH1gx98Mf5T2UcRQ_GZSO7St1MBz9psfdlvP0kiegM4_mqyM_GzI5mLEss3KktdMhzBZZUJQ",
     "Ord14hhhzSdst7wfmIK59oBMEdxIEEerDlP3M5sjYCY="
@@ -26,4 +26,3 @@ object KeyConfs {
     "OTc5Rjc5MUU3M0M5MjM2OUJFNUM1MjJBRjczREUwQTYyMkRFMTdBRA"
 //    "https://malliina.eu.auth0.com/"
   )
-}

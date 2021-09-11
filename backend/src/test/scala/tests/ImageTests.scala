@@ -6,7 +6,7 @@ import com.malliina.storage.StorageInt
 import java.nio.file.{Files, Paths}
 import javax.imageio.ImageIO
 
-class ImageTests extends munit.FunSuite {
+class ImageTests extends munit.FunSuite:
   val picDir = Paths.get("backend/files")
   val original = picDir.resolve("original.jpg")
   val origLarge = picDir.resolve("demo-original.jpeg")
@@ -67,4 +67,3 @@ class ImageTests extends munit.FunSuite {
 
   def resizeWith(resizer: ScrimageResizerIO, name: String) =
     resizer.resizeFile(origLarge, picDir.resolve(name)).unsafeRunSync()
-}

@@ -21,20 +21,19 @@ class KeyNotFound(key: Key) extends Exception(s"Key not found: '$key'.")
 
 case class SingleError(message: String, key: String)
 
-object SingleError {
+object SingleError:
   implicit val json: Codec[SingleError] = deriveCodec[SingleError]
 
   def apply(message: String): SingleError = apply(message, "generic")
 
   def forJWT(error: JWTError): SingleError =
     SingleError(error.message.message, error.key)
-}
 
 case class Errors(errors: NonEmptyList[SingleError])
 
-object Errors {
+object Errors:
   implicit val se: Codec[SingleError] = SingleError.json
-  import cats.implicits._
+  import cats.implicits.*
 //  implicit def nelJson[T: Format]: Format[NonEmptyList[T]] =
 //    Format(
 //      Reads { json =>
@@ -49,4 +48,3 @@ object Errors {
 
   def apply(message: ErrorMessage): Errors = Errors.single(message.message)
   def single(message: String): Errors = Errors(NonEmptyList.of(SingleError(message)))
-}

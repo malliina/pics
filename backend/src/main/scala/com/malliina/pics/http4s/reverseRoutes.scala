@@ -2,18 +2,16 @@ package com.malliina.pics.http4s
 
 import com.malliina.pics.Key
 import org.http4s.Uri
-import org.http4s.implicits._
+import org.http4s.implicits.*
 
 case class SocialRoute(start: Uri, callback: Uri)
 
-object SocialRoute {
-  def apply(name: String): SocialRoute = {
+object SocialRoute:
+  def apply(name: String): SocialRoute =
     val base = uri"/sign-in"
     SocialRoute(base / name, base / "callbacks" / name)
-  }
-}
 
-object ReverseSocial {
+object ReverseSocial:
   val base = uri"/sign-in"
   val amazon = SocialRoute("amazon")
   val apple = SocialRoute("apple")
@@ -23,11 +21,10 @@ object ReverseSocial {
   val github = SocialRoute("github")
   val microsoft = SocialRoute("microsoft")
   val twitter = SocialRoute("twitter")
-}
 
 object Reverse extends Reverse
 
-trait Reverse {
+trait Reverse:
   val drop = uri"/drop"
   val list = uri"/pics"
 
@@ -40,4 +37,3 @@ trait Reverse {
   val delete = uri"/pics/delete"
 
   def pic(key: Key) = Uri.unsafeFromString(s"/$key")
-}

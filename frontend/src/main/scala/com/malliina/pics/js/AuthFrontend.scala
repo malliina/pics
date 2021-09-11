@@ -6,7 +6,7 @@ import org.scalajs.dom.raw.{HTMLElement, HTMLFormElement}
 import scala.concurrent.Future
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
-class AuthFrontend(log: BaseLogger) extends Frontend with LoginStrings {
+class AuthFrontend(log: BaseLogger) extends Frontend with LoginStrings:
   val poolData = PoolData.build("eu-west-1_egi2PEe65", "2rnqepv44epargdosba6nlg2t9")
   val userPool = CognitoUserPool(poolData)
   val Hidden = "hidden"
@@ -25,13 +25,10 @@ class AuthFrontend(log: BaseLogger) extends Frontend with LoginStrings {
       Future.failed(e)
   }
 
-  def submitToken(token: AccessToken, inputId: String, to: HTMLFormElement): Unit = {
+  def submitToken(token: AccessToken, inputId: String, to: HTMLFormElement): Unit =
     input(inputId).value = token.jwtToken
     PicsJS.csrf.installTo(to)
     to.submit()
-  }
 
-  implicit class FutureOps[T](val f: Future[T]) {
+  implicit class FutureOps[T](val f: Future[T]):
     def feedbackTo(id: String): Future[T] = recovered(id)(f)
-  }
-}

@@ -2,18 +2,18 @@ package com.malliina.pics.html
 
 import com.malliina.html.UserFeedback
 import com.malliina.http.FullUrl
-import com.malliina.pics.html.PicsHtml._
+import com.malliina.pics.html.PicsHtml.*
 import com.malliina.pics.http4s.Reverse
-import com.malliina.pics.{html => _, _}
+import com.malliina.pics.{html as _, *}
 import scalatags.Text
-import scalatags.Text.all.{defer => _, _}
+import scalatags.Text.all.{defer as _, *}
 import PicsHtml.reverse
-import com.malliina.html.HtmlTags.{fullUrl => _, _}
+import com.malliina.html.HtmlTags.{fullUrl as _, *}
 import org.http4s.Uri
 import com.malliina.pics.AssetsSource
 import scala.language.implicitConversions
 
-object PicsHtml {
+object PicsHtml:
   val CopyButton = "copy-button"
 
   val False = "false"
@@ -27,14 +27,13 @@ object PicsHtml {
   val reverse = Reverse
 //  implicit val urlAttr: GenericAttr[FullUrl] = new GenericAttr[FullUrl]
 
-  def build(isProd: Boolean): PicsHtml = {
+  def build(isProd: Boolean): PicsHtml =
     val name = "frontend"
-    val opt = if (isProd) "opt" else "fastopt"
+    val opt = if isProd then "opt" else "fastopt"
     val appScripts =
-      if (isProd) Seq(s"$name-$opt-bundle.js")
+      if isProd then Seq(s"$name-$opt-bundle.js")
       else Seq(s"$name-$opt-library.js", s"$name-$opt-loader.js", s"$name-$opt.js")
     new PicsHtml(appScripts, Nil, HashedAssetsSource)
-  }
 
   implicit def urlWriter(url: FullUrl): Text.StringFrag =
     stringFrag(url.url)
@@ -44,10 +43,9 @@ object PicsHtml {
 
   def postableForm(onAction: String, more: Modifier*) =
     form(role := FormRole, action := onAction, method := Post, more)
-}
 
 class PicsHtml(scripts: Seq[String], absoluteScripts: Seq[FullUrl], assets: AssetsSource)
-  extends BaseHtml {
+  extends BaseHtml:
   val authHtml = AuthHtml(assets)
 
   def signIn(feedback: Option[UserFeedback] = None) = basePage(authHtml.signIn(feedback))
@@ -56,7 +54,7 @@ class PicsHtml(scripts: Seq[String], absoluteScripts: Seq[FullUrl], assets: Asse
 
   def profile = basePage(authHtml.profile)
 
-  def drop(created: Option[PicMeta], feedback: Option[UserFeedback], user: BaseRequest) = {
+  def drop(created: Option[PicMeta], feedback: Option[UserFeedback], user: BaseRequest) =
     val content =
       divContainer(
         renderFeedback(feedback),
@@ -93,16 +91,14 @@ class PicsHtml(scripts: Seq[String], absoluteScripts: Seq[FullUrl], assets: Asse
         }
       )
     val conf = PageConf("Pics - Drop", bodyClass = DropClass, inner = content)
-    baseIndex("drop", if (user.readOnly) None else Option(user.name), conf)
-  }
+    baseIndex("drop", if user.readOnly then None else Option(user.name), conf)
 
-  def pics(urls: Seq[PicMeta], feedback: Option[UserFeedback], user: BaseRequest): TagPage = {
+  def pics(urls: Seq[PicMeta], feedback: Option[UserFeedback], user: BaseRequest): TagPage =
     val content = Seq(divClass("pics")(renderFeedback(feedback)), picsContent(urls, user.readOnly))
     val conf = PageConf("Pics", bodyClass = PicsClass, inner = content)
-    baseIndex("pics", if (user.readOnly) None else Option(user.name), conf)
-  }
+    baseIndex("pics", if user.readOnly then None else Option(user.name), conf)
 
-  def privacyPolicy = {
+  def privacyPolicy =
     val privacyContent: Modifier = divContainer(
       h1(`class` := "page-header")("Privacy Policy"),
       p(
@@ -124,9 +120,8 @@ class PicsHtml(scripts: Seq[String], absoluteScripts: Seq[FullUrl], assets: Asse
       p("Network requests may be logged by server software.")
     )
     basePage(PageConf("Pics - Privacy Policy", inner = privacyContent))
-  }
 
-  def support = {
+  def support =
     val content = divContainer(
       h1("Support"),
       p("For support issues:"),
@@ -136,9 +131,8 @@ class PicsHtml(scripts: Seq[String], absoluteScripts: Seq[FullUrl], assets: Asse
       )
     )
     basePage(PageConf("Pics - Support", inner = content))
-  }
 
-  def eject(message: Option[String]) = {
+  def eject(message: Option[String]) =
     val content =
       divContainer(
         rowColumn(s"${col.md.six} top-padding")(
@@ -148,57 +142,52 @@ class PicsHtml(scripts: Seq[String], absoluteScripts: Seq[FullUrl], assets: Asse
         )
       )
     basePage(PageConf("Goodbye!", inner = content))
-  }
 
-  def baseIndex(tabName: String, user: Option[PicOwner], conf: PageConf) = {
-    def navItem(thisTabName: String, tabId: String, url: Uri, faName: String) = {
-      val itemClass = if (tabId == tabName) "nav-item active" else "nav-item"
+  def baseIndex(tabName: String, user: Option[PicOwner], conf: PageConf) =
+    def navItem(thisTabName: String, tabId: String, url: Uri, faName: String) =
+      val itemClass = if tabId == tabName then "nav-item active" else "nav-item"
       li(`class` := itemClass)(a(href := url, `class` := "nav-link")(fa(faName), s" $thisTabName"))
-    }
 
-    val navContent = user
-      .map { u =>
-        modifier(
-          ulClass(s"${navbars.Nav} $MrAuto")(
-            navItem("Pics", "pics", reverse.list, "image"),
-            navItem("Drop", "drop", reverse.drop, "upload")
-          ),
-          ulClass(s"${navbars.Nav}")(
-            li(`class` := s"nav-item $Dropdown")(
-              a(
-                href := "#",
-                `class` := s"nav-link $DropdownToggle",
-                dataToggle := Dropdown,
-                role := Button,
-                aria.haspopup := tags.True,
-                aria.expanded := tags.False
-              )(
-                fa("user"),
-                s" ${u.name} ",
-                spanClass(Caret)
-              ),
-              ulClass(DropdownMenu)(
-                li(
-                  a(href := reverse.signOut, `class` := "nav-link")(
-                    fa("sign-in-alt"),
-                    " Sign Out"
-                  )
+    val navContent = user.map { u =>
+      modifier(
+        ulClass(s"${navbars.Nav} $MrAuto")(
+          navItem("Pics", "pics", reverse.list, "image"),
+          navItem("Drop", "drop", reverse.drop, "upload")
+        ),
+        ulClass(s"${navbars.Nav}")(
+          li(`class` := s"nav-item $Dropdown")(
+            a(
+              href := "#",
+              `class` := s"nav-link $DropdownToggle",
+              dataToggle := Dropdown,
+              role := Button,
+              aria.haspopup := tags.True,
+              aria.expanded := tags.False
+            )(
+              fa("user"),
+              s" ${u.name} ",
+              spanClass(Caret)
+            ),
+            ulClass(DropdownMenu)(
+              li(
+                a(href := reverse.signOut, `class` := "nav-link")(
+                  fa("sign-in-alt"),
+                  " Sign Out"
                 )
               )
             )
           )
         )
-      }
-      .getOrElse {
-        modifier(
-          ulClass(s"${navbars.Nav} $MrAuto")(),
-          ulClass(navbars.Nav)(
-            navItem("Sign In", "signin", reverse.signIn, "sign-out-alt")
-          )
+      )
+    }.getOrElse {
+      modifier(
+        ulClass(s"${navbars.Nav} $MrAuto")(),
+        ulClass(navbars.Nav)(
+          navItem("Sign In", "signin", reverse.signIn, "sign-out-alt")
         )
-      }
+      )
+    }
     basePage(conf.copy(inner = modifier(withNavbar(navContent), conf.inner)))
-  }
 
   def fa(faName: String) = i(`class` := s"fa fa-$faName", title := faName, aria.hidden := tags.True)
 
@@ -240,7 +229,6 @@ class PicsHtml(scripts: Seq[String], absoluteScripts: Seq[FullUrl], assets: Asse
     script(`type` := "application/javascript", src := at(path), defer)
 
   def at(path: String) = assets.at(path)
-}
 
 case class PageConf(
   title: String,

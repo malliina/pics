@@ -5,15 +5,14 @@ import com.malliina.pics.{Key, KeyMeta, MetaSourceT, PicOwner, UserDatabase}
 import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, UserId, Username}
 import doobie.ConnectionIO
-import doobie.implicits._
+import doobie.implicits.*
 
-object PicsDatabase {
+object PicsDatabase:
   private val log = AppLogger(getClass)
 
   def apply[F[_]](db: DatabaseRunner[F]): PicsDatabase[F] = new PicsDatabase(db)
-}
 
-class PicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with UserDatabase[F] {
+class PicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with UserDatabase[F]:
   def load(offset: Int, limit: Int, user: PicOwner): F[List[KeyMeta]] = db.run {
     sql"""select p.`key`, u.username, p.added
           from pics p, users u
@@ -24,7 +23,7 @@ class PicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with User
   }
 
   def saveMeta(key: Key, owner: PicOwner): F[KeyMeta] = db.run {
-    for {
+    for
       userId <- fetchOrCreateUser(owner)
       _ <- sql"insert into pics(`key`, user) values ($key, $userId)".update.run
       row <-
@@ -33,23 +32,19 @@ class PicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with User
               where p.user = u.id and p.`key` = $key and u.username = $owner"""
           .query[KeyMeta]
           .unique
-    } yield {
+    yield
       log.info(s"Inserted '$key' by '$owner'.")
       row
-    }
   }
 
   def remove(key: Key, user: PicOwner): F[Boolean] = db.run {
-    sql"delete from pics where `key` = $key and user = (select id from users where username = $user)".update.run
-      .map { deleted =>
+    sql"delete from pics where `key` = $key and user = (select id from users where username = $user)".update.run.map {
+      deleted =>
         val wasDeleted = deleted > 0
-        if (wasDeleted) {
-          log.info(s"Deleted '$key' by '$user'.")
-        } else {
-          log.warn(s"Tried to remove '$key' by '$user' but found no matching rows.")
-        }
+        if wasDeleted then log.info(s"Deleted '$key' by '$user'.")
+        else log.warn(s"Tried to remove '$key' by '$user' but found no matching rows.")
         wasDeleted
-      }
+    }
   }
 
   def contains(key: Key): F[Boolean] = db.run {
@@ -60,15 +55,13 @@ class PicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with User
     val q =
       sql"select exists(select `key` from pics where `key` = ${meta.key})".query[Boolean].unique
     q.flatMap { exists =>
-      if (exists) {
-        pure(0)
-      } else {
-        for {
+      if exists then pure(0)
+      else
+        for
           userId <- fetchOrCreateUser(meta.owner)
           rows <-
             sql"insert into pics(`key`, user, added) values(${meta.key}, $userId, ${meta.added})".update.run
-        } yield rows
-      }
+        yield rows
     }
   }
 
@@ -78,7 +71,7 @@ class PicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with User
       .option
   }
 
-  private def fetchOrCreateUser(name: PicOwner): ConnectionIO[UserId] = for {
+  private def fetchOrCreateUser(name: PicOwner): ConnectionIO[UserId] = for
     userRow <- sql"select id from users where username = $name".query[UserId].option
     userId <- userRow
       .map(pure)
@@ -86,7 +79,6 @@ class PicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with User
         sql"insert into users(username) values ($name)".update
           .withUniqueGeneratedKeys[UserId]("id")
       )
-  } yield userId
+  yield userId
 
   def pure[T](t: T) = AsyncConnectionIO.pure(t)
-}

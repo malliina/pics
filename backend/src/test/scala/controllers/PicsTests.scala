@@ -2,7 +2,7 @@ package controllers
 
 import com.malliina.pics.PicOwner
 
-class PicsTests extends munit.FunSuite {
+class PicsTests extends munit.FunSuite:
   test("version endpoint returns ok for acceptable Accept header") {
 //    val result = makeRequest(
 //      FakeRequest(GET, "/version").withHeaders(ACCEPT -> PicsController.Json10.mimeType)
@@ -71,4 +71,3 @@ class PicsTests extends munit.FunSuite {
 
 //  def makeRequest[T: Writeable](req: Request[T]) =
 //    await(route(app().application, req).get)
-}

@@ -8,7 +8,6 @@ import io.circe.syntax.EncoderOps
 
 object BasicService extends BasicService[IO]
 
-trait BasicService[F[_]] extends PicsImplicits[F] {
+trait BasicService[F[_]] extends PicsImplicits[F]:
   def notFound(req: Request[F])(implicit a: Applicative[F]): F[Response[F]] =
     NotFound(Errors.single(s"Not found: '${req.uri}'.").asJson)
-}

@@ -3,9 +3,9 @@ package com.malliina.play.auth
 import cats.effect.IO
 import com.malliina.http.{HttpClient, OkClient}
 import com.malliina.pics.auth.GoogleTokenAuth
-import com.malliina.web._
+import com.malliina.web.*
 
-object Validators {
+object Validators:
   val ExpectedPicsGroup = "pics-group"
 
   val picsAccess = new CognitoAccessValidator(
@@ -25,4 +25,3 @@ object Validators {
     ClientId("122390040180-78dau8o0fd6eelgfdhed6g2pj4hlh701.apps.googleusercontent.com"),
     http
   )
-}

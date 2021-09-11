@@ -5,7 +5,7 @@ import munit.FunSuite
 
 import java.nio.file.Paths
 
-class ImageMetadataTests extends FunSuite {
+class ImageMetadataTests extends FunSuite:
   val picDir = Paths.get("backend/files")
 
   test("read image metadata".ignore) {
@@ -15,4 +15,3 @@ class ImageMetadataTests extends FunSuite {
       println(t)
     }
   }
-}

@@ -8,53 +8,48 @@ import javax.imageio.ImageIO
 
 import org.apache.commons.io.FilenameUtils
 
-object Resizer {
+object Resizer:
   val Small400x300 = Resizer(maxWidth = 400, maxHeight = 300)
   val Medium1440x1080 = Resizer(1440, 1080)
 
   def apply(maxWidth: Int, maxHeight: Int): Resizer = new Resizer(maxWidth, maxHeight)
-}
 
-/**
-  * @param maxWidth  max width of resized image
-  * @param maxHeight max height of resized image
+/** @param maxWidth
+  *   max width of resized image
+  * @param maxHeight
+  *   max height of resized image
   */
-class Resizer(maxWidth: Int, maxHeight: Int) {
-  def resizeFromFile(src: Path, dest: Path): Either[ImageFailure, BufferedImage] = {
+class Resizer(maxWidth: Int, maxHeight: Int):
+  def resizeFromFile(src: Path, dest: Path): Either[ImageFailure, BufferedImage] =
     val format = FilenameUtils.getExtension(src.getFileName.toString)
-    try {
-      Option(ImageIO.read(src.toFile))
-        .map { bufferedImage =>
-          val resized = resize(bufferedImage)
-          val writerFound = ImageIO.write(resized, format, dest.toFile)
-          if (writerFound) {
-            Right(resized)
-          } else {
-            Left(
-              UnsupportedFormat(
-                format,
-                ImageIO.getWriterFormatNames.toList.map(_.toLowerCase).distinct
-              )
+    try
+      Option(ImageIO.read(src.toFile)).map { bufferedImage =>
+        val resized = resize(bufferedImage)
+        val writerFound = ImageIO.write(resized, format, dest.toFile)
+        if writerFound then Right(resized)
+        else
+          Left(
+            UnsupportedFormat(
+              format,
+              ImageIO.getWriterFormatNames.toList.map(_.toLowerCase).distinct
             )
-          }
-        }
-        .getOrElse {
-          Left(ImageReaderFailure(src))
-        }
-    } catch {
-      case ioe: IOException => Left(ImageException(ioe))
-    }
-  }
+          )
+      }.getOrElse {
+        Left(ImageReaderFailure(src))
+      }
+    catch case ioe: IOException => Left(ImageException(ioe))
 
   def resizeFromStream(src: InputStream): BufferedImage =
     resize(ImageIO.read(src))
 
-  /**
-    * @param src original image
-    * @return a resized image
-    * @see https://docs.aws.amazon.com/lambda/latest/dg/with-s3-example-deployment-pkg.html
+  /** @param src
+    *   original image
+    * @return
+    *   a resized image
+    * @see
+    *   https://docs.aws.amazon.com/lambda/latest/dg/with-s3-example-deployment-pkg.html
     */
-  def resize(src: BufferedImage): BufferedImage = {
+  def resize(src: BufferedImage): BufferedImage =
     val srcHeight = src.getHeight()
     val srcWidth = src.getWidth()
     val scalingFactor = Math.min(1.0d * maxWidth / srcWidth, 1.0d * maxHeight / srcHeight)
@@ -71,5 +66,3 @@ class Resizer(maxWidth: Int, maxHeight: Int) {
     g.drawImage(src, 0, 0, width, height, null)
     g.dispose()
     resized
-  }
-}

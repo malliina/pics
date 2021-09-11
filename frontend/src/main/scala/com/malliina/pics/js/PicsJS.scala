@@ -6,34 +6,23 @@ import org.scalajs.jquery.JQueryStatic
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
 
-object PicsJS extends BaseHtml {
+object PicsJS extends BaseHtml:
   val csrf = CSRFUtils()
   MyJQuery
   Popper
   Bootstrap
 
-  def main(args: Array[String]): Unit = {
+  def main(args: Array[String]): Unit =
     println("Init")
-    if (has(PicsClass)) {
+    if has(PicsClass) then
       new PicsSocket
       LazyLoader()
-    }
-    if (has(DropClass)) {
-      new PicDrop
-    }
-    if (has(LoginClass)) {
-      new Login
-    }
-    if (has(SignUpClass)) {
-      new SignUp
-    }
-    if (has(ProfileClass)) {
-      new Profile
-    }
-  }
+    if has(DropClass) then new PicDrop
+    if has(LoginClass) then new Login
+    if has(SignUpClass) then new SignUp
+    if has(ProfileClass) then new Profile
 
   def has(feature: String) = dom.document.body.classList.contains(feature)
-}
 
 @js.native
 @JSImport("jquery", JSImport.Namespace)

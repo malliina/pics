@@ -2,18 +2,17 @@ package com.malliina.pics
 
 import java.nio.file.{Files, Path}
 
-import cats.effect._
+import cats.effect.*
 import com.malliina.util.AppLogger
 import org.apache.commons.io.FilenameUtils
 
-trait PicServiceT[F[_]] {
+trait PicServiceT[F[_]]:
   def save(tempFile: Path, by: BaseRequest, preferredName: Option[String]): F[KeyMeta]
-}
 
-class PicServiceIO(val db: MetaSourceT[IO], handler: MultiSizeHandlerIO) extends PicServiceT[IO] {
+class PicServiceIO(val db: MetaSourceT[IO], handler: MultiSizeHandlerIO) extends PicServiceT[IO]:
   private val log = AppLogger(getClass)
 
-  override def save(tempFile: Path, by: BaseRequest, preferredName: Option[String]): IO[KeyMeta] = {
+  override def save(tempFile: Path, by: BaseRequest, preferredName: Option[String]): IO[KeyMeta] =
     val fileCopy: IO[(Path, Key)] = IO {
       // without dot
       val name = preferredName getOrElse tempFile.getFileName.toString
@@ -27,12 +26,8 @@ class PicServiceIO(val db: MetaSourceT[IO], handler: MultiSizeHandlerIO) extends
       (renamedFile, key)
     }
     fileCopy.flatMap { case (renamedFile, key) =>
-      for {
+      for
         _ <- handler.handle(renamedFile, key)
         meta <- db.saveMeta(key, by.name)
-      } yield {
-        meta
-      }
+      yield meta
     }
-  }
-}

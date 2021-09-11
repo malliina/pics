@@ -6,21 +6,20 @@ import com.malliina.pics.auth.{EmailUser, GoogleTokenAuth}
 import com.malliina.play.auth.Validators
 import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, IdToken, TokenValue}
-import com.malliina.web._
+import com.malliina.web.*
 import controllers.JWTAuth.log
 
-object JWTAuth {
+object JWTAuth:
   private val log = AppLogger(getClass)
 
   def default(http: HttpClient[IO]) =
     new JWTAuth(Validators.picsAccess, Validators.picsId, Validators.google(http))
-}
 
 class JWTAuth(
   val ios: CognitoAccessValidator,
   android: CognitoIdValidator,
   google: GoogleTokenAuth
-) {
+):
   def validateUser(token: TokenValue): IO[Either[AuthError, JWTUser]] =
     IO
       .pure(
@@ -46,8 +45,8 @@ class JWTAuth(
 
   /** User/pass login in iOS uses access tokens but social login in Android uses ID tokens.
     *
-    * @param token access token or id token
+    * @param token
+    *   access token or id token
     */
   def validateToken(token: TokenValue): IO[Either[AuthError, JWTUser]] =
     validateUser(token)
-}

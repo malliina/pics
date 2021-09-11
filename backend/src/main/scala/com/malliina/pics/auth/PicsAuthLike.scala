@@ -5,6 +5,5 @@ import com.malliina.web.{AuthError, JWTUser}
 
 import scala.concurrent.Future
 
-trait PicsAuthLike {
+trait PicsAuthLike:
   def validateToken(token: AccessToken): Future[Either[AuthError, JWTUser]]
-}

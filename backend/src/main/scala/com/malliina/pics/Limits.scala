@@ -2,14 +2,13 @@ package com.malliina.pics
 
 import org.http4s.Query
 
-trait LimitsLike {
+trait LimitsLike:
   def limit: Int
   def offset: Int
-}
 
 case class Limits(limit: Int, offset: Int)
 
-object Limits {
+object Limits:
   val Limit = "limit"
   val Offset = "offset"
 
@@ -18,10 +17,9 @@ object Limits {
 
   val default = Limits(DefaultLimit, DefaultOffset)
 
-  import com.malliina.pics.http4s.QueryParsers._
+  import com.malliina.pics.http4s.QueryParsers.*
 
-  def apply(q: Query): Either[Errors, Limits] = for {
+  def apply(q: Query): Either[Errors, Limits] = for
     limit <- parseOrDefault(q, Limit, DefaultLimit)
     offset <- parseOrDefault(q, Offset, DefaultOffset)
-  } yield Limits(limit, offset)
-}
+  yield Limits(limit, offset)

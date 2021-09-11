@@ -1,16 +1,16 @@
 package com.malliina.pics.js
 
 import com.malliina.pics.LoginStrings
-import org.scalajs.dom.raw._
+import org.scalajs.dom.raw.*
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
 import scala.scalajs.js.Dynamic.literal
 import scala.scalajs.js.annotation.JSGlobal
 
-class Profile(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log) {
+class Profile(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log):
 
-  import ProfileHtml._
+  import ProfileHtml.*
 
   val root = elem[HTMLDivElement](ProfileContainerId)
   val user = userPool.currentUser.map { user =>
@@ -22,28 +22,25 @@ class Profile(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log) {
       root.appendChild(disable)
       val signOut = signOutButton.render
       root.appendChild(signOut)
-      signOut.onclick = (_: MouseEvent) => {
+      signOut.onclick = (_: MouseEvent) =>
         user
           .globalLogout()
           .map { _ =>
             log.info("Signed out globally.")
           }
-          .recover {
-            case t =>
-              log.error(t)
+          .recover { case t =>
+            log.error(t)
           }
-      }
-      disable.onclick = (_: MouseEvent) => {
+      disable.onclick = (_: MouseEvent) =>
         user
           .disableTotp()
           .map { s =>
             log.info(s"Disabled MFA for '${user.username}'. Message was '$s'.")
           }
-          .recover {
-            case t => log.error(t)
+          .recover { case t =>
+            log.error(t)
           }
-      }
-      enable.onclick = (_: MouseEvent) => {
+      enable.onclick = (_: MouseEvent) =>
         user
           .associateTotp()
           .map { secret =>
@@ -55,7 +52,7 @@ class Profile(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log) {
             root.appendChild(codeContainer)
             val codeForm = totpForm.render
             root.appendChild(codeForm)
-            codeForm.onsubmit = (e: Event) => {
+            codeForm.onsubmit = (e: Event) =>
               val code = elem[HTMLInputElement](TotpCodeId).value
               user
                 .verifyTotp(code, "TOTP Device")
@@ -66,20 +63,16 @@ class Profile(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log) {
                 }
                 .feedbackTo(TotpFeedbackId)
               e.preventDefault()
-            }
           }
-          .recover {
-            case t =>
-              log.error(t)
+          .recover { case t =>
+            log.error(t)
           }
-      }
     }
   }
-}
 
-object ProfileHtml extends BaseHtml {
+object ProfileHtml extends BaseHtml:
 
-  import scalatags.JsDom.all._
+  import scalatags.JsDom.all.*
 
   val empty: Modifier = ""
 
@@ -120,26 +113,22 @@ object ProfileHtml extends BaseHtml {
   )
 
   def divClass(clazz: String, more: Modifier*) = tags.divClass(clazz, more)
-}
 
 @js.native
-trait QRCodeOptions extends js.Object {
+trait QRCodeOptions extends js.Object:
   def text: String = js.native
 
   def width: Int = js.native
 
   def height: Int = js.native
-}
 
-object QRCodeOptions {
+object QRCodeOptions:
   def apply(text: String, width: Int, height: Int): QRCodeOptions =
     literal(text = text, width = width, height = height).asInstanceOf[QRCodeOptions]
-}
 
 @js.native
 @JSGlobal
-class QRCode(elem: HTMLElement, options: QRCodeOptions) extends js.Object {
+class QRCode(elem: HTMLElement, options: QRCodeOptions) extends js.Object:
   def clear(): Unit = js.native
 
   def makeCode(code: String): Unit = js.native
-}
