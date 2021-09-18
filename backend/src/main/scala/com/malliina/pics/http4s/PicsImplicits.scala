@@ -22,7 +22,7 @@ trait MyScalatagsInstances:
       .withContentType(`Content-Type`(mediaType, charset))
 
 abstract class PicsImplicits[F[_]]
-  extends syntax.AllSyntaxBinCompat
+  extends syntax.AllSyntax
   with Http4sDsl[F]
   with MyScalatagsInstances
   with CirceInstances

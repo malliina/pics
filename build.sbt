@@ -5,12 +5,10 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossP
 import scala.sys.process.Process
 import scala.util.Try
 
-val webAuthVersion = "6.0.2"
-val primitivesVersion = "2.0.2"
-val munitVersion = "0.7.28"
+val webAuthVersion = "6.0.3-SNAPSHOT"
+val primitivesVersion = "3.0.0"
+val munitVersion = "0.7.29"
 val scalatagsVersion = "0.9.4"
-val awsSdk2Version = "2.16.78"
-val testContainersScalaVersion = "0.39.6"
 
 inThisBuild(
   Seq(
@@ -103,7 +101,7 @@ val backend = project
     buildInfoPackage := "com.malliina.pics",
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "hash" -> gitHash),
     libraryDependencies ++= http4sModules.map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.22.2"
+      "org.http4s" %% s"http4s-$m" % "0.23.3"
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
       "org.tpolecat" %% d % "0.13.4"
     } ++ Seq("classic", "core").map { m =>
@@ -111,7 +109,7 @@ val backend = project
     } ++ Seq(
       "com.typesafe" % "config" % "1.4.1",
       "org.apache.commons" % "commons-text" % "1.9",
-      "software.amazon.awssdk" % "s3" % awsSdk2Version,
+      "software.amazon.awssdk" % "s3" % "2.16.78",
       "org.flywaydb" % "flyway-core" % "7.9.2",
       "mysql" % "mysql-connector-java" % "5.1.49",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.19",
@@ -119,7 +117,7 @@ val backend = project
       "com.malliina" %% "web-auth" % webAuthVersion,
       "org.slf4j" % "slf4j-api" % "1.7.32",
       "org.scalameta" %% "munit" % munitVersion % Test,
-      "com.dimafeng" %% "testcontainers-scala-mysql" % testContainersScalaVersion % Test
+      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.39.7" % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     Linux / name := "pics",
