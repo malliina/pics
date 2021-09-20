@@ -2,8 +2,7 @@ package controllers
 
 import cats.effect.IO
 import com.malliina.http.HttpClient
-import com.malliina.pics.auth.{EmailUser, GoogleTokenAuth}
-import com.malliina.play.auth.Validators
+import com.malliina.pics.auth.{EmailUser, GoogleTokenAuth, Validators}
 import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, IdToken, TokenValue}
 import com.malliina.web.*

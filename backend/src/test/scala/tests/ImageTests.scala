@@ -1,5 +1,6 @@
 package tests
 
+import cats.effect.unsafe.implicits.global
 import com.malliina.pics.{ContentType, Resizer, ScrimageResizerIO, Util}
 import com.malliina.storage.StorageInt
 

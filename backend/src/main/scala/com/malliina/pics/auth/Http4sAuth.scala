@@ -8,7 +8,7 @@ import com.malliina.pics.http4s.PicsImplicits.*
 import com.malliina.pics.http4s.PicsService.{noCache, version10}
 import com.malliina.pics.http4s.{PicsService, Reverse}
 import com.malliina.pics.{AppConf, Errors, PicRequest}
-import com.malliina.play.auth.{JWTUsers, Validators}
+import com.malliina.pics.auth.JWTUsers
 import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, ErrorMessage, IdToken, Username}
 import com.malliina.web.{CognitoAccessValidator, CognitoIdValidator, JWTUser, OAuthError}

@@ -1,4 +1,4 @@
-package com.malliina.play.auth
+package com.malliina.pics.auth
 
 import com.malliina.pics.PicOwner
 import com.malliina.values.Username

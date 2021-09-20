@@ -4,6 +4,7 @@ import cats.data.NonEmptyList
 import cats.syntax.applicative.catsSyntaxApplicativeId
 import cats.syntax.all.catsSyntaxFlatten
 import cats.effect.*
+import cats.effect.kernel.Temporal
 import com.malliina.html.UserFeedback
 import com.malliina.http.io.HttpClientIO
 import com.malliina.pics.*
@@ -47,9 +48,7 @@ object PicsService:
     db: PicsDatabase[IO],
     topic: Topic[IO, PicMessage],
     handler: MultiSizeHandlerIO,
-    blocker: Blocker,
-    cs: ContextShift[IO],
-    timer: Timer[IO]
+    t: Temporal[IO]
   ): PicsService =
     val socials = Socials(conf.social, HttpClientIO())
     apply(
@@ -59,9 +58,7 @@ object PicsService:
       db,
       topic,
       handler,
-      blocker,
-      cs,
-      timer
+      t
     )
 
   def apply(
@@ -71,12 +68,10 @@ object PicsService:
     db: MetaSourceT[IO],
     topic: Topic[IO, PicMessage],
     handler: MultiSizeHandlerIO,
-    blocker: Blocker,
-    cs: ContextShift[IO],
-    timer: Timer[IO]
+    t: Temporal[IO]
   ): PicsService =
     val service = new PicServiceIO(db, handler)
-    new PicsService(service, html, auth, socials, db, topic, handler, blocker)(cs, timer)
+    new PicsService(service, html, auth, socials, db, topic, handler)(t)
 
   def ranges(headers: Headers) = headers
     .get[Accept]
@@ -90,9 +85,8 @@ class PicsService(
   socials: Socials,
   db: MetaSourceT[IO],
   topic: Topic[IO, PicMessage],
-  handler: MultiSizeHandlerIO,
-  blocker: Blocker
-)(implicit cs: ContextShift[IO], timer: Timer[IO])
+  handler: MultiSizeHandlerIO
+)(implicit t: Temporal[IO])
   extends BasicService[IO]:
   val pong = "pong"
 
@@ -151,7 +145,7 @@ class PicsService(
               val tempFile = Files.createTempFile("pic", ".jpg")
               val logging =
                 IO(log.info(s"Saving new pic by '${user.name}' to '${tempFile.toAbsolutePath}'..."))
-              val decoder = EntityDecoder.binFile[IO](tempFile.toFile, blocker)
+              val decoder = EntityDecoder.binFile[IO](tempFile.toFile)
               val receive = req.decodeWith(decoder, strict = true) { file =>
                 service
                   .save(
@@ -351,7 +345,6 @@ class PicsService(
       StaticFile
         .fromResource(
           "apple-developer-domain-association.txt",
-          blocker,
           Option(req),
           preferGzipped = true
         )
@@ -375,7 +368,7 @@ class PicsService(
     handler(size).storage.find(key).flatMap { maybeFile =>
       maybeFile.map { file =>
         StaticFile
-          .fromFile(file.file.toFile, blocker, Option(req))
+          .fromFile(file.file.toFile, Option(req))
           .map(_.putHeaders(cached(365.days)))
           .getOrElseF(notFound(req))
       }.getOrElse {

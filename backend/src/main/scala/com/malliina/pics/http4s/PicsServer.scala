@@ -1,7 +1,8 @@
 package com.malliina.pics.http4s
 
 import cats.data.Kleisli
-import cats.effect.{Blocker, ExitCode, IO, IOApp, Resource}
+import cats.effect.{ExitCode, IO, IOApp, Resource}
+import cats.effect.kernel.Temporal
 import com.malliina.pics.BuildInfo
 import com.malliina.pics.db.{DoobieDatabase, PicsDatabase}
 import com.malliina.pics.{MultiSizeHandlerIO, PicsConf}
@@ -23,7 +24,8 @@ object PicsServer extends IOApp:
   val port = 9000
 
   def server(conf: PicsConf): Resource[IO, Server] = for
-    picsApp <- appResource(conf, MultiSizeHandlerIO.default())
+    handler <- Resource.eval(MultiSizeHandlerIO.default())
+    picsApp <- appResource(conf, handler)
     _ = log.info(s"Binding on port $port using app version ${BuildInfo.hash}...")
     server <- BlazeServerBuilder[IO](ExecutionContext.global)
       .bindHttp(port = port, "0.0.0.0")
@@ -35,9 +37,8 @@ object PicsServer extends IOApp:
   yield server
 
   def appResource(conf: PicsConf, handler: MultiSizeHandlerIO) = for
-    blocker <- Blocker[IO]
-    topic <- Resource.eval(Topic[IO, PicMessage](PicMessage.ping))
-    tx <- DoobieDatabase.migratedResource(conf.db, blocker)
+    topic <- Resource.eval(Topic[IO, PicMessage])
+    tx <- DoobieDatabase.migratedResource(conf.db)
   yield
     val db = PicsDatabase(DoobieDatabase(tx))
 //    val csrf =
@@ -45,20 +46,19 @@ object PicsServer extends IOApp:
 //        CSRF[IO, IO](key, _ => true)
 //          .withOnFailure(Unauthorized(Json.toJson(Errors.single("CSRF failure."))))
 //      }
-    app(conf, db, handler, blocker, topic)
+    app(conf, db, handler, topic)
 
   private def app(
     conf: PicsConf,
     db: PicsDatabase[IO],
     handler: MultiSizeHandlerIO,
-    blocker: Blocker,
     topic: Topic[IO, PicMessage]
-  ) = GZip {
+  )(implicit t: Temporal[IO]) = GZip {
     HSTS {
       orNotFound {
         Router(
-          "/" -> PicsService(conf, db, topic, handler, blocker, contextShift, timer).routes,
-          "/assets" -> StaticService(blocker, contextShift).routes
+          "/" -> PicsService(conf, db, topic, handler, t).routes,
+          "/assets" -> StaticService[IO]().routes
         )
       }
     }

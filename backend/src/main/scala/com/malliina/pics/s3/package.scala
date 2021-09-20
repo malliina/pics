@@ -16,6 +16,6 @@ package object s3:
     cf.whenComplete((r, t) => Option(t).fold(p.success(r))(t => p.failure(t)))
     p.future
 
-  private def asIO[T](cf: CompletableFuture[T]): IO[T] = IO.async { cb =>
+  private def asIO[T](cf: CompletableFuture[T]): IO[T] = IO.async_ { cb =>
     cf.whenComplete((r, t) => Option(t).fold(cb(Right(r)))(t => cb(Left(t))))
   }

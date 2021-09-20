@@ -1,5 +1,6 @@
 package com.malliina.pics.http4s
 
+import cats.effect.unsafe.implicits.global
 import cats.data.NonEmptyList
 import cats.effect.*
 import com.malliina.pics.AppMeta

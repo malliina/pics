@@ -1,4 +1,4 @@
-package com.malliina.play.auth
+package com.malliina.pics.auth
 
 import com.malliina.values.{AccessToken, IdToken}
 import com.malliina.web.Expired

@@ -1,4 +1,4 @@
-package com.malliina.play.auth
+package com.malliina.pics.auth
 
 import com.malliina.http.FullUrl
 import com.malliina.web.CognitoIdentityConf

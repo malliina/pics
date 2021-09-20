@@ -1,5 +1,6 @@
 package com.malliina.pics.db
 
+import cats.implicits.*
 import com.malliina.pics.db.PicsDatabase.log
 import com.malliina.pics.{Key, KeyMeta, MetaSourceT, PicOwner, UserDatabase}
 import com.malliina.util.AppLogger
@@ -81,4 +82,4 @@ class PicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with User
       )
   yield userId
 
-  def pure[T](t: T) = AsyncConnectionIO.pure(t)
+  def pure[T](t: T): ConnectionIO[T] = t.pure[ConnectionIO]

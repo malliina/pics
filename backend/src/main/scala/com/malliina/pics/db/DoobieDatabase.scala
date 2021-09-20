@@ -1,7 +1,7 @@
 package com.malliina.pics.db
 
 import cats.effect.IO.*
-import cats.effect.{Blocker, ContextShift, IO, Resource}
+import cats.effect.{IO, Resource}
 import com.malliina.pics.db.DoobieDatabase.log
 import com.malliina.util.AppLogger
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
@@ -17,15 +17,15 @@ import scala.concurrent.duration.DurationInt
 object DoobieDatabase:
   private val log = AppLogger(getClass)
 
-  def apply(conf: DatabaseConf, cs: ContextShift[IO]): DatabaseRunner[IO] =
-    apply(dataSource(conf), cs)
+  def apply(conf: DatabaseConf): DatabaseRunner[IO] =
+    apply(dataSource(conf))
 
-  def apply(ds: HikariDataSource, cs: ContextShift[IO]): DatabaseRunner[IO] =
-    new DoobieDatabaseLegacy(ds, cs)
+  def apply(ds: HikariDataSource): DatabaseRunner[IO] =
+    new DoobieDatabaseLegacy(ds)
 
-  def withMigrations(conf: DatabaseConf, cs: ContextShift[IO]): DatabaseRunner[IO] =
+  def withMigrations(conf: DatabaseConf): DatabaseRunner[IO] =
     migrate(conf)
-    apply(conf, cs)
+    apply(conf)
 
   def migrate(conf: DatabaseConf): MigrateResult =
     val flyway = Flyway.configure.dataSource(conf.url, conf.user, conf.pass).load()
@@ -42,23 +42,13 @@ object DoobieDatabase:
     log.info(s"Connecting to '${conf.url}'...")
     new HikariDataSource(hikari)
 
-  def migratedResource(conf: DatabaseConf, blocker: Blocker)(implicit cs: ContextShift[IO]) =
+  def migratedResource(conf: DatabaseConf) =
     migrate(conf)
-    resource(dataSource(conf), blocker)
+    resource(dataSource(conf))
 
-  def resource(
-    ds: HikariDataSource
-  )(implicit cs: ContextShift[IO]): Resource[IO, DataSourceTransactor[IO]] =
-    Blocker[IO].flatMap { blocker =>
-      resource(ds, blocker)
-    }
-
-  def resource(
-    ds: HikariDataSource,
-    blocker: Blocker
-  )(implicit cs: ContextShift[IO]): Resource[IO, DataSourceTransactor[IO]] =
+  def resource(ds: HikariDataSource): Resource[IO, DataSourceTransactor[IO]] =
     for ec <- ExecutionContexts.fixedThreadPool[IO](32) // our connect EC
-    yield Transactor.fromDataSource[IO](ds, ec, blocker)
+    yield Transactor.fromDataSource[IO](ds, ec)
 
   def apply(tx: DataSourceTransactor[IO]) = new DoobieDatabase(tx)
 
@@ -80,8 +70,7 @@ trait DatabaseRunner[F[_]]:
   def run[T](io: ConnectionIO[T]): F[T]
   def close(): Unit
 
-class DoobieDatabaseLegacy(ds: HikariDataSource, cs: ContextShift[IO]) extends DatabaseRunner[IO]:
-  implicit val cShift: ContextShift[IO] = cs
+class DoobieDatabaseLegacy(ds: HikariDataSource) extends DatabaseRunner[IO]:
   private val tx = DoobieDatabase.resource(ds)
 
   def run[T](io: ConnectionIO[T]): IO[T] =

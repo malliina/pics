@@ -2,9 +2,9 @@ package com.malliina.pics.http4s
 
 import cats.effect.IO
 import com.malliina.http.HttpClient
-import com.malliina.pics.auth.{AppleAuthFlow, AppleTokenValidator}
+import com.malliina.pics.auth.{AppleAuthFlow, AppleTokenValidator, Validators}
 import com.malliina.pics.http4s.Socials.cognitoAuthConf
-import com.malliina.play.auth.*
+import com.malliina.pics.auth.*
 import com.malliina.web.IdentityProvider.LoginWithAmazon
 import com.malliina.web.*
 import controllers.Social.SocialConf

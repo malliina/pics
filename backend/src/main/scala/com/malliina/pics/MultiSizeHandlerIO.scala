@@ -1,15 +1,20 @@
 package com.malliina.pics
 
 import java.nio.file.Path
-
+import cats.implicits.*
+import cats.syntax.*
 import cats.data.NonEmptyList
 import cats.effect.IO
 import com.malliina.pics.s3.S3Source
 import com.sksamuel.scrimage.ImmutableImage
 
 object MultiSizeHandlerIO:
-  def default(): MultiSizeHandlerIO =
-    apply(S3Source.Small, S3Source.Medium, S3Source.Large, S3Source.Original)
+  def default(): IO[MultiSizeHandlerIO] = for
+    sm <- S3Source.Small
+    md <- S3Source.Medium
+    lg <- S3Source.Large
+    orig <- S3Source.Original
+  yield apply(sm, md, lg, orig)
 
   def empty(): MultiSizeHandlerIO = apply(
     FilePicsIO.named("small"),

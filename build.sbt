@@ -14,7 +14,7 @@ inThisBuild(
   Seq(
     organization := "com.malliina",
     version := "0.0.1",
-    scalaVersion := "3.0.1"
+    scalaVersion := "3.0.2"
   )
 )
 
@@ -45,7 +45,7 @@ val frontend = project
   .settings(
     assetsPackage := "com.malliina.pics.assets",
     libraryDependencies ++= Seq(
-      ("org.scala-js" %%% "scalajs-dom" % "1.1.0").cross(CrossVersion.for3Use2_13),
+      ("org.scala-js" %%% "scalajs-dom" % "1.2.0").cross(CrossVersion.for3Use2_13),
       ("be.doeraene" %%% "scalajs-jquery" % "1.0.0").cross(CrossVersion.for3Use2_13),
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
@@ -103,7 +103,7 @@ val backend = project
     libraryDependencies ++= http4sModules.map { m =>
       "org.http4s" %% s"http4s-$m" % "0.23.3"
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
-      "org.tpolecat" %% d % "0.13.4"
+      "org.tpolecat" %% d % "1.0.0-RC1"
     } ++ Seq("classic", "core").map { m =>
       "ch.qos.logback" % s"logback-$m" % "1.2.5"
     } ++ Seq(
@@ -113,7 +113,7 @@ val backend = project
       "org.flywaydb" % "flyway-core" % "7.9.2",
       "mysql" % "mysql-connector-java" % "5.1.49",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.19",
-      "com.malliina" %% "logstreams-client" % "1.11.13",
+      "com.malliina" %% "logstreams-client" % "2.0.0",
       "com.malliina" %% "web-auth" % webAuthVersion,
       "org.slf4j" % "slf4j-api" % "1.7.32",
       "org.scalameta" %% "munit" % munitVersion % Test,

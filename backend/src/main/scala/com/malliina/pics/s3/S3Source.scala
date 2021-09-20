@@ -1,7 +1,5 @@
 package com.malliina.pics.s3
 
-import java.nio.file.{Files, Path}
-
 import cats.effect.IO
 import com.malliina.pics.s3.S3Source.log
 import com.malliina.pics.{BucketName, DataFile, DataSourceT, FilePicsIO, FlatMeta, Key, PicResult, PicSuccess, Util}
@@ -13,12 +11,13 @@ import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.model.*
 
+import java.nio.file.{Files, Path}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 object S3Source:
   private val log = AppLogger(getClass)
 
-  def apply(bucket: BucketName): S3Source =
+  def apply(bucket: BucketName): IO[S3Source] =
     val creds = DefaultCredentialsProvider.builder().profileName("pics").build()
     val s3Client = S3AsyncClient
       .builder()
@@ -26,8 +25,7 @@ object S3Source:
       .credentialsProvider(creds)
       .build()
     val client = S3BucketIO(s3Client)
-    client.createIfNotExists(bucket).unsafeRunSync()
-    new S3Source(bucket, s3Client)
+    client.createIfNotExists(bucket).map(_ => new S3Source(bucket, s3Client))
 
   val Small = apply(BucketName("malliina-pics-small"))
   val Medium = apply(BucketName("malliina-pics-medium"))

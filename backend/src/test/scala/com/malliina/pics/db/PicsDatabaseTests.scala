@@ -1,5 +1,6 @@
 package com.malliina.pics.db
 
+import cats.effect.unsafe.implicits.global
 import com.malliina.pics.{Keys, PicOwner}
 import tests.{BaseSuite, DoobieSuite}
 

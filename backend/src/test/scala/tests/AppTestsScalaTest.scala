@@ -1,6 +1,8 @@
 package tests
 
-import cats.effect.{ContextShift, IO, Timer}
+import cats.effect.IO
+import cats.effect.unsafe.implicits.global
+import cats.syntax.flatMap.*
 import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.pics.*
 import com.malliina.pics.PicsConf.ConfigOps
@@ -45,15 +47,9 @@ trait MUnitDatabaseSuite:
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(db)
 
-import cats.syntax.flatMap.*
 // https://github.com/typelevel/munit-cats-effect
 trait Http4sSuite extends MUnitDatabaseSuite:
   self: FunSuite =>
-  implicit def munitContextShift: ContextShift[IO] =
-    IO.contextShift(munitExecutionContext)
-
-  implicit def munitTimer: Timer[IO] =
-    IO.timer(munitExecutionContext)
 
   val app: Fixture[AppService] = new Fixture[AppService]("pics-app2"):
     private var service: Option[AppService] = None
@@ -66,7 +62,7 @@ trait Http4sSuite extends MUnitDatabaseSuite:
         PicsConf.unsafeLoadWith(PicsConf.picsConf, db()),
         MultiSizeHandlerIO.empty()
       )
-      val resourceEffect = resource.allocated[IO, AppService]
+      val resourceEffect = resource.allocated
       val setupEffect =
         resourceEffect.map { case (t, release) =>
           promise.success(release)
@@ -79,7 +75,7 @@ trait Http4sSuite extends MUnitDatabaseSuite:
     override def afterAll(): Unit =
       val f = IO
         .pure(())
-        .flatMap(_ => IO.fromFuture(IO(promise.future))(munitContextShift).flatten)
+        .flatMap(_ => IO.fromFuture(IO(promise.future)).flatten)
         .unsafeToFuture()
       await(f)
 
@@ -91,8 +87,7 @@ trait DoobieSuite extends MUnitDatabaseSuite:
     var database: Option[DatabaseRunner[IO]] = None
     def apply(): DatabaseRunner[IO] = database.get
     override def beforeAll(): Unit =
-      val cs = IO.contextShift(munitExecutionContext)
-      database = Option(DoobieDatabase.withMigrations(db(), cs))
+      database = Option(DoobieDatabase.withMigrations(db()))
     override def afterAll(): Unit =
       database.foreach(_.close())
 
