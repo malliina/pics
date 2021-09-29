@@ -69,8 +69,6 @@ case class PicsConf(
     apple.conf
   )
 
-case class WrappedConf(pics: PicsConf)
-
 object PicsConf:
   implicit val secret: ConfigReadable[SecretKey] = ConfigReadable.string.map(s => SecretKey(s))
 
