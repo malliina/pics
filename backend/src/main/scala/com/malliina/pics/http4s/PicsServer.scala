@@ -1,16 +1,15 @@
 package com.malliina.pics.http4s
 
 import cats.data.Kleisli
-import cats.effect.{ExitCode, IO, IOApp, Resource}
 import cats.effect.kernel.Temporal
-import com.malliina.pics.BuildInfo
+import cats.effect.{ExitCode, IO, IOApp, Resource}
 import com.malliina.pics.db.{DoobieDatabase, PicsDatabase}
-import com.malliina.pics.{MultiSizeHandlerIO, PicsConf}
+import com.malliina.pics.{BuildInfo, MultiSizeHandlerIO, PicsConf}
 import com.malliina.util.AppLogger
 import fs2.concurrent.Topic
-import org.http4s.server.{Router, Server}
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.middleware.{GZip, HSTS}
+import org.http4s.server.{Router, Server}
 import org.http4s.{HttpRoutes, Request, Response}
 
 import scala.concurrent.ExecutionContext
@@ -22,7 +21,6 @@ object PicsServer extends IOApp:
   val log = AppLogger(getClass)
 
   val port = 9000
-
   def server(conf: PicsConf): Resource[IO, Server] = for
     handler <- Resource.eval(MultiSizeHandlerIO.default())
     picsApp <- appResource(conf, handler)
