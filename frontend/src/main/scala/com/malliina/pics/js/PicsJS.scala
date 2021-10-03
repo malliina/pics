@@ -8,12 +8,13 @@ import scala.scalajs.js.annotation.JSImport
 
 object PicsJS extends BaseHtml:
   val csrf = CSRFUtils()
-  MyJQuery
-  Popper
-  Bootstrap
+  private val jqueryJs = MyJQuery
+  private val popperJs = Popper
+  private val bootstrapJs = Bootstrap
+  private val bootstrapCss = BootstrapCss
+  private val fontAwesomeCss = FontAwesomeCss
 
   def main(args: Array[String]): Unit =
-    println("Init")
     if has(PicsClass) then
       new PicsSocket
       LazyLoader()
@@ -35,3 +36,11 @@ object Popper extends js.Object
 @js.native
 @JSImport("bootstrap", JSImport.Namespace)
 object Bootstrap extends js.Object
+
+@js.native
+@JSImport("bootstrap/dist/css/bootstrap.min.css", JSImport.Namespace)
+object BootstrapCss extends js.Object
+
+@js.native
+@JSImport("@fortawesome/fontawesome-free/css/all.min.css", JSImport.Namespace)
+object FontAwesomeCss extends js.Object

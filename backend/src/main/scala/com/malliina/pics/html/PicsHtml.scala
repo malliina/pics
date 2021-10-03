@@ -25,15 +25,19 @@ object PicsHtml:
   val async = attr("async").empty
 
   val reverse = Reverse
-//  implicit val urlAttr: GenericAttr[FullUrl] = new GenericAttr[FullUrl]
 
   def build(isProd: Boolean): PicsHtml =
-    val name = "frontend"
     val opt = if isProd then "opt" else "fastopt"
+    val assetPrefix = s"frontend-$opt"
     val appScripts =
-      if isProd then Seq(s"$name-$opt-bundle.js")
-      else Seq(s"$name-$opt-library.js", s"$name-$opt-loader.js", s"$name-$opt.js")
-    new PicsHtml(appScripts, Nil, HashedAssetsSource)
+      if isProd then Seq(s"$assetPrefix-bundle.js")
+      else Seq(s"$assetPrefix-library.js", s"$assetPrefix-loader.js", s"$assetPrefix.js")
+    new PicsHtml(
+      appScripts,
+      Nil,
+      Seq(s"$assetPrefix.css", "fonts.css", "styles.css"),
+      HashedAssetsSource
+    )
 
   implicit def urlWriter(url: FullUrl): Text.StringFrag =
     stringFrag(url.url)
@@ -44,8 +48,12 @@ object PicsHtml:
   def postableForm(onAction: String, more: Modifier*) =
     form(role := FormRole, action := onAction, method := Post, more)
 
-class PicsHtml(scripts: Seq[String], absoluteScripts: Seq[FullUrl], assets: AssetsSource)
-  extends BaseHtml:
+class PicsHtml(
+  scripts: Seq[String],
+  absoluteScripts: Seq[FullUrl],
+  cssFiles: Seq[String],
+  assets: AssetsSource
+) extends BaseHtml:
   val authHtml = AuthHtml(assets)
 
   def signIn(feedback: Option[UserFeedback] = None) = basePage(authHtml.signIn(feedback))
@@ -206,13 +214,9 @@ class PicsHtml(scripts: Seq[String], absoluteScripts: Seq[FullUrl], assets: Asse
         titleTag(conf.title),
         deviceWidthViewport,
         link(rel := "shortcut icon", `type` := "image/png", href := at("img/pics-favicon.png")),
-        cssLink(at("vendors.css")),
-        cssLink(at("fonts.css")),
-        cssLink(at("styles.css")),
+        cssFiles.map(file => cssLink(at(file))),
         conf.extraHeader,
-        scripts.map { js =>
-          deferredJsPath(js)
-        },
+        scripts.map(js => deferredJsPath(js)),
         absoluteScripts.map { url =>
           script(src.:=(url)(urlAttr), defer)
         }
