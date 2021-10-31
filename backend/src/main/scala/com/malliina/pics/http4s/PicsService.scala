@@ -1,6 +1,7 @@
 package com.malliina.pics.http4s
 
 import cats.data.NonEmptyList
+import cats.Show
 import cats.syntax.applicative.catsSyntaxApplicativeId
 import cats.syntax.all.catsSyntaxFlatten
 import cats.effect.*
@@ -29,7 +30,7 @@ import io.circe.{Codec, Decoder, Encoder, Json}
 import org.http4s.CacheDirective.*
 import org.http4s.headers.{Accept, Location, `Cache-Control`, `WWW-Authenticate`}
 import org.typelevel.ci.{CIString, CIStringSyntax}
-import org.http4s.server.websocket.WebSocketBuilder
+import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.syntax.literals.mediaType
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.*
@@ -41,6 +42,7 @@ import scala.concurrent.duration.{DurationInt, FiniteDuration}
 object PicsService:
   private val log = AppLogger(getClass)
   val version10 = mediaType"application/vnd.pics.v10+json"
+  val version10String = Show[MediaType].show(version10)
   val noCache = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
 
   def apply(
@@ -100,7 +102,7 @@ class PicsService(
   val reverseSocial = ReverseSocial
   val cookieNames = auth.cookieNames
 
-  val routes = HttpRoutes.of[IO] {
+  def routes(sockets: WebSocketBuilder2[IO]) = HttpRoutes.of[IO] {
     case GET -> Root            => SeeOther(Location(uri"/pics"))
     case GET -> Root / "ping"   => ok(AppMeta.default.asJson)
     case GET -> Root / "health" => ok(AppMeta.default.asJson)
@@ -218,7 +220,7 @@ class PicsService(
           case Text(message, _) => IO(log.info(message))
           case f                => IO(log.debug(s"Unknown WebSocket frame: $f"))
         }
-        WebSocketBuilder[IO].build(toClient, fromClient)
+        sockets.build(toClient, fromClient)
       }
     case req @ GET -> Root / "drop" =>
       authed(req) { user =>
@@ -302,7 +304,8 @@ class PicsService(
           maybe.fold(
             err =>
               log.warn(s"$err in $req")
-              unauthorized(Errors.single(s"Invalid callback parameters.")),
+              unauthorized(Errors.single(s"Invalid callback parameters."))
+            ,
             identity
           )
         case Google =>

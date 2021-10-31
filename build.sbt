@@ -5,7 +5,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossP
 import scala.sys.process.Process
 import scala.util.Try
 
-val webAuthVersion = "6.0.3"
+val webAuthVersion = "6.0.4"
 val primitivesVersion = "3.0.2"
 val munitVersion = "0.7.29"
 val scalatagsVersion = "0.9.4"
@@ -14,7 +14,7 @@ inThisBuild(
   Seq(
     organization := "com.malliina",
     version := "0.0.1",
-    scalaVersion := "3.0.2"
+    scalaVersion := "3.1.0"
   )
 )
 
@@ -22,7 +22,6 @@ val circeModules = Seq("generic", "parser")
 val commonSettings = Seq(
   libraryDependencies ++=
     circeModules.map(m => "io.circe" %%% s"circe-$m" % "0.14.1") ++ Seq(
-//    ("com.lihaoyi" %%% "scalatags" % scalaTagsVersion).cross(CrossVersion.for3Use2_13),
       "com.malliina" %%% "primitives" % primitivesVersion,
       "com.malliina" %%% "util-html" % webAuthVersion
     )
@@ -45,8 +44,6 @@ val frontend = project
   .settings(
     assetsPackage := "com.malliina.pics.assets",
     libraryDependencies ++= Seq(
-      ("org.scala-js" %%% "scalajs-dom" % "1.2.0").cross(CrossVersion.for3Use2_13),
-      ("be.doeraene" %%% "scalajs-jquery" % "1.0.0").cross(CrossVersion.for3Use2_13),
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
@@ -55,10 +52,9 @@ val frontend = project
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
     Compile / npmDependencies ++= Seq(
-      "@fortawesome/fontawesome-free" -> "5.15.3",
-      "bootstrap" -> "4.6.0",
-      "jquery" -> "3.6.0",
-      "popper.js" -> "1.16.1"
+      "@fortawesome/fontawesome-free" -> "5.15.4",
+      "@popperjs/core" -> "2.10.2",
+      "bootstrap" -> "5.1.3"
     ),
     Compile / npmDevDependencies ++= Seq(
       "autoprefixer" -> "10.2.5",
@@ -101,7 +97,7 @@ val backend = project
     buildInfoPackage := "com.malliina.pics",
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "hash" -> gitHash),
     libraryDependencies ++= http4sModules.map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.23.4"
+      "org.http4s" %% s"http4s-$m" % "0.23.6"
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
       "org.tpolecat" %% d % "1.0.0-RC1"
     } ++ Seq("classic", "core").map { m =>
@@ -109,15 +105,15 @@ val backend = project
     } ++ Seq(
       "com.typesafe" % "config" % "1.4.1",
       "org.apache.commons" % "commons-text" % "1.9",
-      "software.amazon.awssdk" % "s3" % "2.16.78",
+      "software.amazon.awssdk" % "s3" % "2.17.70",
       "org.flywaydb" % "flyway-core" % "7.15.0",
       "mysql" % "mysql-connector-java" % "5.1.49",
-      "com.sksamuel.scrimage" % "scrimage-core" % "4.0.19",
+      "com.sksamuel.scrimage" % "scrimage-core" % "4.0.22",
       "com.malliina" %% "logstreams-client" % "2.0.2",
       "com.malliina" %% "web-auth" % webAuthVersion,
       "org.slf4j" % "slf4j-api" % "1.7.32",
       "org.scalameta" %% "munit" % munitVersion % Test,
-      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.39.8" % Test
+      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.39.10" % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     Linux / name := "pics",

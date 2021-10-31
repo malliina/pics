@@ -5,15 +5,11 @@ import org.scalajs.dom
 import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
 import org.scalajs.dom.{Element, Event, Node}
 import io.circe.*
-//import io.circe.syntax.Enco
 import scala.concurrent.duration.DurationDouble
 import scala.scalajs.js
 import scala.scalajs.js.timers.*
-
-@js.native
-trait Popovers extends js.Object:
-  def popover(): Unit = js.native
-  def popover(in: String): Unit = js.native
+import scala.scalajs.js.annotation.JSImport
+import scala.scalajs.js.Dynamic.literal
 
 class PicsSocket extends BaseSocket("/sockets"):
   val jsHtml = BaseHtml
@@ -24,8 +20,12 @@ class PicsSocket extends BaseSocket("/sockets"):
   installCopyListeners(document.body)
   PicsJS.csrf.installCsrf(document.body)
 
-  val popovers = MyJQuery("[data-toggle='popover']").asInstanceOf[Popovers]
-  popovers.popover()
+  val popovers: Map[String, Bootstrap.Popover] = document
+    .querySelectorAll("[data-bs-toggle='popover']")
+    .map { e =>
+      e.getAttribute(jsHtml.dataIdAttr.name) -> new Bootstrap.Popover(e, PopoverOptions.manual)
+    }
+    .toMap
 
   // hides popovers on outside click
   document.body.addEventListener(
@@ -34,7 +34,7 @@ class PicsSocket extends BaseSocket("/sockets"):
       val isPopover = e.target.isInstanceOf[HTMLElement] && Option(
         e.target.asInstanceOf[HTMLElement].getAttribute("data-original-title")
       ).isDefined
-      if !isPopover then MyJQuery("[data-original-title]").asInstanceOf[Popovers].popover("hide")
+      if !isPopover then popovers.values.foreach(_.hide())
   )
 
   def installCopyListeners(parent: Element): Unit =
@@ -47,8 +47,12 @@ class PicsSocket extends BaseSocket("/sockets"):
       "click",
       (e: Event) =>
         log.info("Copying...")
-        val url = e.target.asInstanceOf[HTMLElement].getAttribute(jsHtml.dataIdAttr.name)
+        val htmlElem = e.target.asInstanceOf[HTMLElement]
+        val url = htmlElem.getAttribute(jsHtml.dataIdAttr.name)
         copyToClipboard(url)
+        popovers.get(url).foreach { p =>
+          p.show()
+        }
     )
 
   override def handlePayload(payload: Json): Unit =

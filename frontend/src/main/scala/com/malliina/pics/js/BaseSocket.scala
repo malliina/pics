@@ -5,7 +5,6 @@ import com.malliina.pics.js.BaseSocket.{EventKey, Ping}
 import org.scalajs.dom
 import org.scalajs.dom.CloseEvent
 import org.scalajs.dom.raw.{Event, MessageEvent}
-import org.scalajs.jquery.JQuery
 import io.circe.*
 import io.circe.syntax.EncoderOps
 import io.circe.parser.parse
@@ -17,11 +16,9 @@ object BaseSocket:
   val Ping = "ping"
 
 class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console):
-  //  val statusElem = dom.document.getElementById("status")
-
   val socket: dom.WebSocket = openSocket(wsPath)
 
-  def elem(id: String): JQuery = MyJQuery(s"#$id")
+  def elem(id: String): dom.Element = dom.document.getElementById(id)
 
   def handlePayload(payload: Json): Unit = ()
 
@@ -69,7 +66,7 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console):
 
   def setFeedback(feedback: String): Unit =
     log.info(feedback)
-    //    statusElem.innerHTML = feedback
+  //    statusElem.innerHTML = feedback
 
   def onJsonException(f: ParsingFailure): Unit =
     log.info(s"Parsing failure $f")

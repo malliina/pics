@@ -11,15 +11,18 @@ import com.malliina.pics.db.{DatabaseConf, DatabaseRunner, DoobieDatabase}
 import com.malliina.pics.http4s.PicsServer
 import com.malliina.pics.http4s.PicsServer.AppService
 import munit.FunSuite
+import com.malliina.http.io.HttpClientIO
 import org.slf4j.LoggerFactory
 import org.testcontainers.utility.DockerImageName
 import tests.MUnitDatabaseSuite.log
-
+import org.http4s.server.Server
+import org.http4s.client.{Client}
+import org.http4s.blaze.client.BlazeClientBuilder
+import org.http4s.Uri
+import com.malliina.http.FullUrl
+import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.Promise
 import scala.util.Try
-
-case class TestPicsConf(testdb: DatabaseConf)
-case class WrappedTestConf(pics: TestPicsConf)
 
 object MUnitDatabaseSuite:
   private val log = LoggerFactory.getLogger(getClass)
@@ -47,39 +50,43 @@ trait MUnitDatabaseSuite:
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(db)
 
-// https://github.com/typelevel/munit-cats-effect
-trait Http4sSuite extends MUnitDatabaseSuite:
+case class ServerTools(server: Server):
+  def port = server.address.getPort
+  def baseHttpUrl = FullUrl("http", s"localhost:$port", "")
+  def baseWsUrl = FullUrl("ws", s"localhost:$port", "")
+
+trait ServerSuite extends MUnitDatabaseSuite with ClientSuite:
   self: FunSuite =>
-
-  val app: Fixture[AppService] = new Fixture[AppService]("pics-app2"):
-    private var service: Option[AppService] = None
-    val promise = Promise[IO[Unit]]()
-
-    override def apply(): AppService = service.get
-
+  val server: Fixture[ServerTools] = new Fixture[ServerTools]("server"):
+    private var tools: Option[ServerTools] = None
+    val finalizer = new AtomicReference[IO[Unit]](IO.pure(()))
+    override def apply(): ServerTools = tools.get
     override def beforeAll(): Unit =
-      val resource = PicsServer.appResource(
+      val testServer = PicsServer.server(
         PicsConf.unsafeLoadWith(PicsConf.picsConf, db()),
-        MultiSizeHandlerIO.empty()
+        IO.pure(MultiSizeHandlerIO.empty()),
+        port = 12345
       )
-      val resourceEffect = resource.allocated
-      val setupEffect =
-        resourceEffect.map { case (t, release) =>
-          promise.success(release)
-          t
-        }
-          .flatTap(t => IO.pure(()))
-
-      service = Option(await(setupEffect.unsafeToFuture()))
+      val (instance, closable) = testServer.map(s => ServerTools(s)).allocated.unsafeRunSync()
+      tools = Option(instance)
+      finalizer.set(closable)
 
     override def afterAll(): Unit =
-      val f = IO
-        .pure(())
-        .flatMap(_ => IO.fromFuture(IO(promise.future)).flatten)
-        .unsafeToFuture()
-      await(f)
+      finalizer.get().unsafeRunSync()
 
-  override def munitFixtures: Seq[Fixture[?]] = Seq(db, app)
+  override def munitFixtures: Seq[Fixture[?]] = Seq(db, server, client)
+
+trait ClientSuite:
+  self: FunSuite =>
+  val client: Fixture[HttpClientIO] = new Fixture[HttpClientIO]("client"):
+    var c: Option[HttpClientIO] = None
+    def apply(): HttpClientIO = c.get
+    override def beforeAll(): Unit =
+      c = Option(HttpClientIO())
+    override def afterAll(): Unit =
+      c.foreach(_.close())
+
+  override def munitFixtures: Seq[Fixture[?]] = Seq(client)
 
 trait DoobieSuite extends MUnitDatabaseSuite:
   self: munit.Suite =>

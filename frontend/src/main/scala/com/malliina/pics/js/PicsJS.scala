@@ -1,14 +1,13 @@
 package com.malliina.pics.js
 
 import org.scalajs.dom
-import org.scalajs.jquery.JQueryStatic
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
+import scala.scalajs.js.Dynamic.literal
 
 object PicsJS extends BaseHtml:
   val csrf = CSRFUtils()
-  private val jqueryJs = MyJQuery
   private val popperJs = Popper
   private val bootstrapJs = Bootstrap
   private val bootstrapCss = BootstrapCss
@@ -26,16 +25,26 @@ object PicsJS extends BaseHtml:
   def has(feature: String) = dom.document.body.classList.contains(feature)
 
 @js.native
-@JSImport("jquery", JSImport.Namespace)
-object MyJQuery extends JQueryStatic
-
-@js.native
-@JSImport("popper.js", JSImport.Namespace)
+@JSImport("@popperjs/core", JSImport.Namespace)
 object Popper extends js.Object
 
 @js.native
+trait PopoverOptions extends js.Object:
+  def trigger: String
+
+object PopoverOptions:
+  def apply(trigger: String) = literal(trigger = trigger).asInstanceOf[PopoverOptions]
+  val click = apply("click")
+  val focus = apply("focus")
+  val manual = apply("manual")
+
+@js.native
 @JSImport("bootstrap", JSImport.Namespace)
-object Bootstrap extends js.Object
+object Bootstrap extends js.Object:
+  @js.native
+  class Popover(e: dom.Element, options: PopoverOptions) extends js.Any:
+    def hide(): Unit = js.native
+    def show(): Unit = js.native
 
 @js.native
 @JSImport("bootstrap/dist/css/bootstrap.min.css", JSImport.Namespace)
