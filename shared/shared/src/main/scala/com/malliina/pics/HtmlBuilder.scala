@@ -6,7 +6,7 @@ import com.malliina.http.FullUrl
 import scala.language.implicitConversions
 
 class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, FragT])
-  extends Bootstrap5(ts):
+  extends Bootstrap(ts):
 
   import tags.*
   import tags.impl.all.*
