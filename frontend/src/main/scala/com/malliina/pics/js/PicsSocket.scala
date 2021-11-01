@@ -20,10 +20,10 @@ class PicsSocket extends BaseSocket("/sockets"):
   installCopyListeners(document.body)
   PicsJS.csrf.installCsrf(document.body)
 
-  val popovers: Map[String, Bootstrap.Popover] = document
+  val popovers: Map[String, Popover] = document
     .querySelectorAll("[data-bs-toggle='popover']")
     .map { e =>
-      e.getAttribute(jsHtml.dataIdAttr.name) -> new Bootstrap.Popover(e, PopoverOptions.manual)
+      e.getAttribute(jsHtml.dataIdAttr.name) -> new Popover(e, PopoverOptions.manual)
     }
     .toMap
 
@@ -32,7 +32,7 @@ class PicsSocket extends BaseSocket("/sockets"):
     "click",
     (e: Event) =>
       val isPopover = e.target.isInstanceOf[HTMLElement] && Option(
-        e.target.asInstanceOf[HTMLElement].getAttribute("data-original-title")
+        e.target.asInstanceOf[HTMLElement].getAttribute("data-bs-original-title")
       ).isDefined
       if !isPopover then popovers.values.foreach(_.hide())
   )
@@ -50,6 +50,7 @@ class PicsSocket extends BaseSocket("/sockets"):
         val htmlElem = e.target.asInstanceOf[HTMLElement]
         val url = htmlElem.getAttribute(jsHtml.dataIdAttr.name)
         copyToClipboard(url)
+//        popovers.values.foreach(_.show())
         popovers.get(url).foreach { p =>
           p.show()
         }

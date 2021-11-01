@@ -77,8 +77,7 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
             `class` := s"${btn.light} ${btn.sm} $CopyButton",
             dataIdAttr := pic.url.toString(),
             data("bs-toggle") := "popover",
-            data("bs-trigger") := "focus",
-            dataContentAttr := "Copied!"
+            data("bs-content") := "Copied!"
           )("Copy")
         )
       )

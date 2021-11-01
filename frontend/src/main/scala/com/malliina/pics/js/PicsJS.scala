@@ -8,10 +8,10 @@ import scala.scalajs.js.Dynamic.literal
 
 object PicsJS extends BaseHtml:
   val csrf = CSRFUtils()
-  private val popperJs = Popper
-  private val bootstrapJs = Bootstrap
-  private val bootstrapCss = BootstrapCss
-  private val fontAwesomeCss = FontAwesomeCss
+  val popperJs = Popper
+  val bootstrapJs = Bootstrap
+  val bootstrapCss = BootstrapCss
+  val fontAwesomeCss = FontAwesomeCss
 
   def main(args: Array[String]): Unit =
     if has(PicsClass) then
@@ -40,11 +40,13 @@ object PopoverOptions:
 
 @js.native
 @JSImport("bootstrap", JSImport.Namespace)
-object Bootstrap extends js.Object:
-  @js.native
-  class Popover(e: dom.Element, options: PopoverOptions) extends js.Any:
-    def hide(): Unit = js.native
-    def show(): Unit = js.native
+object Bootstrap extends js.Object
+
+@js.native
+@JSImport("bootstrap", "Popover")
+class Popover(e: dom.Element, options: PopoverOptions) extends js.Any:
+  def hide(): Unit = js.native
+  def show(): Unit = js.native
 
 @js.native
 @JSImport("bootstrap/dist/css/bootstrap.min.css", JSImport.Namespace)
