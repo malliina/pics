@@ -4,6 +4,7 @@ import cats.Show
 import cats.data.NonEmptyList
 import cats.effect.*
 import cats.effect.unsafe.implicits.global
+import com.malliina.http.FullUrl
 import com.malliina.http.io.HttpClientIO
 import com.malliina.pics.AppMeta
 import com.malliina.pics.http4s.PicsImplicits.*
@@ -65,5 +66,5 @@ class PicsServerTests extends FunSuite with ServerSuite with CirceInstances:
     )
     req.unsafeRunSync()
 
-  def baseUrl = server().baseHttpUrl
-  def http = client()
+  def baseUrl: FullUrl = server().baseHttpUrl
+  def http: HttpClientIO = client()
