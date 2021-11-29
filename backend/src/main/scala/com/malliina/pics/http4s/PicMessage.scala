@@ -22,11 +22,11 @@ object PicMessage:
   case object PingBroadcast extends PicMessage:
     def forUser(user: PicOwner): Boolean = true
   case class AddedMessage(pics: PicsAdded, owner: PicOwner) extends UnicastMessage:
-    override def target = owner
+    override def target: PicOwner = owner
   case class RemovedMessage(pics: PicsRemoved, owner: PicOwner) extends UnicastMessage:
-    override def target = owner
+    override def target: PicOwner = owner
   case class Welcome(info: ProfileInfo) extends UnicastMessage:
-    override def target = info.user
+    override def target: PicOwner = info.user
 
   val ping = PingBroadcast
 

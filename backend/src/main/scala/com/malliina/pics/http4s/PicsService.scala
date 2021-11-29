@@ -156,7 +156,7 @@ class PicsService(
                     req.headers.get(CIString(XName)).map(_.head.value)
                   )
                   .flatMap { keyMeta =>
-                    val clientPic = req.headers
+                    val clientKey = req.headers
                       .get(CIString(XClientPic))
                       .map(h => Key(h.head.value))
                       .getOrElse(keyMeta.key)
@@ -165,14 +165,15 @@ class PicsService(
                     topic
                       .publish1(
                         PicMessage
-                          .AddedMessage(PicsAdded(Seq(picMeta.withClient(clientPic))), user.name)
+                          .AddedMessage(PicsAdded(Seq(picMeta.withClientKey(clientKey))), user.name)
                       )
                       .flatMap { _ =>
+                        log.info(s"Published added message for '${picMeta.key}' by ${user.name}.")
                         Accepted(PicResponse(picMeta).asJson).map { res =>
                           res.putHeaders(
                             Location(Uri.unsafeFromString(picMeta.url.url)),
                             Header.Raw(CIString(XKey), picMeta.key.key),
-                            Header.Raw(CIString(XClientPic), clientPic.key)
+                            Header.Raw(CIString(XClientPic), clientKey.key)
                           )
                         }
                       }
@@ -212,7 +213,10 @@ class PicsService(
         log.info(s"Opening socket for '${user.name}' using user agent $userAgent.")
         val welcomeMessage = fs2.Stream(PicMessage.welcome(user.name, user.readOnly))
         val pings = fs2.Stream.awakeEvery[IO](30.seconds).map(_ => PicMessage.ping)
-        val updates = topic.subscribe(1000).drop(1).filter(_.forUser(user.name))
+        val updates = topic
+          .subscribe(1000)
+          .filter(_.forUser(user.name))
+          .evalTap(msg => IO(log.info(s"Sending '${msg.asJson}' to ${user.name}...")))
         val toClient = (welcomeMessage ++ pings.mergeHaltBoth(updates)).map { message =>
           Text(message.asJson.noSpaces)
         }
