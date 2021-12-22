@@ -1,13 +1,14 @@
 package com.malliina.pics.auth
 
+import cats.effect.IO
+import cats.effect.unsafe.IORuntime
 import com.malliina.http.OkClient
 import com.malliina.web.JWTKeys
-import tests.BaseSuite
+import tests.{BaseSuite, ClientSuite}
 
-class AppleTests extends BaseSuite:
+class AppleTests extends BaseSuite with ClientSuite:
   test("read apple conf".ignore) {
-    val http = OkClient.default
-    val keys = http.getAs[JWTKeys](AppleAuthFlow.jwksUri)
-    val ks = await(keys)
+    val keys: IO[JWTKeys] = client().getAs[JWTKeys](AppleAuthFlow.jwksUri)
+    val ks = keys.unsafeRunSync()
     println(ks)
   }

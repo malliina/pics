@@ -1,6 +1,7 @@
 package tests
 
 import cats.effect.IO
+import cats.effect.unsafe.IORuntime
 import cats.effect.unsafe.implicits.global
 import cats.syntax.flatMap.*
 import com.dimafeng.testcontainers.MySQLContainer
@@ -16,10 +17,11 @@ import org.slf4j.LoggerFactory
 import org.testcontainers.utility.DockerImageName
 import tests.MUnitDatabaseSuite.log
 import org.http4s.server.Server
-import org.http4s.client.{Client}
+import org.http4s.client.Client
 import org.http4s.blaze.client.BlazeClientBuilder
 import org.http4s.Uri
 import com.malliina.http.FullUrl
+
 import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.Promise
 import scala.util.Try
@@ -78,6 +80,8 @@ trait ServerSuite extends MUnitDatabaseSuite with ClientSuite:
 
 trait ClientSuite:
   self: FunSuite =>
+  implicit val ioRuntime: IORuntime = IORuntime.global
+
   val client: Fixture[HttpClientIO] = new Fixture[HttpClientIO]("client"):
     var c: Option[HttpClientIO] = None
     def apply(): HttpClientIO = c.get
