@@ -11,7 +11,7 @@ import com.malliina.http.io.HttpClientIO
 import com.malliina.pics.*
 import com.malliina.pics.PicsStrings.{XClientPic, XKey, XName}
 import com.malliina.pics.auth.Http4sAuth.TwitterState
-import com.malliina.pics.auth.{Http4sAuth, UserPayload}
+import com.malliina.pics.auth.{AppleResponse, Http4sAuth, UserPayload}
 import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.html.PicsHtml
 import com.malliina.pics.http4s.PicsService.{log, noCache, ranges, version10}
@@ -283,6 +283,8 @@ class PicsService(
           start(socials.facebook, reverseSocial.facebook, req)
         case Apple =>
           start(socials.apple, reverseSocial.apple, req)
+    case req @ POST -> Root / "sign-in" / "callbacks" / "apple" =>
+      handleAppleCallback(req)
     case req @ GET -> Root / "sign-in" / "callbacks" / AuthProvider(id) =>
       id match
         case Twitter =>
@@ -502,6 +504,56 @@ class PicsService(
         email => userResult(email, provider, req)
       )
     }
+
+  private def handleAppleCallback(req: Request[IO])(implicit
+    decoder: EntityDecoder[IO, UrlForm]
+  ): IO[Response[IO]] =
+    decoder
+      .decode(req, strict = false)
+      .foldF(
+        failure => unauthorized(Errors.single(failure.message)),
+        urlForm =>
+          AppleResponse(urlForm).fold(
+            err => unauthorized(Errors(err)),
+            form =>
+              val session =
+                auth.session[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
+              val actualState = form.state
+              val sessionState = session.get(State)
+              if sessionState.contains(actualState) then
+                val redirectUrl = Urls.hostOnly(req) / reverseSocial.apple.callback.renderString
+                socials.apple.validate(form.code, redirectUrl, session.get(Nonce)).flatMap { e =>
+                  e.fold(
+                    err => unauthorized(Errors(err.message)),
+                    email => userResult(email, Apple, req)
+                  )
+                }
+              else
+                val detailed =
+                  sessionState.fold(s"Got '$actualState' but found nothing to compare to.") {
+                    expected =>
+                      s"Got '$actualState' but expected '$expected'."
+                  }
+                log.error(s"Authentication failed, state mismatch. $detailed $req")
+                unauthorized(Errors.single("State mismatch."))
+          )
+      )
+//    socials.apple.validate()
+//    val params = req.uri.query.params
+//    val session = auth.session[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
+//    val cb = Callback(
+//      params.get(OAuthKeys.State),
+//      session.get(State),
+//      params.get(OAuthKeys.CodeKey),
+//      session.get(Nonce),
+//      Urls.hostOnly(req) / reverse.callback.renderString
+//    )
+//    validate(cb).flatMap { e =>
+//      e.fold(
+//        err => unauthorized(Errors(err.message)),
+//        email => userResult(email, provider, req)
+//      )
+//    }
 
   private def userResult(
     email: Email,

@@ -1,7 +1,6 @@
 package com.malliina.pics.auth
 
 import java.time.Instant
-
 import cats.effect.IO
 import com.malliina.http.{FullUrl, HttpClient}
 import com.malliina.oauth.TokenResponse
@@ -9,13 +8,13 @@ import com.malliina.pics.auth.AppleAuthFlow.staticConf
 import com.malliina.values.{Email, ErrorMessage, IdToken}
 import com.malliina.web.OAuthKeys.*
 import com.malliina.web.*
+import org.http4s.UrlForm
 
 case class AppleResponse(code: Code, state: String)
 
 object AppleResponse:
-  def apply(form: Map[String, Seq[String]]): Either[ErrorMessage, AppleResponse] =
-    def read(key: String) =
-      form.get(key).flatMap(_.headOption).toRight(ErrorMessage(s"Not found: '$key' in $form."))
+  def apply(form: UrlForm): Either[ErrorMessage, AppleResponse] =
+    def read(key: String) = form.getFirst(key).toRight(ErrorMessage(s"Not found: '$key' in $form."))
     for
       code <- read(CodeKey).map(Code.apply)
       state <- read(State)
