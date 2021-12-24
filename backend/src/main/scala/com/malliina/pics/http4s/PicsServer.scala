@@ -19,7 +19,7 @@ import scala.concurrent.duration.DurationInt
 object PicsServer extends IOApp:
   type AppService = Kleisli[IO, Request[IO], Response[IO]]
 
-  val log = AppLogger(getClass)
+  private val log = AppLogger(getClass)
 
   val defaultPort = 9000
 

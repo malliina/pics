@@ -3,7 +3,7 @@ package com.malliina.pics
 import com.malliina.config.ConfigReadable
 import com.malliina.pics.PicsConf.ConfigOps
 import com.malliina.pics.app.LocalConf
-import com.malliina.pics.auth.SecretKey
+import com.malliina.pics.auth.{SecretKey, SignInWithApple}
 import com.malliina.pics.db.DatabaseConf
 import com.malliina.values.ErrorMessage
 import com.malliina.web.{AuthConf, ClientId, ClientSecret}
@@ -56,7 +56,7 @@ case class PicsConf(
   microsoft: SocialClientConf,
   facebook: SocialClientConf,
   twitter: SocialClientConf,
-  apple: SocialClientConf,
+  apple: SignInWithApple.Conf,
   amazon: SocialClientConf
 ):
   def social = Social.SocialConf(
@@ -66,7 +66,7 @@ case class PicsConf(
     facebook.conf,
     twitter.conf,
     amazon.conf,
-    apple.conf
+    apple
   )
 
 object PicsConf:
@@ -82,7 +82,7 @@ object PicsConf:
   def unsafeLoad(c: Config = picsConf): PicsConf = unsafeLoadWith(c, c.unsafe[DatabaseConf]("db"))
 
   def unsafeLoadWith(c: Config, db: => DatabaseConf): PicsConf =
-    def client(name: String) = c.unsafe[SocialClientConf](name)
+    def client(name: String): SocialClientConf = c.unsafe[SocialClientConf](name)
     PicsConf(
       c.unsafe[AppMode]("mode"),
       AppConf(c.unsafe[Config]("app").unsafe[SecretKey]("secret")),
@@ -92,6 +92,6 @@ object PicsConf:
       client("microsoft"),
       client("facebook"),
       client("twitter"),
-      client("apple"),
+      c.unsafe[Config]("apple").unsafe[SignInWithApple.Conf]("signin"),
       client("amazon")
     )

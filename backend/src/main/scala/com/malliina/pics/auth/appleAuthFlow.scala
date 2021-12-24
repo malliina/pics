@@ -8,7 +8,12 @@ import com.malliina.pics.auth.AppleAuthFlow.staticConf
 import com.malliina.values.{Email, ErrorMessage, IdToken}
 import com.malliina.web.OAuthKeys.*
 import com.malliina.web.*
+import com.nimbusds.jose.crypto.ECDSASigner
+import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
+import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 import org.http4s.UrlForm
+
+import java.time.temporal.ChronoUnit
 
 case class AppleResponse(code: Code, state: String)
 
@@ -46,13 +51,16 @@ object AppleAuthFlow:
   def apply(conf: AuthConf, validator: AppleTokenValidator, http: HttpClient[IO]) =
     new AppleAuthFlow(conf, validator, http)
 
-  def staticConf(conf: AuthConf) = StaticConf(emailScope, authUrl, tokensUrl, conf)
+  def staticConf(conf: AuthConf): StaticConf = StaticConf(emailScope, authUrl, tokensUrl, conf)
 
 /** @see
   *   https://developer.apple.com/documentation/signinwithapplejs/incorporating_sign_in_with_apple_into_other_platforms
   */
-class AppleAuthFlow(authConf: AuthConf, validator: AppleTokenValidator, http: HttpClient[IO])
-  extends StaticFlowStart
+class AppleAuthFlow(
+  authConf: AuthConf,
+  validator: AppleTokenValidator,
+  http: HttpClient[IO]
+) extends StaticFlowStart
   with CallbackValidator[Email]:
   override val conf: StaticConf = staticConf(authConf)
 
@@ -64,7 +72,7 @@ class AppleAuthFlow(authConf: AuthConf, validator: AppleTokenValidator, http: Ht
     val params = tokenParameters(code, redirectUrl)
     http.postFormAs[TokenResponse](conf.tokenEndpoint, params).flatMap { tokens =>
       http.getAs[JWTKeys](AppleAuthFlow.jwksUri).map { keys =>
-        validator.validate(IdToken(tokens.id_token.token), keys.keys, Instant.now()).flatMap { v =>
+        validator.validate(tokens.id_token, keys.keys, Instant.now()).flatMap { v =>
           v.readString(EmailKey).map(Email.apply)
         }
       }

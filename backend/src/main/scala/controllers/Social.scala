@@ -1,5 +1,6 @@
 package controllers
 
+import com.malliina.pics.auth.SignInWithApple
 import com.malliina.web.AuthConf
 
 import scala.concurrent.duration.{Duration, DurationInt}
@@ -18,19 +19,19 @@ object Social:
     facebookConf: AuthConf,
     twitterConf: AuthConf,
     amazonConf: AuthConf,
-    apple: AuthConf
+    apple: SignInWithApple.Conf
   )
 
-  sealed abstract class AuthProvider(val name: String)
+sealed abstract class AuthProvider(val name: String)
 
-  object AuthProvider:
-    def forString(s: String): Either[String, AuthProvider] =
-      Seq(Google, Microsoft, Amazon, Twitter, Facebook, GitHub, Apple)
-        .find(_.name == s)
-        .toRight(s"Unknown auth provider: '$s'.")
+object AuthProvider:
+  def forString(s: String): Either[String, AuthProvider] =
+    Seq(Google, Microsoft, Amazon, Twitter, Facebook, GitHub, Apple)
+      .find(_.name == s)
+      .toRight(s"Unknown auth provider: '$s'.")
 
-    def unapply(str: String): Option[AuthProvider] =
-      forString(str).toOption
+  def unapply(str: String): Option[AuthProvider] =
+    forString(str).toOption
 
   case object Google extends AuthProvider("google")
   case object Microsoft extends AuthProvider("microsoft")

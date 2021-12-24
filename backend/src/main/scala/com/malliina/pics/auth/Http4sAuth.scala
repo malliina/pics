@@ -12,7 +12,7 @@ import com.malliina.pics.auth.JWTUsers
 import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, ErrorMessage, IdToken, Username}
 import com.malliina.web.{CognitoAccessValidator, CognitoIdValidator, JWTUser, OAuthError}
-import controllers.Social.AuthProvider
+import controllers.AuthProvider
 import io.circe.*
 import io.circe.syntax.EncoderOps
 import io.circe.generic.semiauto.deriveCodec

@@ -4,6 +4,8 @@ import com.malliina.http.FullUrl
 import com.malliina.values.{ErrorMessage, Readable}
 import com.typesafe.config.Config
 
+import java.nio.file.{InvalidPathException, Path, Paths}
+
 trait ConfigReadable[T]:
   def read(key: String, c: Config): Either[ErrorMessage, T]
   def flatMap[U](f: T => ConfigReadable[U]): ConfigReadable[U] =
@@ -20,6 +22,10 @@ object ConfigReadable:
     string.emap(s => FullUrl.build(s))
   implicit val int: ConfigReadable[Int] =
     recovered((key: String, c: Config) => Right(c.getInt(key)))
+  implicit val path: ConfigReadable[Path] = ConfigReadable.string.emap { s =>
+    try Right(Paths.get(s))
+    catch case ipe: InvalidPathException => Left(ErrorMessage(s"Invalid path: '$s'."))
+  }
   implicit val bool: ConfigReadable[Boolean] =
     recovered((key: String, c: Config) => Right(c.getBoolean(key)))
   implicit val config: ConfigReadable[Config] =

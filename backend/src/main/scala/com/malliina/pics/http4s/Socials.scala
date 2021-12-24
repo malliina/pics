@@ -2,15 +2,17 @@ package com.malliina.pics.http4s
 
 import cats.effect.IO
 import com.malliina.http.HttpClient
-import com.malliina.pics.auth.{AppleAuthFlow, AppleTokenValidator, Validators}
-import com.malliina.pics.http4s.Socials.cognitoAuthConf
 import com.malliina.pics.auth.*
-import com.malliina.web.IdentityProvider.LoginWithAmazon
+import com.malliina.pics.http4s.Socials.cognitoAuthConf
+import com.malliina.util.AppLogger
 import com.malliina.web.*
+import com.malliina.web.IdentityProvider.LoginWithAmazon
 import controllers.Social.SocialConf
 
+import java.time.Instant
+
 object Socials:
-  def apply(conf: SocialConf, http: HttpClient[IO]): Socials = new Socials(conf, http)
+  private val log = AppLogger(getClass)
 
   def cognitoAuthConf(authConf: AuthConf, httpClient: HttpClient[IO]): GenericAuthConf =
     new GenericAuthConf:
@@ -30,4 +32,6 @@ class Socials(conf: SocialConf, http: HttpClient[IO]):
   val github = new GitHubAuthFlow(conf.githubConf, http)
   val amazon = cognitoValidator(LoginWithAmazon)
   val facebook = new FacebookAuthFlow(conf.facebookConf, http)
-  val apple = AppleAuthFlow(conf.apple, AppleTokenValidator(Seq(conf.apple.clientId)), http)
+  val siwa = SignInWithApple(conf.apple)
+  val appleAuthConf = AuthConf(conf.apple.clientId, siwa.signInWithAppleToken(Instant.now()))
+  val apple = AppleAuthFlow(appleAuthConf, AppleTokenValidator(Seq(conf.apple.clientId)), http)

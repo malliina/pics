@@ -22,7 +22,8 @@ import com.malliina.web.*
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.TwitterAuthFlow.{OauthTokenKey, OauthVerifierKey}
 import com.malliina.web.Utils.randomString
-import controllers.Social
+import controllers.AuthProvider.*
+import controllers.{AuthProvider, Social}
 import controllers.Social.*
 import fs2.concurrent.Topic
 import io.circe.syntax.EncoderOps
