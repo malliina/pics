@@ -21,7 +21,7 @@ object Socials:
       override def http = httpClient
 
 class Socials(conf: SocialConf, http: HttpClient[IO]):
-  def cognitoValidator(identityProvider: IdentityProvider) = new CognitoAuthFlow(
+  def cognitoValidator(identityProvider: IdentityProvider): CognitoAuthFlow = CognitoAuthFlow(
     "pics.auth.eu-west-1.amazoncognito.com",
     identityProvider,
     Validators.picsId,
