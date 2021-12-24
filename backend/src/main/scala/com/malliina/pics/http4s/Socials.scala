@@ -1,5 +1,6 @@
 package com.malliina.pics.http4s
 
+import Socials.log
 import cats.effect.IO
 import com.malliina.http.HttpClient
 import com.malliina.pics.auth.*
@@ -26,12 +27,16 @@ class Socials(conf: SocialConf, http: HttpClient[IO]):
     Validators.picsId,
     cognitoAuthConf(conf.amazonConf, http)
   )
-  val twitter = new TwitterAuthFlow(conf.twitterConf, http)
+  val twitter = TwitterAuthFlow(conf.twitterConf, http)
   val google = GoogleAuthFlow(conf.googleConf, http)
   val microsoft = MicrosoftAuthFlow(conf.microsoftConf, http)
-  val github = new GitHubAuthFlow(conf.githubConf, http)
+  val github = GitHubAuthFlow(conf.githubConf, http)
   val amazon = cognitoValidator(LoginWithAmazon)
-  val facebook = new FacebookAuthFlow(conf.facebookConf, http)
-  val siwa = SignInWithApple(conf.apple)
-  val appleAuthConf = AuthConf(conf.apple.clientId, siwa.signInWithAppleToken(Instant.now()))
+  val facebook = FacebookAuthFlow(conf.facebookConf, http)
+  val appleToken =
+    if conf.apple.enabled then SignInWithApple(conf.apple).signInWithAppleToken(Instant.now())
+    else
+      log.info("Sign in with Apple is disabled.")
+      ClientSecret("disabled")
+  val appleAuthConf = AuthConf(conf.apple.clientId, appleToken)
   val apple = AppleAuthFlow(appleAuthConf, AppleTokenValidator(Seq(conf.apple.clientId)), http)

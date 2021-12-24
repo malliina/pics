@@ -1,11 +1,12 @@
 package com.malliina.pics.http4s
 
 import cats.data.Kleisli
-import cats.effect.kernel.Temporal
-import cats.effect.{ExitCode, IO, IOApp, Resource}
+import cats.effect.kernel.{Temporal, Resource}
+import cats.effect.{ExitCode, IO, IOApp}
 import com.malliina.pics.db.{DoobieDatabase, PicsDatabase}
 import com.malliina.pics.{BuildInfo, MultiSizeHandlerIO, PicsConf}
 import com.malliina.util.AppLogger
+import com.malliina.http.io.HttpClientIO
 import fs2.concurrent.Topic
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.middleware.{GZip, HSTS}
@@ -29,6 +30,7 @@ object PicsServer extends IOApp:
     port: Int = defaultPort
   ): Resource[IO, Server] = for
     handler <- Resource.eval(sizeHandler)
+//    http <- Resource.
     picsApp <- appResource(conf, handler)
     _ = log.info(s"Binding on port $port using app version ${BuildInfo.hash}...")
     server <- BlazeServerBuilder[IO]
@@ -46,6 +48,7 @@ object PicsServer extends IOApp:
   ): Resource[IO, PicsService] = for
     topic <- Resource.eval(Topic[IO, PicMessage])
     tx <- DoobieDatabase.migratedResource(conf.db)
+    http <- Resource.make(IO(HttpClientIO()))(c => IO(c.close()))
   yield
     val db = PicsDatabase(DoobieDatabase(tx))
 //    val csrf =
@@ -53,7 +56,7 @@ object PicsServer extends IOApp:
 //        CSRF[IO, IO](key, _ => true)
 //          .withOnFailure(Unauthorized(Json.toJson(Errors.single("CSRF failure."))))
 //      }
-    PicsService(conf, db, topic, handler, t)
+    PicsService(conf, db, topic, handler, http, t)
 
   def app(svc: PicsService, sockets: WebSocketBuilder2[IO])(implicit t: Temporal[IO]): AppService =
     GZip {

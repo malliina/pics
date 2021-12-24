@@ -7,6 +7,7 @@ import cats.syntax.all.catsSyntaxFlatten
 import cats.effect.*
 import cats.effect.kernel.Temporal
 import com.malliina.html.UserFeedback
+import com.malliina.http.HttpClient
 import com.malliina.http.io.HttpClientIO
 import com.malliina.pics.*
 import com.malliina.pics.PicsStrings.{XClientPic, XKey, XName}
@@ -51,12 +52,13 @@ object PicsService:
     db: PicsDatabase[IO],
     topic: Topic[IO, PicMessage],
     handler: MultiSizeHandlerIO,
+    http: HttpClient[IO],
     t: Temporal[IO]
   ): PicsService =
-    val socials = Socials(conf.social, HttpClientIO())
+    val socials = Socials(conf.social, http)
     apply(
       PicsHtml.build(conf.mode.isProd),
-      Http4sAuth(conf.app, db),
+      Http4sAuth(conf.app, db, http),
       socials,
       db,
       topic,

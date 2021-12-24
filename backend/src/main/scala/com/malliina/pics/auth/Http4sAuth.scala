@@ -1,6 +1,7 @@
 package com.malliina.pics.auth
 
 import cats.effect.IO
+import com.malliina.http.HttpClient
 import com.malliina.http.io.HttpClientIO
 import com.malliina.pics.auth.CredentialsResult.{AccessTokenResult, IdTokenResult, NoCredentials}
 import com.malliina.pics.db.PicsDatabase
@@ -26,12 +27,12 @@ import scala.concurrent.duration.DurationInt
 object Http4sAuth:
   private val log = AppLogger(getClass)
 
-  def apply(conf: AppConf, db: PicsDatabase[IO]): Http4sAuth =
+  def apply(conf: AppConf, db: PicsDatabase[IO], http: HttpClient[IO]): Http4sAuth =
     new Http4sAuth(
       JWT(conf.secret),
       Validators.picsAccess,
       Validators.picsId,
-      Validators.google(HttpClientIO()),
+      Validators.google(http),
       db,
       CookieConf.pics
     )
