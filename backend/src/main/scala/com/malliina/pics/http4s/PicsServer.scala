@@ -30,7 +30,6 @@ object PicsServer extends IOApp:
     port: Int = defaultPort
   ): Resource[IO, Server] = for
     handler <- Resource.eval(sizeHandler)
-//    http <- Resource.
     picsApp <- appResource(conf, handler)
     _ = log.info(s"Binding on port $port using app version ${BuildInfo.hash}...")
     server <- BlazeServerBuilder[IO]

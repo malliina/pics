@@ -3,12 +3,13 @@ package com.malliina.pics.auth
 import com.malliina.config.ConfigReadable
 import com.malliina.pics.PicsConf.ConfigOps
 import com.malliina.pics.auth.AppleTokenValidator.appleIssuer
-import com.malliina.pics.auth.SignInWithApple.Conf
+import com.malliina.pics.auth.SignInWithApple.{Conf, log}
+import com.malliina.util.AppLogger
 import com.malliina.web.{ClientId, ClientSecret}
 import com.nimbusds.jose.crypto.ECDSASigner
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
-import com.malliina.util.AppLogger
+
 import java.nio.file.{Files, Path}
 import java.security.KeyFactory
 import java.security.interfaces.ECPrivateKey
@@ -17,10 +18,10 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.{Base64, Date}
 import scala.jdk.CollectionConverters.ListHasAsScala
-import SignInWithApple.log
 
 object SignInWithApple:
   private val log = AppLogger(getClass)
+
   case class Conf(
     enabled: Boolean,
     privateKey: Path,
