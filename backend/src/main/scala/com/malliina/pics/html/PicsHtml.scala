@@ -5,8 +5,8 @@ import com.malliina.http.FullUrl
 import com.malliina.pics.html.PicsHtml.*
 import com.malliina.pics.http4s.Reverse
 import com.malliina.pics.{html as _, *}
-import scalatags.Text
-import scalatags.Text.all.{defer as _, *}
+//import scalatags.Text.all.html
+import scalatags.Text.all.{defer as _, StringFrag as _, *}
 import PicsHtml.reverse
 import com.malliina.html.HtmlTags.{fullUrl as _, *}
 import org.http4s.Uri
@@ -39,11 +39,9 @@ object PicsHtml:
       HashedAssetsSource
     )
 
-  implicit def urlWriter(url: FullUrl): Text.StringFrag =
-    stringFrag(url.url)
+//  implicit def urlWriter(url: FullUrl): Text.StringFrag = ???
 
-  implicit def userFrag(user: PicOwner): Text.StringFrag =
-    stringFrag(user.name)
+//  implicit def userFrag(user: PicOwner): Text.StringFrag = Text.StringFrag(user.name)
 
   def postableForm(onAction: String, more: Modifier*) =
     form(role := FormRole, action := onAction, method := Post, more)
@@ -101,7 +99,7 @@ class PicsHtml(
     val conf = PageConf("Pics - Drop", bodyClass = DropClass, inner = content)
     baseIndex("drop", if user.readOnly then None else Option(user.name), conf)
 
-  def pics(urls: Seq[PicMeta], feedback: Option[UserFeedback], user: BaseRequest): TagPage =
+  def pics(urls: Seq[PicMeta], feedback: Option[UserFeedback], user: BaseRequest) =
     val content = Seq(divClass("pics")(renderFeedback(feedback)), picsContent(urls, user.readOnly))
     val conf = PageConf("Pics", bodyClass = PicsClass, inner = content)
     baseIndex("pics", if user.readOnly then None else Option(user.name), conf)
@@ -207,7 +205,7 @@ class PicsHtml(
       navClass = s"${navbars.Navbar} navbar-expand-sm ${navbars.Light} ${navbars.BgLight}"
     )
 
-  def basePage(conf: PageConf) = TagPage(
+  def basePage(conf: PageConf) =
     html(lang := En)(
       head(
         meta(charset := "utf-8"),
@@ -227,7 +225,6 @@ class PicsHtml(
         )
       )
     )
-  )
 
   def deferredJsPath(path: String) =
     script(`type` := "application/javascript", src := at(path), defer)

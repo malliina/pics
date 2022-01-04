@@ -134,7 +134,7 @@ class PicsService(
                 json = Pics(entries),
                 html =
                   val feedback = None // UserFeedbacks.flashed(req.rh.flash)
-                  html.pics(entries, feedback, listRequest.user).tags
+                  html.pics(entries, feedback, listRequest.user)
               )
             }
           }
@@ -233,10 +233,10 @@ class PicsService(
       authed(req) { user =>
         val created: Option[PicMeta] = None
         val feedback: Option[UserFeedback] = None
-        ok(html.drop(created, feedback, user).tags)
+        ok(html.drop(created, feedback, user))
       }
     case GET -> Root / "sign-up" =>
-      ok(html.signUp().tags)
+      ok(html.signUp())
     case req @ GET -> Root / "sign-in" =>
       val reverseSocial = ReverseSocial
       req.cookies
@@ -254,7 +254,7 @@ class PicsService(
           case Apple     => reverseSocial.apple
         }
         .map(r => TemporaryRedirect(Location(r.start)))
-        .getOrElse(ok(html.signIn(None).tags))
+        .getOrElse(ok(html.signIn(None)))
     case req @ GET -> Root / "sign-in" / AuthProvider(id) =>
       id match
         case Twitter =>
@@ -350,9 +350,9 @@ class PicsService(
       // TODO .flashing("message" -> "You have now logged out.")
       SeeOther(Location(Reverse.list))
     case GET -> Root / "legal" / "privacy" =>
-      ok(html.privacyPolicy.tags)
+      ok(html.privacyPolicy)
     case GET -> Root / "support" =>
-      ok(html.support.tags)
+      ok(html.support)
     case req @ GET -> Root / ".well-known" / "apple-developer-domain-association.txt" =>
       StaticFile
         .fromResource(

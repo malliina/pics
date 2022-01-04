@@ -22,9 +22,10 @@ const WebApp = merge(ScalaJS, {
       },
       {
         test: /\.(png|woff|woff2|eot|ttf|svg)$/,
-        use: [
-          { loader: 'url-loader', options: { limit: 8192, name: 'static/fonts/[name]-[hash].[ext]' } }
-        ]
+        type: 'asset',
+        generator: {
+          filename: 'static/fonts/[name]-[hash][ext]'
+        }
       },
       {
         test: /\.less$/,

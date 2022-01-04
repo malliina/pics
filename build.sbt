@@ -5,10 +5,9 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossP
 import scala.sys.process.Process
 import scala.util.Try
 
-val webAuthVersion = "6.0.5"
-val primitivesVersion = "3.0.2"
+val webAuthVersion = "6.1.0"
+val primitivesVersion = "3.1.0"
 val munitVersion = "0.7.29"
-val scalatagsVersion = "0.9.4"
 
 inThisBuild(
   Seq(
@@ -47,7 +46,9 @@ val frontend = project
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
-    webpack / version := "4.44.2",
+    webpack / version := "5.65.0",
+    webpackCliVersion := "4.9.1",
+    startWebpackDevServer / version := "4.5.0",
     webpackEmitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
@@ -57,20 +58,18 @@ val frontend = project
       "bootstrap" -> "5.1.3"
     ),
     Compile / npmDevDependencies ++= Seq(
-      "autoprefixer" -> "10.2.5",
-      "cssnano" -> "4.1.11",
-      "css-loader" -> "5.2.1",
-      "file-loader" -> "6.2.0",
-      "less" -> "4.1.1",
-      "less-loader" -> "7.3.0",
-      "mini-css-extract-plugin" -> "1.4.1",
-      "postcss" -> "8.2.9",
-      "postcss-import" -> "14.0.1",
-      "postcss-loader" -> "4.2.0",
-      "postcss-preset-env" -> "6.7.0",
-      "style-loader" -> "2.0.0",
-      "url-loader" -> "4.1.1",
-      "webpack-merge" -> "5.7.3"
+      "autoprefixer" -> "10.4.1",
+      "cssnano" -> "5.0.14",
+      "css-loader" -> "6.5.1",
+      "less" -> "4.1.2",
+      "less-loader" -> "10.2.0",
+      "mini-css-extract-plugin" -> "2.4.5",
+      "postcss" -> "8.4.5",
+      "postcss-import" -> "14.0.2",
+      "postcss-loader" -> "6.2.1",
+      "postcss-preset-env" -> "7.2.0",
+      "style-loader" -> "3.3.1",
+      "webpack-merge" -> "5.8.0"
     ),
     fastOptJS / webpackConfigFile := Some(baseDirectory.value / "webpack.dev.config.js"),
     fullOptJS / webpackConfigFile := Some(baseDirectory.value / "webpack.prod.config.js"),
@@ -97,23 +96,23 @@ val backend = project
     buildInfoPackage := "com.malliina.pics",
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "hash" -> gitHash),
     libraryDependencies ++= http4sModules.map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.23.6"
+      "org.http4s" %% s"http4s-$m" % "0.23.7"
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
       "org.tpolecat" %% d % "1.0.0-RC1"
     } ++ Seq("classic", "core").map { m =>
-      "ch.qos.logback" % s"logback-$m" % "1.2.6"
+      "ch.qos.logback" % s"logback-$m" % "1.2.10"
     } ++ Seq(
       "com.typesafe" % "config" % "1.4.1",
       "org.apache.commons" % "commons-text" % "1.9",
-      "software.amazon.awssdk" % "s3" % "2.17.70",
+      "software.amazon.awssdk" % "s3" % "2.17.103",
       "org.flywaydb" % "flyway-core" % "7.15.0",
       "mysql" % "mysql-connector-java" % "5.1.49",
-      "com.sksamuel.scrimage" % "scrimage-core" % "4.0.22",
+      "com.sksamuel.scrimage" % "scrimage-core" % "4.0.24",
       "com.malliina" %% "logstreams-client" % "2.0.2",
       "com.malliina" %% "web-auth" % webAuthVersion,
       "org.slf4j" % "slf4j-api" % "1.7.32",
       "org.scalameta" %% "munit" % munitVersion % Test,
-      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.39.10" % Test
+      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.39.12" % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     Linux / name := "pics",
