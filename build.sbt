@@ -87,7 +87,8 @@ val backend = project
     JavaServerAppPackaging,
     SystemdPlugin,
     BuildInfoPlugin,
-    ServerPlugin
+    ServerPlugin,
+    LiveRevolverPlugin
   )
   .dependsOn(crossJvm)
   .settings(commonSettings)

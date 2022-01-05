@@ -11,6 +11,7 @@ object AuthHtml:
 class AuthHtml(assets: AssetsSource) extends BaseHtml:
   val reverseSocial = ReverseSocial
   val reverse = Reverse
+  val formGroupClass = s"$FormGroup pb-4"
 
   import tags.*
 
@@ -35,7 +36,7 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
       inner = modifier(
         emptyNavbar,
         divClass("container")(
-          divClass("auth-form ml-auto mr-auto")(
+          divClass("auth-form ms-auto me-auto")(
             heading,
             socials,
             loginDivider,
@@ -59,7 +60,7 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
       inner = modifier(
         emptyNavbar,
         divClass("container")(
-          divClass("auth-form ml-auto mr-auto")(
+          divClass("auth-form ms-auto me-auto")(
             heading,
             row(signUpForm(feedback)),
             row(confirmForm)
@@ -89,35 +90,35 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
   def loginForm(feedback: Option[UserFeedback] = None) =
     form(id := LoginFormId, `class` := col.md.twelve, method := Post, novalidate)(
       input(`type` := "hidden", name := TokenKey, id := LoginTokenId),
-      divClass(FormGroup)(
+      divClass(formGroupClass)(
         labeledInput("Email address", EmailId, "email", Option("me@example.com"))
       ),
-      divClass(FormGroup)(
+      divClass(formGroupClass)(
         labeledInput("Password", PasswordId, "password", None)
       ),
-      divClass(s"$FormGroup d-flex")(
-        a(`class` := "btn btn-link mr-auto pl-0", href := "#", id := ForgotPasswordLinkId)(
+      divClass(s"$formGroupClass d-flex")(
+        a(`class` := "btn btn-link me-auto ps-0", href := "#", id := ForgotPasswordLinkId)(
           "Forgot password?"
         ),
         submitButton(`class` := btn.primary, "Sign in")
       ),
-      divClass(s"$FormGroup d-flex")(
-        a(`class` := "btn btn-link ml-auto mr-auto", href := reverse.signUp)("Sign up")
+      divClass(s"$formGroupClass d-flex")(
+        a(`class` := "btn btn-link ms-auto me-auto", href := reverse.signUp)("Sign up")
       ),
-      divClass(FormGroup, id := LoginFeedbackId)(
+      divClass(formGroupClass, id := LoginFeedbackId)(
         renderFeedback(feedback)
       )
     )
 
   def forgotForm =
     form(id := ForgotFormId, `class` := col.md.twelve, method := Post, novalidate, hidden)(
-      divClass(FormGroup)(
+      divClass(formGroupClass)(
         labeledInput("Email address", ForgotEmailId, "email", Option("me@example.com"))
       ),
-      divClass(FormGroup)(
+      divClass(formGroupClass)(
         submitButton(`class` := btn.primary, "Send code")
       ),
-      divClass(FormGroup, id := ForgotFeedbackId)
+      divClass(formGroupClass, id := ForgotFeedbackId)
     )
 
   def resetForm =
@@ -130,19 +131,19 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
       hidden
     )(
       input(`type` := "hidden", name := TokenKey, id := ResetTokenId),
-      divClass(FormGroup)(
+      divClass(formGroupClass)(
         labeledInput("Email address", ResetEmailId, "email", None, disabled)
       ),
-      divClass(FormGroup)(
+      divClass(formGroupClass)(
         labeledInput("Code", ResetCodeId, "number", Option("123456"))
       ),
-      divClass(FormGroup)(
+      divClass(formGroupClass)(
         labeledInput("New password", ResetNewPasswordId, "password", None)
       ),
-      divClass(FormGroup)(
+      divClass(formGroupClass)(
         submitButton(`class` := btn.primary, "Reset")
       ),
-      divClass(FormGroup, id := ResetFeedbackId)
+      divClass(formGroupClass, id := ResetFeedbackId)
     )
 
   def signUpForm(feedback: Option[UserFeedback] = None) =
@@ -154,16 +155,16 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
       novalidate
     )(
       input(`type` := "hidden", name := TokenKey, id := LoginTokenId),
-      divClass(FormGroup)(
+      divClass(formGroupClass)(
         labeledInput("Email address", EmailId, "email", Option("me@example.com"))
       ),
-      divClass(FormGroup)(
+      divClass(formGroupClass)(
         labeledInput("Password", PasswordId, "password", None)
       ),
-      divClass(FormGroup)(
+      divClass(formGroupClass)(
         submitButton(`class` := btn.primary, "Sign up")
       ),
-      divClass(FormGroup, id := SignUpFeedbackId)(
+      divClass(formGroupClass, id := SignUpFeedbackId)(
         renderFeedback(feedback)
       )
     )
@@ -171,26 +172,26 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
   def confirmForm =
     form(id := ConfirmFormId, `class` := col.md.twelve, method := Post, novalidate, hidden)(
       input(`type` := "hidden", name := TokenKey, id := ConfirmTokenId),
-      divClass(FormGroup)(
+      divClass(formGroupClass)(
         labeledInput("Code", CodeId, "number", Option("123456"))
       ),
-      divClass(s"$FormGroup d-flex")(
-        a(id := ResendId, `class` := "btn btn-link mr-auto pl-0", href := "#")("Resend code"),
+      divClass(s"$formGroupClass d-flex")(
+        a(id := ResendId, `class` := "btn btn-link me-auto ps-0", href := "#")("Resend code"),
         submitButton(`class` := btn.primary, "Confirm")
       ),
-      divClass(FormGroup, id := ConfirmFeedbackId)
+      divClass(formGroupClass, id := ConfirmFeedbackId)
     )
 
   def mfaForm =
     form(id := MfaFormId, `class` := col.md.twelve, method := Post, novalidate, hidden)(
       input(`type` := "hidden", name := TokenKey, id := MfaTokenId),
-      divClass(FormGroup)(
+      divClass(formGroupClass)(
         labeledInput("Code", MfaCodeId, "number", Option("123456"))
       ),
-      divClass(s"$FormGroup d-flex")(
+      divClass(s"$formGroupClass d-flex")(
         submitButton(`class` := btn.primary, "Submit")
       ),
-      divClass(FormGroup, id := MfaFeedbackId)
+      divClass(formGroupClass, id := MfaFeedbackId)
     )
 
   def socialButton(provider: String, linkTo: SocialRoute, linkText: String) =
@@ -206,7 +207,7 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
     maybePlaceholder: Option[String],
     moreInput: Modifier*
   ) = modifier(
-    label(`for` := inId)(labelText),
+    label(`for` := inId, `class` := "mb-1")(labelText),
     input(
       `type` := inType,
       `class` := FormControl,
