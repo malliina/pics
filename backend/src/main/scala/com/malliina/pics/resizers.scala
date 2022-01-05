@@ -12,9 +12,6 @@ import com.sksamuel.scrimage.nio.JpegWriter
 object ScrimageResizerIO:
   private val log = AppLogger(getClass)
 
-  def apply(maxWidth: Int, maxHeight: Int): ScrimageResizerIO =
-    new ScrimageResizerIO(maxWidth, maxHeight)
-
   val Small = ScrimageResizerIO(400, 300)
   val Medium = ScrimageResizerIO(1440, 1080)
   val Large = ScrimageResizerIO(2880, 2160)

@@ -5,10 +5,6 @@ import java.nio.file.Path
 import cats.effect.IO
 import com.malliina.storage.StorageSize
 
-object FileCachingPicsIO:
-  def apply(cache: FilePicsIO, origin: DataSourceT[IO]): FileCachingPicsIO =
-    new FileCachingPicsIO(cache, origin)
-
 class FileCachingPicsIO(cache: FilePicsIO, origin: DataSourceT[IO]) extends DataSourceIO:
   override def load(from: Int, until: Int) = origin.load(from, until)
 

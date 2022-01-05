@@ -34,15 +34,6 @@ case class Errors(errors: NonEmptyList[SingleError])
 object Errors:
   implicit val se: Codec[SingleError] = SingleError.json
   import cats.implicits.*
-//  implicit def nelJson[T: Format]: Format[NonEmptyList[T]] =
-//    Format(
-//      Reads { json =>
-//        json
-//          .validate[List[T]]
-//          .flatMap(_.toNel.map(t => JsSuccess(t)).getOrElse(JsError(s"Empty list: '$json'.")))
-//      },
-//      Writes.list[T].contramap(_.toList)
-//    )
 
   implicit val json: Codec[Errors] = deriveCodec[Errors]
 

@@ -48,9 +48,6 @@ object AppleAuthFlow:
   val jwksUri = host / "/auth/keys"
   val tokensUrl = host / "/auth/token"
 
-  def apply(conf: AuthConf, validator: AppleTokenValidator, http: HttpClient[IO]) =
-    new AppleAuthFlow(conf, validator, http)
-
   def staticConf(conf: AuthConf): StaticConf = StaticConf(emailScope, authUrl, tokensUrl, conf)
 
 /** @see

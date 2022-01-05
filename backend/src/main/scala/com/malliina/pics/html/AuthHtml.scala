@@ -5,9 +5,6 @@ import com.malliina.pics.AssetsSource
 import com.malliina.pics.http4s.{Reverse, ReverseSocial, SocialRoute}
 import scalatags.Text.all.*
 
-object AuthHtml:
-  def apply(assets: AssetsSource) = new AuthHtml(assets)
-
 class AuthHtml(assets: AssetsSource) extends BaseHtml:
   val reverseSocial = ReverseSocial
   val reverse = Reverse

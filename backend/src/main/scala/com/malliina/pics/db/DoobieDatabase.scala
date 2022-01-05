@@ -17,6 +17,8 @@ import scala.concurrent.duration.DurationInt
 object DoobieDatabase:
   private val log = AppLogger(getClass)
 
+  def apply(tx: DataSourceTransactor[IO]) = new DoobieDatabase(tx)
+
   def apply(conf: DatabaseConf): DatabaseRunner[IO] =
     apply(dataSource(conf))
 
@@ -49,8 +51,6 @@ object DoobieDatabase:
   def resource(ds: HikariDataSource): Resource[IO, DataSourceTransactor[IO]] =
     for ec <- ExecutionContexts.fixedThreadPool[IO](32) // our connect EC
     yield Transactor.fromDataSource[IO](ds, ec)
-
-  def apply(tx: DataSourceTransactor[IO]) = new DoobieDatabase(tx)
 
 // Temporary migration tool
 class DoobieDatabase(tx: DataSourceTransactor[IO]) extends DatabaseRunner[IO]:

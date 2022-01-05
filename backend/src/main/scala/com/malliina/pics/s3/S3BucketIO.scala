@@ -10,8 +10,6 @@ import software.amazon.awssdk.services.s3.model.{CreateBucketRequest, CreateBuck
 object S3BucketIO:
   private val log = AppLogger(getClass)
 
-  def apply(client: S3AsyncClient): S3BucketIO = new S3BucketIO(client)
-
 class S3BucketIO(client: S3AsyncClient):
   def createIfNotExists(bucket: BucketName): IO[Boolean] =
     exists(bucket).flatMap { doesExist =>

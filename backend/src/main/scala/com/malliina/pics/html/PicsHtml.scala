@@ -6,7 +6,8 @@ import com.malliina.http.FullUrl
 import com.malliina.live.LiveReload
 import com.malliina.pics.html.PicsHtml.*
 import com.malliina.pics.http4s.Reverse
-import com.malliina.pics.{AssetsSource, html as _, *}
+import com.malliina.pics.AssetsSource
+import com.malliina.pics.{html as _, *}
 import org.http4s.Uri
 import scalatags.Text.all.{StringFrag as _, defer as _, *}
 
@@ -38,10 +39,6 @@ object PicsHtml:
       Seq(s"$assetPrefix.css", "fonts.css", "styles.css"),
       HashedAssetsSource
     )
-
-//  implicit def urlWriter(url: FullUrl): Text.StringFrag = ???
-
-//  implicit def userFrag(user: PicOwner): Text.StringFrag = Text.StringFrag(user.name)
 
   def postableForm(onAction: String, more: Modifier*) =
     form(role := FormRole, action := onAction, method := Post, more)

@@ -12,8 +12,6 @@ object Resizer:
   val Small400x300 = Resizer(maxWidth = 400, maxHeight = 300)
   val Medium1440x1080 = Resizer(1440, 1080)
 
-  def apply(maxWidth: Int, maxHeight: Int): Resizer = new Resizer(maxWidth, maxHeight)
-
 /** @param maxWidth
   *   max width of resized image
   * @param maxHeight

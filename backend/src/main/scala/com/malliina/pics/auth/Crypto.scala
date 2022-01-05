@@ -12,8 +12,6 @@ import org.apache.commons.codec.binary.Hex
 object Crypto:
   case class PrivateKey(key: Array[Byte]) extends AnyVal
 
-  def apply(key: PrivateKey): Crypto = new Crypto(key)
-
 /** @see
   *   https://github.com/reactormonk/cryptobits/blob/master/cryptobits/src/cryptobits.scala
   */

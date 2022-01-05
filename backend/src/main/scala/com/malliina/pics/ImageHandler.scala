@@ -5,10 +5,6 @@ import java.nio.file.{Files, Path}
 import cats.effect.IO
 import com.sksamuel.scrimage.ImmutableImage
 
-object ImageHandlerIO:
-  def apply(prefix: String, resizer: ImageResizerIO, storage: DataSourceIO) =
-    new ImageHandlerIO(prefix, resizer, storage)
-
 class ImageHandlerIO(prefix: String, resizer: ImageResizerIO, val storage: DataSourceIO)
   extends ImageService[IO]:
   def createTempFile = IO(Files.createTempFile(prefix, null))

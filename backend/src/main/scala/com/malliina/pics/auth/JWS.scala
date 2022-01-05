@@ -14,9 +14,6 @@ import scala.util.Try
   * @see
   *   https://connect2id.com/products/nimbus-jose-jwt/examples/jwt-with-hmac
   */
-object JWS:
-  def apply(secret: SecretKey): JWS = new JWS(secret)
-
 class JWS(secret: SecretKey):
   def sign(payload: String): IdToken =
     val signer = new MACSigner(secret.value)
@@ -30,9 +27,6 @@ class JWS(secret: SecretKey):
     val isSignatureOk = parsed.verify(verifier)
     if !isSignatureOk then Left(InvalidSignature(token))
     else Right(parsed.getPayload.toString)
-
-object JsonJWS:
-  def apply(secret: SecretKey): JsonJWS = new JsonJWS(JWS(secret))
 
 class JsonJWS(jws: JWS):
   def sign[T: Encoder](payload: T): IdToken = jws.sign(payload.asJson.noSpaces)
