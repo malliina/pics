@@ -21,20 +21,27 @@ const WebApp = merge(ScalaJS, {
         include: [ path.resolve(__dirname, 'node_modules') ]
       },
       {
-        test: /\.(png|woff|woff2|eot|ttf|svg)$/,
+        test: /\.less$/,
+        use: [
+          MiniCssExtractPlugin.loader,
+          { loader: 'css-loader', options: { importLoaders: 1, url: true } },
+          'postcss-loader',
+          'less-loader'
+        ]
+      },
+      {
+        test: /fa-.*\.(woff|woff2|eot|ttf|svg)$/,
         type: 'asset',
         generator: {
           filename: 'static/fonts/[name]-[hash][ext]'
         }
       },
       {
-        test: /\.less$/,
-        use: [
-          MiniCssExtractPlugin.loader,
-          { loader: 'css-loader', options: { importLoaders: 1, url: false } },
-          'postcss-loader',
-          'less-loader'
-        ]
+        test: /logo-.*\.(png|svg)$/,
+        type: 'asset',
+        generator: {
+          filename: 'static/img/[name]-[hash][ext]'
+        }
       }
     ]
   },
