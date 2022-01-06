@@ -30,15 +30,18 @@ const WebApp = merge(ScalaJS, {
         ]
       },
       {
-        test: /fa-.*\.(woff|woff2|eot|ttf|svg)$/,
+        test: /\.(woff|woff2|eot|ttf|svg)$/,
         type: 'asset',
         generator: {
           filename: 'static/fonts/[name]-[hash][ext]'
         }
       },
       {
-        test: /logo-.*\.(png|svg)$/,
+        test: /\.(png|svg)$/,
         type: 'asset',
+        include: [
+          path.resolve(rootDir, 'src/main/resources')
+        ],
         generator: {
           filename: 'static/img/[name]-[hash][ext]'
         }
