@@ -38,7 +38,7 @@ const WebApp = merge(ScalaJS, {
       },
       {
         test: /logo-.*\.(png|svg)$/,
-        type: 'asset/resource',
+        type: 'asset',
         generator: {
           filename: 'static/img/[name]-[hash][ext]'
         }
