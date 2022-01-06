@@ -22,7 +22,7 @@ object StaticService:
 class StaticService[F[_]](implicit s: Sync[F]) extends BasicService[F]:
   val fontExtensions = List(".woff", ".woff2", ".eot", ".ttf")
   val supportedStaticExtensions =
-    List(".html", ".js", ".map", ".css", ".png", ".ico") ++ fontExtensions
+    List(".html", ".js", ".map", ".css", ".png", ".ico", ".svg") ++ fontExtensions
 
 //  val routes = resourceService[F](ResourceService.Config("/db", blocker))
 //  val routes = fileService(FileService.Config("./public", blocker))
