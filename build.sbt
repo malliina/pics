@@ -1,5 +1,4 @@
 import com.typesafe.sbt.packager.docker.DockerVersion
-import org.scalajs.sbtplugin.Stage
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 
 import scala.sys.process.Process
@@ -13,7 +12,7 @@ inThisBuild(
   Seq(
     organization := "com.malliina",
     version := "0.0.1",
-    scalaVersion := "3.1.0"
+    scalaVersion := "3.1.1"
   )
 )
 
@@ -97,21 +96,21 @@ val backend = project
     buildInfoPackage := "com.malliina.pics",
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "hash" -> gitHash),
     libraryDependencies ++= http4sModules.map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.23.7"
+      "org.http4s" %% s"http4s-$m" % "0.23.8"
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
-      "org.tpolecat" %% d % "1.0.0-RC1"
+      "org.tpolecat" %% d % "1.0.0-RC2"
     } ++ Seq("classic", "core").map { m =>
       "ch.qos.logback" % s"logback-$m" % "1.2.10"
     } ++ Seq(
       "com.typesafe" % "config" % "1.4.1",
       "org.apache.commons" % "commons-text" % "1.9",
-      "software.amazon.awssdk" % "s3" % "2.17.103",
+      "software.amazon.awssdk" % "s3" % "2.17.120",
       "org.flywaydb" % "flyway-core" % "7.15.0",
       "mysql" % "mysql-connector-java" % "5.1.49",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.24",
       "com.malliina" %% "logstreams-client" % "2.0.2",
       "com.malliina" %% "web-auth" % webAuthVersion,
-      "org.slf4j" % "slf4j-api" % "1.7.32",
+      "org.slf4j" % "slf4j-api" % "1.7.35",
       "org.scalameta" %% "munit" % munitVersion % Test,
       "com.dimafeng" %% "testcontainers-scala-mysql" % "0.39.12" % Test
     ),

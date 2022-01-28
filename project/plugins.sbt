@@ -7,7 +7,7 @@ Seq(
   "com.malliina" % "sbt-bundler" % utilsVersion,
   "com.malliina" % "sbt-packager" % "2.9.0",
   "com.malliina" % "sbt-filetree" % "0.4.1",
-  "com.malliina" % "live-reload" % "0.2.5",
+  "com.malliina" % "live-reload" % "0.2.6",
   "com.typesafe.sbt" % "sbt-native-packager" % "1.8.1",
   "org.portable-scala" % "sbt-scalajs-crossproject" % "1.1.0",
   "org.scala-js" % "sbt-scalajs" % "1.8.0",
