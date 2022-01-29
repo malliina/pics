@@ -2,11 +2,8 @@ package com.malliina.pics.js
 
 import com.malliina.pics.CSRFConf.{CsrfCookieName, CsrfTokenName}
 import org.scalajs.dom
-import org.scalajs.dom.raw.HTMLFormElement
+import org.scalajs.dom.HTMLFormElement
 import org.scalajs.dom.{Element, Event}
-
-object CSRFUtils:
-  def apply() = new CSRFUtils()
 
 class CSRFUtils(val log: BaseLogger = BaseLogger.console):
   val document = dom.document

@@ -1,6 +1,6 @@
 package com.malliina.pics.js
 
-import org.scalajs.dom.raw.*
+import org.scalajs.dom.*
 
 import scala.concurrent.Promise
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue

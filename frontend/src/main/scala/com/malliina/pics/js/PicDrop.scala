@@ -2,7 +2,7 @@ package com.malliina.pics.js
 
 import com.malliina.pics.CSRFConf.{CsrfHeaderName, CsrfTokenNoCheck}
 import com.malliina.pics.PicsStrings
-import org.scalajs.dom.raw.*
+import org.scalajs.dom.*
 import scalatags.JsDom.all.*
 
 class PicDrop extends Frontend with PicsStrings:

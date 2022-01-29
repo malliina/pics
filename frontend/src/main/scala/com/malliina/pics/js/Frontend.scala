@@ -1,7 +1,7 @@
 package com.malliina.pics.js
 
 import org.scalajs.dom
-import org.scalajs.dom.raw.HTMLInputElement
+import org.scalajs.dom.HTMLInputElement
 
 trait Frontend:
   val document = dom.document

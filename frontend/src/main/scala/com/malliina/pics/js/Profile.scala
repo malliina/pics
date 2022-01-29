@@ -1,7 +1,7 @@
 package com.malliina.pics.js
 
 import com.malliina.pics.LoginStrings
-import org.scalajs.dom.raw.*
+import org.scalajs.dom.*
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js

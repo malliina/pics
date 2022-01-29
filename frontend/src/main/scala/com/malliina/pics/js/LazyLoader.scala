@@ -2,7 +2,7 @@ package com.malliina.pics.js
 
 import com.malliina.pics.PicsStrings
 import org.scalajs.dom
-import org.scalajs.dom.raw.*
+import org.scalajs.dom.*
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSGlobal

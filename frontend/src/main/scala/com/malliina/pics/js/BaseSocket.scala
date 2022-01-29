@@ -4,7 +4,7 @@ import com.malliina.http.FullUrl
 import com.malliina.pics.js.BaseSocket.{EventKey, Ping}
 import org.scalajs.dom
 import org.scalajs.dom.CloseEvent
-import org.scalajs.dom.raw.{Event, MessageEvent}
+import org.scalajs.dom.{Event, MessageEvent}
 import io.circe.*
 import io.circe.syntax.EncoderOps
 import io.circe.parser.parse

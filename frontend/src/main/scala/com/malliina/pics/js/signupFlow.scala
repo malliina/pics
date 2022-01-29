@@ -1,6 +1,6 @@
 package com.malliina.pics.js
 
-import org.scalajs.dom.raw.{Event, HTMLAnchorElement, HTMLFormElement}
+import org.scalajs.dom.{Event, HTMLAnchorElement, HTMLFormElement}
 
 import scala.concurrent.{Future, Promise}
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
@@ -21,7 +21,7 @@ class SignUp(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log):
           // Logs in
           log.info(s"User '$email' already confirmed.")
           login(CognitoUser(email, userPool))
-        else {
+        else
           log.info(s"User '$email' is not confirmed, awaiting confirmation code...")
           // Shows confirm
           hide()
@@ -29,7 +29,6 @@ class SignUp(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log):
           confirm.confirmed.map { user =>
             login(user)
           }
-        }
       }
       .feedbackTo(SignUpFeedbackId)
 

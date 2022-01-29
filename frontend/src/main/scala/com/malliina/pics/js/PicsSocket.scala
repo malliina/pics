@@ -1,15 +1,15 @@
 package com.malliina.pics.js
 
 import com.malliina.pics.*
-import org.scalajs.dom
-import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
-import org.scalajs.dom.{Element, Event, Node}
 import io.circe.*
+import org.scalajs.dom
+import org.scalajs.dom.*
+
 import scala.concurrent.duration.DurationDouble
 import scala.scalajs.js
-import scala.scalajs.js.timers.*
-import scala.scalajs.js.annotation.JSImport
 import scala.scalajs.js.Dynamic.literal
+import scala.scalajs.js.annotation.JSImport
+import scala.scalajs.js.timers.*
 
 class PicsSocket extends BaseSocket("/sockets"):
   val jsHtml = BaseHtml
