@@ -268,7 +268,7 @@ class PicsService(
                 token =>
                   SeeOther(Location(Uri.unsafeFromString(twitter.authTokenUrl(token).url))).map {
                     res =>
-                      auth.withSession(TwitterState(token), req.isSecured, res)(
+                      auth.withSession(TwitterState(token), req, res)(
                         TwitterState.json
                       )
                   }
@@ -415,7 +415,7 @@ class PicsService(
 
   private def start(validator: FlowStart[IO], reverse: SocialRoute, req: Request[IO]) =
     validator.start(Urls.hostOnly(req) / reverse.callback.renderString, Map.empty).flatMap { s =>
-      startLoginFlow(s, req.isSecured)
+      startLoginFlow(s, req)
     }
 
   private def startHinted(
@@ -441,11 +441,11 @@ class PicsService(
     (redirectUrl, maybeEmail, extra)
   }.flatMap { case (redirectUrl, maybeEmail, extra) =>
     validator.startHinted(redirectUrl, maybeEmail, extra).flatMap { s =>
-      startLoginFlow(s, req.isSecured)
+      startLoginFlow(s, req)
     }
   }
 
-  private def startLoginFlow(s: Start, isSecure: Boolean): IO[Response[IO]] = IO {
+  private def startLoginFlow(s: Start, req: Request[IO]): IO[Response[IO]] = IO {
     val state = randomString()
     val encodedParams = (s.params ++ Map(OAuthKeys.State -> state)).map { case (k, v) =>
       k -> Utils.urlEncode(v)
@@ -460,7 +460,7 @@ class PicsService(
     SeeOther(Location(Uri.unsafeFromString(url.url))).map { res =>
       val session = sessionParams.toMap.asJson
       auth
-        .withSession(session, isSecure, res)
+        .withSession(session, req, res)
         .putHeaders(noCache)
     }
   }
@@ -551,8 +551,8 @@ class PicsService(
       .find(_.name == cookieNames.returnUri)
       .flatMap(c => Uri.fromString(c.content).toOption)
       .getOrElse(Reverse.list)
-    SeeOther(Location(returnUri)).map { r =>
-      auth.withPicsUser(UserPayload.email(email), req.isSecured, provider, r)
+    SeeOther(Location(returnUri)).map { res =>
+      auth.withPicsUser(UserPayload.email(email), provider, req, res)
     }
 
   def stringify(map: Map[String, String]): String =

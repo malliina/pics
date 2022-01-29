@@ -7,7 +7,7 @@ import com.malliina.pics.auth.CredentialsResult.{AccessTokenResult, IdTokenResul
 import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.http4s.PicsImplicits.*
 import com.malliina.pics.http4s.PicsService.{noCache, version10}
-import com.malliina.pics.http4s.{PicsService, Reverse}
+import com.malliina.pics.http4s.{PicsService, Reverse, Urls}
 import com.malliina.pics.{AppConf, Errors, PicRequest}
 import com.malliina.pics.auth.JWTUsers
 import com.malliina.util.AppLogger
@@ -147,8 +147,8 @@ class Http4sAuth(
   def session[T: Decoder](from: Headers): Either[IdentityError, T] =
     read[T](cookieNames.session, from)
 
-  def withSession[T: Encoder](t: T, isSecure: Boolean, res: Response[IO]): res.Self =
-    withJwt(cookieNames.session, t, isSecure, res)
+  def withSession[T: Encoder](t: T, req: Request[IO], res: Response[IO]): res.Self =
+    withJwt(cookieNames.session, t, req, res)
 
   def clearSession(res: Response[IO]): res.Self =
     res
@@ -160,32 +160,34 @@ class Http4sAuth(
 
   def withPicsUser(
     user: UserPayload,
-    isSecure: Boolean,
     provider: AuthProvider,
+    req: Request[IO],
     res: Response[IO]
   ) =
-    withUser(user, isSecure, res)
+    withUser(user, req, res)
       .removeCookie(cookieNames.returnUri)
       .addCookie(responseCookie(cookieNames.lastId, user.username.name))
       .addCookie(responseCookie(cookieNames.provider, provider.name))
 
-  def withUser[T: Encoder](t: T, isSecure: Boolean, res: Response[IO]): res.Self =
-    withJwt(cookieNames.user, t, isSecure, res)
+  def withUser[T: Encoder](t: T, req: Request[IO], res: Response[IO]): res.Self =
+    withJwt(cookieNames.user, t, req, res)
 
   def withJwt[T: Encoder](
     cookieName: String,
     t: T,
-    isSecure: Boolean,
+    req: Request[IO],
     res: Response[IO]
   ): res.Self =
     val signed = webJwt.sign(t, 12.hours)
+    val top = Urls.topDomainFrom(req)
     res.addCookie(
       ResponseCookie(
         cookieName,
         signed.value,
         httpOnly = true,
-        secure = isSecure,
-        path = cookiePath
+        secure = Urls.isSecure(req),
+        path = cookiePath,
+        domain = Option.when(top.nonEmpty)(top)
       )
     )
 
