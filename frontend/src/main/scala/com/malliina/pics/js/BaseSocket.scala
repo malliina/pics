@@ -62,7 +62,9 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console):
   def wsBaseUrl: FullUrl =
     val location = dom.window.location
     val wsProto = if location.protocol == "http:" then "ws" else "wss"
-    FullUrl(wsProto, location.host, "")
+    val host =
+      if location.hostname.endsWith("malliina.com") then "pics-api.malliina.com" else location.host
+    FullUrl(wsProto, host, "")
 
   def setFeedback(feedback: String): Unit =
     log.info(feedback)
