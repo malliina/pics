@@ -1,6 +1,5 @@
-import com.typesafe.sbt.packager.docker.DockerVersion
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
-
+import com.typesafe.sbt.packager.MappingsHelper.directory
 import scala.sys.process.Process
 import scala.util.Try
 
@@ -132,6 +131,7 @@ val backend = project
         "-Dlogback.configurationFile=logback-prod.xml"
       )
     },
+    Universal / mappings ++= directory((Compile / resourceDirectory).value / "public"),
     Linux / packageSummary := "This is the pics summary.",
     rpmVendor := "Skogberg Labs",
     Compile / unmanagedResourceDirectories += baseDirectory.value / "public",
