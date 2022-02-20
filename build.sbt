@@ -4,8 +4,8 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossP
 import scala.sys.process.Process
 import scala.util.Try
 
-val webAuthVersion = "6.1.5"
-val primitivesVersion = "3.1.0"
+val webAuthVersion = "6.2.0"
+val primitivesVersion = "3.1.2"
 val munitVersion = "0.7.29"
 
 inThisBuild(
@@ -45,12 +45,6 @@ val frontend = project
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
-    webpack / version := "5.65.0",
-    webpackCliVersion := "4.9.1",
-    startWebpackDevServer / version := "4.5.0",
-    webpackEmitSourceMaps := false,
-    scalaJSUseMainModuleInitializer := true,
-    webpackBundlingMode := BundlingMode.LibraryOnly(),
     Compile / npmDependencies ++= Seq(
       "@fortawesome/fontawesome-free" -> "5.15.4",
       "@popperjs/core" -> "2.10.2",
@@ -69,11 +63,7 @@ val frontend = project
       "postcss-preset-env" -> "7.2.0",
       "style-loader" -> "3.3.1",
       "webpack-merge" -> "5.8.0"
-    ),
-    fastOptJS / webpackConfigFile := Some(baseDirectory.value / "webpack.dev.config.js"),
-    fullOptJS / webpackConfigFile := Some(baseDirectory.value / "webpack.prod.config.js"),
-    Compile / fastOptJS / webpackBundlingMode := BundlingMode.LibraryOnly(),
-    Compile / fullOptJS / webpackBundlingMode := BundlingMode.Application
+    )
   )
 
 val prodPort = 9000
@@ -86,7 +76,7 @@ val backend = project
     JavaServerAppPackaging,
     SystemdPlugin,
     BuildInfoPlugin,
-    ServerPlugin,
+    DockerServerPlugin,
     LiveRevolverPlugin
   )
   .dependsOn(crossJvm)
@@ -94,9 +84,16 @@ val backend = project
   .settings(
     clientProject := frontend,
     buildInfoPackage := "com.malliina.pics",
-    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "hash" -> gitHash),
+    buildInfoKeys := Seq[BuildInfoKey](
+      name,
+      version,
+      scalaVersion,
+      "gitHash" -> gitHash,
+      "assetsDir" -> (frontend / assetsRoot).value,
+      "mode" -> (if ((Global / scalaJSStage).value == FullOptStage) "prod" else "dev")
+    ),
     libraryDependencies ++= http4sModules.map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.23.8"
+      "org.http4s" %% s"http4s-$m" % "0.23.10"
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
       "org.tpolecat" %% d % "1.0.0-RC2"
     } ++ Seq("classic", "core").map { m =>
@@ -110,9 +107,9 @@ val backend = project
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.24",
       "com.malliina" %% "logstreams-client" % "2.0.2",
       "com.malliina" %% "web-auth" % webAuthVersion,
-      "org.slf4j" % "slf4j-api" % "1.7.35",
+      "org.slf4j" % "slf4j-api" % "1.7.36",
       "org.scalameta" %% "munit" % munitVersion % Test,
-      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.39.12" % Test
+      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.2" % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     Linux / name := "pics",
@@ -130,15 +127,12 @@ val backend = project
     rpmVendor := "Skogberg Labs",
     Compile / unmanagedResourceDirectories += baseDirectory.value / "public",
     Linux / httpPort := Option(s"$prodPort"),
-    dockerVersion := Option(DockerVersion(19, 3, 5, None)),
-    dockerBaseImage := "openjdk:11",
-    Docker / daemonUser := "pics",
-    Docker / version := gitHash,
     dockerRepository := Option("malliinacr.azurecr.io"),
     dockerExposedPorts ++= Seq(prodPort),
     Compile / packageDoc / publishArtifact := false,
     packageDoc / publishArtifact := false,
     Compile / doc / sources := Seq.empty,
+    Docker / daemonUser := "pics",
     Docker / packageName := "pics"
   )
 

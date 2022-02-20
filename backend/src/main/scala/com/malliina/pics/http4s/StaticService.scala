@@ -1,9 +1,10 @@
 package com.malliina.pics.http4s
 
 import cats.data.NonEmptyList
-import cats.effect.Sync
+import cats.effect.{Async, Sync}
 import cats.implicits.*
 import com.malliina.pics.assets.HashedAssets
+import com.malliina.pics.BuildInfo
 import com.malliina.pics.http4s.StaticService.log
 import com.malliina.util.AppLogger
 import com.malliina.values.UnixPath
@@ -16,24 +17,22 @@ import scala.concurrent.duration.DurationInt
 object StaticService:
   private val log = AppLogger(getClass)
 
-class StaticService[F[_]](implicit s: Sync[F]) extends BasicService[F]:
+class StaticService[F[_]: Async] extends BasicService[F]:
   val fontExtensions = List(".woff", ".woff2", ".eot", ".ttf")
-  val supportedStaticExtensions =
+  val supportedStaticExtensions: List[String] =
     List(".html", ".js", ".map", ".css", ".png", ".ico", ".svg") ++ fontExtensions
 
-//  val routes = resourceService[F](ResourceService.Config("/db", blocker))
-//  val routes = fileService(FileService.Config("./public", blocker))
-  val routes = HttpRoutes.of[F] {
+  private val publicDir = fs2.io.file.Path(BuildInfo.assetsDir)
+  val routes: HttpRoutes[F] = HttpRoutes.of[F] {
     case req @ GET -> rest if supportedStaticExtensions.exists(rest.toString.endsWith) =>
       val file = UnixPath(rest.segments.mkString("/"))
       val isCacheable = file.value.count(_ == '.') == 2 || file.value.startsWith("static/")
       val cacheHeaders =
         if isCacheable then NonEmptyList.of(`max-age`(365.days), `public`)
         else NonEmptyList.of(`no-cache`())
-      val res = s"/${HashedAssets.prefix}/$file"
-      log.debug(s"Searching for '$file' at resource '$res'...")
+      log.info(s"Searching for '$file' in '$publicDir'...")
       StaticFile
-        .fromResource(res, Option(req))
+        .fromPath(publicDir.resolve(file.value), Option(req))
         .map(_.putHeaders(`Cache-Control`(cacheHeaders)))
         .fold(onNotFound(req))(_.pure[F])
         .flatten

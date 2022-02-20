@@ -31,7 +31,7 @@ object PicsServer extends IOApp:
   ): Resource[IO, Server] = for
     handler <- Resource.eval(sizeHandler)
     picsApp <- appResource(conf, handler)
-    _ = log.info(s"Binding on port $port using app version ${BuildInfo.hash}...")
+    _ = log.info(s"Binding on port $port using app version ${BuildInfo.gitHash}...")
     server <- BlazeServerBuilder[IO]
       .bindHttp(port = port, "0.0.0.0")
       .withHttpWebSocketApp(sockets => app(picsApp, sockets))

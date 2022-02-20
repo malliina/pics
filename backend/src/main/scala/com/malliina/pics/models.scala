@@ -60,7 +60,7 @@ case class AppMeta(name: String, version: String, gitHash: String)
 object AppMeta:
   implicit val json: Codec[AppMeta] = deriveCodec[AppMeta]
 
-  val default = AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.hash)
+  val default = AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash)
 
 object Keys:
   val generator = new RandomStringGenerator.Builder()
