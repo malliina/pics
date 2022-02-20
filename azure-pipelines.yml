@@ -24,7 +24,7 @@ steps:
       jdkArchitectureOption: 'x64'
       jdkSourceOption: 'PreInstalled'
 
-  - script: sbt test
+  - script: sbt "set scalaJSStage in Global := FullOptStage" test
     displayName: 'Compile'
 
   - task: Docker@2
@@ -33,7 +33,7 @@ steps:
       command: login
       containerRegistry: $(ContainerRegistry)
 
-  - script: sbt "set scalaJSStage in Global := FullOptStage" "project backend" docker:publish
+  - script: sbt "set scalaJSStage in Global := FullOptStage" "project backend" "show Docker/mappings" docker:publish
     displayName: 'Push to ACR'
 
   - task: AzureRMWebAppDeployment@4
