@@ -89,7 +89,16 @@ val backend = project
       version,
       scalaVersion,
       "gitHash" -> gitHash,
-      "assetsDir" -> (frontend / assetsRoot).value,
+      "assetsDir" -> {
+        val isDocker = (Global / scalaJSStage).value == FullOptStage
+        if (isDocker) {
+          val dockerDir = (Docker / defaultLinuxInstallLocation).value
+          val assetsFolder = (frontend / assetsPrefix).value
+          s"$dockerDir/$assetsFolder"
+        } else {
+          (frontend / assetsRoot).value
+        }
+      },
       "mode" -> (if ((Global / scalaJSStage).value == FullOptStage) "prod" else "dev")
     ),
     libraryDependencies ++= http4sModules.map { m =>
@@ -105,7 +114,7 @@ val backend = project
       "org.flywaydb" % "flyway-core" % "7.15.0",
       "mysql" % "mysql-connector-java" % "5.1.49",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.24",
-      "com.malliina" %% "logstreams-client" % "2.0.2",
+      "com.malliina" %% "logstreams-client" % "2.1.1",
       "com.malliina" %% "web-auth" % webAuthVersion,
       "org.slf4j" % "slf4j-api" % "1.7.36",
       "org.scalameta" %% "munit" % munitVersion % Test,
