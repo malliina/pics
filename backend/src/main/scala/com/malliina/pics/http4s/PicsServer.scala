@@ -22,7 +22,7 @@ object PicsServer extends IOApp:
 
   private val log = AppLogger(getClass)
 
-  val defaultPort = 9000
+  val defaultPort: Int = sys.env.get("SERVER_PORT").flatMap(s => s.toIntOption).getOrElse(9000)
 
   def server(
     conf: PicsConf,

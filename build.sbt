@@ -11,14 +11,14 @@ inThisBuild(
   Seq(
     organization := "com.malliina",
     version := "0.0.1",
-    scalaVersion := "3.1.1"
+    scalaVersion := "3.1.1",
+    assemblyMergeStrategy := { _ => MergeStrategy.first }
   )
 )
 
-val circeModules = Seq("generic", "parser")
 val commonSettings = Seq(
   libraryDependencies ++=
-    circeModules.map(m => "io.circe" %%% s"circe-$m" % "0.14.1") ++ Seq(
+    Seq("generic", "parser").map(m => "io.circe" %%% s"circe-$m" % "0.14.1") ++ Seq(
       "com.malliina" %%% "primitives" % primitivesVersion,
       "com.malliina" %%% "util-html" % webAuthVersion
     )
@@ -98,6 +98,7 @@ val backend = project
           (frontend / assetsRoot).value
         }
       },
+      "publicFolder" -> (frontend / assetsPrefix).value,
       "mode" -> (if ((Global / scalaJSStage).value == FullOptStage) "prod" else "dev")
     ),
     libraryDependencies ++= http4sModules.map { m =>
@@ -140,9 +141,10 @@ val backend = project
     dockerExposedPorts ++= Seq(prodPort),
     Compile / packageDoc / publishArtifact := false,
     packageDoc / publishArtifact := false,
-    Compile / doc / sources := Seq.empty,
     Docker / daemonUser := "pics",
-    Docker / packageName := "pics"
+    Docker / packageName := "pics",
+    Compile / unmanagedResourceDirectories += (frontend / Compile / assetsRoot).value.getParent.toFile,
+    assembly / assemblyJarName := "app.jar"
   )
 
 val runApp = inputKey[Unit]("Runs the app")

@@ -13,5 +13,6 @@ Seq(
   "ch.epfl.scala" % "sbt-scalajs-bundler" % "0.21.0-RC1",
   "com.eed3si9n" % "sbt-buildinfo" % "0.10.0",
   "org.scalameta" % "sbt-scalafmt" % "2.4.6",
-  "io.spray" % "sbt-revolver" % "0.9.1"
+  "io.spray" % "sbt-revolver" % "0.9.1",
+  "com.eed3si9n" % "sbt-assembly" % "1.2.0"
 ) map addSbtPlugin

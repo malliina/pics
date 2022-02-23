@@ -31,11 +31,11 @@ class StaticService[F[_]: Async] extends BasicService[F]:
         if isCacheable then NonEmptyList.of(`max-age`(365.days), `public`)
         else NonEmptyList.of(`no-cache`())
       val assetPath: fs2.io.file.Path = publicDir.resolve(file.value)
-      val exists = Files.exists(assetPath.toNioPath)
-      val readable = Files.isReadable(assetPath.toNioPath)
-      log.info(s"Searching for '$assetPath'... exists $exists readable $readable.")
+      val resourcePath = s"${BuildInfo.publicFolder}/${file.value}"
+      log.info(s"Searching for '$resourcePath' or '$assetPath'....")
       StaticFile
-        .fromPath(assetPath, Option(req))
+        .fromResource(resourcePath, Option(req))
+        .orElse(StaticFile.fromPath(assetPath, Option(req)))
         .map(_.putHeaders(`Cache-Control`(cacheHeaders)))
         .fold(onNotFound(req))(_.pure[F])
         .flatten
