@@ -8,12 +8,12 @@ import com.malliina.pics.{BuildInfo, MultiSizeHandlerIO, PicsConf}
 import com.malliina.util.AppLogger
 import com.malliina.http.io.HttpClientIO
 import fs2.concurrent.Topic
-import org.http4s.blaze.server.BlazeServerBuilder
+import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.middleware.{GZip, HSTS}
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.server.{Router, Server}
 import org.http4s.{HttpRoutes, Request, Response}
-
+import com.comcast.ip4s.{host, port, Port}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationInt
 
@@ -22,24 +22,26 @@ object PicsServer extends IOApp:
 
   private val log = AppLogger(getClass)
 
-  val defaultPort: Int = sys.env.get("SERVER_PORT").flatMap(s => s.toIntOption).getOrElse(9000)
+  val serverPort: Port =
+    sys.env.get("SERVER_PORT").flatMap(s => Port.fromString(s)).getOrElse(port"9000")
 
   def server(
     conf: PicsConf,
     sizeHandler: IO[MultiSizeHandlerIO] = MultiSizeHandlerIO.default(),
-    port: Int = defaultPort
+    port: Port = serverPort
   ): Resource[IO, Server] = for
     handler <- Resource.eval(sizeHandler)
     picsApp <- appResource(conf, handler)
     _ = log.info(s"Binding on port $port using app version ${BuildInfo.gitHash}...")
-    server <- BlazeServerBuilder[IO]
-      .bindHttp(port = port, "0.0.0.0")
+    server <- EmberServerBuilder
+      .default[IO]
+      .withHost(host"0.0.0.0")
+      .withPort(serverPort)
       .withHttpWebSocketApp(sockets => app(picsApp, sockets))
+      .withErrorHandler(ErrorHandler[IO].partial)
       .withIdleTimeout(60.minutes)
-      .withResponseHeaderTimeout(30.minutes)
-      .withServiceErrorHandler(ErrorHandler[IO, IO])
-      .withBanner(Nil)
-      .resource
+      .withRequestHeaderReceiveTimeout(30.minutes)
+      .build
   yield server
 
   def appResource(conf: PicsConf, handler: MultiSizeHandlerIO)(implicit

@@ -15,7 +15,7 @@ import com.malliina.pics.auth.Http4sAuth.TwitterState
 import com.malliina.pics.auth.{AppleResponse, Http4sAuth, UserPayload}
 import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.html.PicsHtml
-import com.malliina.pics.http4s.PicsService.{log, noCache, ranges, version10}
+import com.malliina.pics.http4s.PicsService.{log, ranges, version10}
 import com.malliina.storage.StorageLong
 import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, Email}
@@ -45,7 +45,6 @@ object PicsService:
   private val log = AppLogger(getClass)
   val version10 = mediaType"application/vnd.pics.v10+json"
   val version10String = Show[MediaType].show(version10)
-  val noCache = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
 
   def apply(
     conf: PicsConf,

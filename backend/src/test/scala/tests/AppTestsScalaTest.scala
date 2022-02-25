@@ -4,6 +4,7 @@ import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import cats.effect.unsafe.implicits.global
 import cats.syntax.flatMap.*
+import com.comcast.ip4s.port
 import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.pics.*
 import com.malliina.pics.PicsConf.ConfigOps
@@ -18,7 +19,6 @@ import org.testcontainers.utility.DockerImageName
 import tests.MUnitDatabaseSuite.log
 import org.http4s.server.Server
 import org.http4s.client.Client
-import org.http4s.blaze.client.BlazeClientBuilder
 import org.http4s.Uri
 import com.malliina.http.FullUrl
 
@@ -67,7 +67,7 @@ trait ServerSuite extends MUnitDatabaseSuite with ClientSuite:
       val testServer = PicsServer.server(
         PicsConf.unsafeLoadWith(PicsConf.picsConf, db()),
         IO.pure(MultiSizeHandlerIO.empty()),
-        port = 12345
+        port = port"12345"
       )
       val (instance, closable) = testServer.map(s => ServerTools(s)).allocated.unsafeRunSync()
       tools = Option(instance)

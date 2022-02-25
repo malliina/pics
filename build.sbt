@@ -66,7 +66,6 @@ val frontend = project
   )
 
 val prodPort = 9000
-val http4sModules = Seq("blaze-server", "blaze-client", "dsl", "circe")
 
 val backend = project
   .in(file("backend"))
@@ -101,7 +100,7 @@ val backend = project
       "publicFolder" -> (frontend / assetsPrefix).value,
       "mode" -> (if ((Global / scalaJSStage).value == FullOptStage) "prod" else "dev")
     ),
-    libraryDependencies ++= http4sModules.map { m =>
+    libraryDependencies ++= Seq("ember-server", "ember-client", "dsl", "circe").map { m =>
       "org.http4s" %% s"http4s-$m" % "0.23.10"
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
       "org.tpolecat" %% d % "1.0.0-RC2"
