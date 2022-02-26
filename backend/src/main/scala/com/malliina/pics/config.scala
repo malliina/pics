@@ -77,7 +77,7 @@ object PicsConf:
       r.read(key, c)
     def unsafe[T: ConfigReadable](key: String): T =
       c.read[T](key).fold(err => throw new IllegalArgumentException(err.message), identity)
-  def picsConf = ConfigFactory.load(LocalConf.localConfig).resolve().getConfig("pics")
+  def picsConf = ConfigFactory.load(LocalConf.config).resolve().getConfig("pics")
 
   def unsafeLoad(c: Config = picsConf): PicsConf = unsafeLoadWith(c, c.unsafe[DatabaseConf]("db"))
 
