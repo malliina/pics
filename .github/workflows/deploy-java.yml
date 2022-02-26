@@ -6,8 +6,8 @@ on:
       - master
 
 env:
-  AZURE_RG: todo
-  AZURE_WEBAPP_NAME: todo
+  AZURE_RG: rg-fnxr3ec3ms6mu
+  AZURE_WEBAPP_NAME: pics-nuqmhn2cxlhle
   AZURE_WEBAPP_PACKAGE_PATH: ${{ github.workspace }}
   AZURE_SLOT: staging
 
@@ -28,7 +28,7 @@ jobs:
       - name: Build with sbt
         run: |
           ls -al
-          sbt backend/assembly
+          sbt "set scalaJSStage in Global := FullOptStage" backend/assembly
       - name: Deploy to Azure WebApp
         uses: azure/webapps-deploy@v2
         with:

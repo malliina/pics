@@ -12,7 +12,13 @@ inThisBuild(
     organization := "com.malliina",
     version := "0.0.1",
     scalaVersion := "3.1.1",
-    assemblyMergeStrategy := { _ => MergeStrategy.first }
+    assemblyMergeStrategy := {
+      case PathList("META-INF", xs @ _*) => MergeStrategy.rename
+      case PathList("com", "malliina", xs @ _*)         => MergeStrategy.first
+      case x =>
+        val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
+        oldStrategy(x)
+    }
   )
 )
 
@@ -65,16 +71,15 @@ val frontend = project
     )
   )
 
-val prodPort = 9000
+val build = taskKey[Unit]("build")
 
 val backend = project
   .in(file("backend"))
   .enablePlugins(
     FileTreePlugin,
     JavaServerAppPackaging,
-    SystemdPlugin,
     BuildInfoPlugin,
-    DockerServerPlugin,
+    ServerPlugin,
     LiveRevolverPlugin
   )
   .dependsOn(crossJvm)
@@ -120,28 +125,14 @@ val backend = project
       "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.2" % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
-    Linux / name := "pics",
-    Linux / packageName := (Linux / name).value,
-    Linux / httpPort := Option(s"$prodPort"),
     maintainer := "Michael Skogberg <malliina123@gmail.com>",
-    Universal / javaOptions ++= {
-      Seq(
-        "-J-Xmx1024m",
-        s"-Dhttp.port=$prodPort",
-        "-Dlogback.configurationFile=logback-prod.xml"
-      )
-    },
+    Universal / javaOptions ++= Seq(
+      "-J-Xmx1024m",
+      "-Dlogback.configurationFile=logback-prod.xml"
+    ),
     Universal / mappings ++= directory((Compile / resourceDirectory).value / "public"),
-    Linux / packageSummary := "This is the pics summary.",
     rpmVendor := "Skogberg Labs",
     Compile / unmanagedResourceDirectories += baseDirectory.value / "public",
-    Linux / httpPort := Option(s"$prodPort"),
-    dockerRepository := Option("malliinacr.azurecr.io"),
-    dockerExposedPorts ++= Seq(prodPort),
-    Compile / packageDoc / publishArtifact := false,
-    packageDoc / publishArtifact := false,
-    Docker / daemonUser := "pics",
-    Docker / packageName := "pics",
     Compile / unmanagedResourceDirectories += (frontend / Compile / assetsRoot).value.getParent.toFile,
     assembly / assemblyJarName := "app.jar"
   )
@@ -150,6 +141,7 @@ val runApp = inputKey[Unit]("Runs the app")
 
 val pics = project
   .in(file("."))
+  .disablePlugins(RevolverPlugin)
   .aggregate(frontend, backend)
   .settings(commonSettings)
   .settings(
