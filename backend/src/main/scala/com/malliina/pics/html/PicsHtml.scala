@@ -37,7 +37,7 @@ object PicsHtml:
       appScripts,
       externalScripts,
       Seq(s"$assetPrefix.css", "fonts.css", "styles.css"),
-      HashedAssetsSource
+      AssetsSource(isProd)
     )
 
   def postableForm(onAction: String, more: Modifier*) =
