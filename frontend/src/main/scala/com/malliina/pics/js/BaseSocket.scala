@@ -3,8 +3,7 @@ package com.malliina.pics.js
 import com.malliina.http.FullUrl
 import com.malliina.pics.js.BaseSocket.{EventKey, Ping}
 import org.scalajs.dom
-import org.scalajs.dom.CloseEvent
-import org.scalajs.dom.{Event, MessageEvent}
+import org.scalajs.dom.{CloseEvent, Event, MessageEvent, WebSocket}
 import io.circe.*
 import io.circe.syntax.EncoderOps
 import io.circe.parser.parse
@@ -50,7 +49,7 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console):
 
   def onError(e: Event): Unit = showDisconnected()
 
-  def openSocket(pathAndQuery: String) =
+  def openSocket(pathAndQuery: String): WebSocket =
     val url = wsBaseUrl.append(pathAndQuery)
     val socket = new dom.WebSocket(url.url)
     socket.onopen = (e: Event) => onConnected(e)
@@ -62,9 +61,7 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console):
   def wsBaseUrl: FullUrl =
     val location = dom.window.location
     val wsProto = if location.protocol == "http:" then "ws" else "wss"
-    val host =
-      if location.hostname.endsWith("malliina.com") then "pics-api.malliina.com" else location.host
-    FullUrl(wsProto, host, "")
+    FullUrl(wsProto, location.host, "")
 
   def setFeedback(feedback: String): Unit =
     log.info(feedback)
