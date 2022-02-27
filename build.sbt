@@ -13,7 +13,8 @@ inThisBuild(
     version := "0.0.1",
     scalaVersion := "3.1.1",
     assemblyMergeStrategy := {
-      case PathList("META-INF", xs @ _*) => MergeStrategy.rename
+      case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.rename
+      case PathList("META-INF", "versions", xs @ _*) => MergeStrategy.rename
       case PathList("com", "malliina", xs @ _*)         => MergeStrategy.first
       case x =>
         val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
