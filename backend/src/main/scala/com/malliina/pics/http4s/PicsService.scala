@@ -12,7 +12,7 @@ import com.malliina.http.io.HttpClientIO
 import com.malliina.pics.*
 import com.malliina.pics.PicsStrings.{XClientPic, XKey, XName}
 import com.malliina.pics.auth.Http4sAuth.TwitterState
-import com.malliina.pics.auth.{AppleResponse, Http4sAuth, UserPayload}
+import com.malliina.pics.auth.{AppleResponse, AuthProvider, Http4sAuth, UserPayload}
 import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.html.PicsHtml
 import com.malliina.pics.http4s.PicsService.{log, ranges, version10}
@@ -23,9 +23,8 @@ import com.malliina.web.*
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.TwitterAuthFlow.{OauthTokenKey, OauthVerifierKey}
 import com.malliina.web.Utils.randomString
-import controllers.AuthProvider.*
-import controllers.{AuthProvider, Social}
-import controllers.Social.*
+import com.malliina.pics.auth.AuthProvider.*
+import com.malliina.pics.auth.Social.*
 import fs2.concurrent.Topic
 import io.circe.syntax.EncoderOps
 import io.circe.{Codec, Decoder, Encoder, Json}
@@ -204,7 +203,7 @@ class PicsService(
                 SeeOther(Location(Reverse.drop))
             }
           }
-        else unauthorized(Errors.single("Admin required."))
+        else unauthorized(Errors.single("Admin required."), req)
       }
     case req @ GET -> Root / "sockets" =>
       authedAll(req) { user =>
@@ -263,7 +262,7 @@ class PicsService(
             .flatMap { e =>
               // add requesttoken to session
               e.fold(
-                err => unauthorized(Errors(err.message)),
+                err => unauthorized(Errors(err.message), req),
                 token =>
                   SeeOther(Location(Uri.unsafeFromString(twitter.authTokenUrl(token).url))).map {
                     res =>
@@ -307,12 +306,12 @@ class PicsService(
             .validateTwitterCallback(token, requestToken.requestToken, verifier)
             .flatMap { e =>
               e.flatMap(_.email.toRight(OAuthError("Email missing.")))
-                .fold(err => unauthorized(Errors(err.message)), ok => userResult(ok, id, req))
+                .fold(err => unauthorized(Errors(err.message), req), ok => userResult(ok, id, req))
             }
           maybe.fold(
             err =>
               log.warn(s"$err in $req")
-              unauthorized(Errors.single(s"Invalid callback parameters."))
+              unauthorized(Errors.single(s"Invalid callback parameters."), req)
             ,
             identity
           )
@@ -336,11 +335,11 @@ class PicsService(
           handleCallbackV(socials.facebook, reverseSocial.facebook, req, id)
         case Apple =>
           handleCallbackV(socials.apple, reverseSocial.apple, req, id)
-    case GET -> Root / "sign-out" / "leave" =>
+    case req @ GET -> Root / "sign-out" / "leave" =>
       SeeOther(Location(Reverse.signOutCallback)).map { res =>
-        import Social.*
+        import com.malliina.pics.auth.Social.*
         auth
-          .clearSession(res)
+          .clearSession(req, res)
           .removeCookie(ResponseCookie(cookieNames.lastId, "", path = auth.cookiePath))
           .removeCookie(ResponseCookie(cookieNames.provider, "", path = auth.cookiePath))
           .addCookie(cookieNames.prompt, SelectAccount)
@@ -391,7 +390,7 @@ class PicsService(
     authed(req) { user =>
       if user.readOnly then
         IO(log.warn(s"User '${user.name}' is not authorized to delete '$key'.")).flatMap { _ =>
-          unauthorized(Errors.single(s"Unauthorized."))
+          unauthorized(Errors.single(s"Unauthorized."), req)
         }
       else
         db.remove(key, user.name).flatMap { wasDeleted =>
@@ -502,7 +501,7 @@ class PicsService(
     )
     validate(cb).flatMap { e =>
       e.fold(
-        err => unauthorized(Errors(err.message)),
+        err => unauthorized(Errors(err.message), req),
         email => userResult(email, provider, req)
       )
     }
@@ -513,7 +512,7 @@ class PicsService(
     decoder
       .decode(req, strict = false)
       .foldF(
-        failure => unauthorized(Errors.single(failure.message)),
+        failure => unauthorized(Errors.single(failure.message), req),
         urlForm =>
           AppleResponse(urlForm).map { form =>
             val session =
@@ -524,7 +523,7 @@ class PicsService(
               val redirectUrl = Urls.hostOnly(req) / reverseSocial.apple.callback.renderString
               socials.apple.validate(form.code, redirectUrl, session.get(Nonce)).flatMap { e =>
                 e.fold(
-                  err => unauthorized(Errors(err.message)),
+                  err => unauthorized(Errors(err.message), req),
                   email => userResult(email, Apple, req)
                 )
               }
@@ -535,9 +534,9 @@ class PicsService(
                     s"Got '$actualState' but expected '$expected'."
                 }
               log.error(s"Authentication failed, state mismatch. $detailed $req")
-              unauthorized(Errors.single("State mismatch."))
+              unauthorized(Errors.single("State mismatch."), req)
           }.recover { err =>
-            unauthorized(Errors(err))
+            unauthorized(Errors(err), req)
           }
       )
 
@@ -601,10 +600,10 @@ class PicsService(
   private def badRequestWith(message: String) = badRequest(Errors.single(message))
   private def badRequest(errors: Errors): IO[Response[IO]] =
     BadRequest(errors.asJson, noCache)
-  private def unauthorized(errors: Errors): IO[Response[IO]] = Unauthorized(
+  private def unauthorized(errors: Errors, req: Request[IO]): IO[Response[IO]] = Unauthorized(
     `WWW-Authenticate`(NonEmptyList.of(Challenge("myscheme", "myrealm"))),
     errors.asJson
-  ).map(r => auth.clearSession(r.removeCookie(cookieNames.provider)))
+  ).map(r => auth.clearSession(req, r.removeCookie(cookieNames.provider)))
   private def keyNotFound(key: Key) = notFoundWith(s"Not found: '$key'.")
   private def notFound(req: Request[IO]) = notFoundWith(s"Not found: '${req.uri}'.")
   private def notFoundWith(message: String) = NotFound(Errors.single(message).asJson, noCache)

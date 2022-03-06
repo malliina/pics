@@ -13,7 +13,6 @@ import com.malliina.pics.auth.JWTUsers
 import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, ErrorMessage, IdToken, Username}
 import com.malliina.web.{CognitoAccessValidator, CognitoIdValidator, JWTUser, OAuthError}
-import controllers.AuthProvider
 import io.circe.*
 import io.circe.syntax.EncoderOps
 import io.circe.generic.semiauto.deriveCodec
@@ -150,10 +149,10 @@ class Http4sAuth(
   def withSession[T: Encoder](t: T, req: Request[IO], res: Response[IO]): res.Self =
     withJwt(cookieNames.session, t, req, res)
 
-  def clearSession(res: Response[IO]): res.Self =
+  def clearSession(req: Request[IO], res: Response[IO]): res.Self =
     res
-      .removeCookie(ResponseCookie(cookieNames.session, "", path = cookiePath))
-      .removeCookie(ResponseCookie(cookieNames.user, "", path = cookiePath))
+      .removeCookie(removalCookie(cookieNames.session, req))
+      .removeCookie(removalCookie(cookieNames.user, req))
 
   private def user(headers: Headers): Either[IdentityError, Username] =
     readUser(cookieNames.user, headers)
@@ -166,8 +165,8 @@ class Http4sAuth(
   ) =
     withUser(user, req, res)
       .removeCookie(cookieNames.returnUri)
-      .addCookie(responseCookie(cookieNames.lastId, user.username.name))
-      .addCookie(responseCookie(cookieNames.provider, provider.name))
+      .addCookie(additionCookie(cookieNames.lastId, user.username.name, req))
+      .addCookie(additionCookie(cookieNames.provider, provider.name, req))
 
   def withUser[T: Encoder](t: T, req: Request[IO], res: Response[IO]): res.Self =
     withJwt(cookieNames.user, t, req, res)
@@ -179,26 +178,28 @@ class Http4sAuth(
     res: Response[IO]
   ): res.Self =
     val signed = webJwt.sign(t, 12.hours)
-    val top = Urls.topDomainFrom(req)
-    res.addCookie(
-      ResponseCookie(
-        cookieName,
-        signed.value,
-        httpOnly = true,
-        secure = Urls.isSecure(req),
-        path = cookiePath,
-        domain = Option.when(top.nonEmpty)(top)
-      )
-    )
+    res.addCookie(additionCookie(cookieName, signed.value, req))
 
-  def responseCookie(name: String, value: String) = ResponseCookie(
-    name,
-    value,
-    Option(HttpDate.MaxValue),
-    path = cookiePath,
-    secure = true,
-    httpOnly = true
-  )
+  private def additionCookie(name: String, value: String, req: Request[IO]) =
+    responseCookie(name, value, Option(HttpDate.MaxValue), req)
+  private def removalCookie(name: String, req: Request[IO]) =
+    responseCookie(name, "", None, req)
+  private def responseCookie(
+    name: String,
+    value: String,
+    expires: Option[HttpDate],
+    req: Request[IO]
+  ): ResponseCookie =
+    val top = Urls.topDomainFrom(req)
+    ResponseCookie(
+      name,
+      value,
+      Option(HttpDate.MaxValue),
+      path = cookiePath,
+      secure = Urls.isSecure(req),
+      httpOnly = true,
+      domain = Option.when(top.nonEmpty)(top)
+    )
 
   private def readUser(cookieName: String, headers: Headers): Either[IdentityError, Username] =
     read[UserPayload](cookieName, headers).map(_.username)

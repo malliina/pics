@@ -8,7 +8,7 @@ import com.malliina.pics.http4s.Socials.cognitoAuthConf
 import com.malliina.util.AppLogger
 import com.malliina.web.*
 import com.malliina.web.IdentityProvider.LoginWithAmazon
-import controllers.Social.SocialConf
+import Social.SocialConf
 
 import java.time.Instant
 

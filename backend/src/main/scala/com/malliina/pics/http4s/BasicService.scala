@@ -11,7 +11,7 @@ import org.http4s.CacheDirective.{`must-revalidate`, `no-cache`, `no-store`}
 object BasicService extends BasicService[IO]
 
 trait BasicService[F[_]] extends PicsImplicits[F]:
-  val noCache = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
+  val noCache: `Cache-Control` = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
 
   def serverError(implicit a: Applicative[F]): F[Response[F]] =
     InternalServerError(Errors.single(s"Server error.").asJson, noCache)

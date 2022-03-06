@@ -1,4 +1,4 @@
-package controllers
+package com.malliina.pics.http4s
 
 import com.malliina.pics.PicOwner
 

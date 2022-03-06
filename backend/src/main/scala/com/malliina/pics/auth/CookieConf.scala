@@ -10,5 +10,5 @@ case class CookieConf(
 )
 
 object CookieConf:
-  val pics =
+  val pics: CookieConf =
     CookieConf("picsUser", "picsState", "picsReturnUri", "picsLastId", "picsProvider", "picsPrompt")

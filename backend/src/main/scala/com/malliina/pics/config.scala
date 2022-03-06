@@ -3,12 +3,11 @@ package com.malliina.pics
 import com.malliina.config.ConfigReadable
 import com.malliina.pics.PicsConf.ConfigOps
 import com.malliina.pics.app.LocalConf
-import com.malliina.pics.auth.{SecretKey, SignInWithApple}
+import com.malliina.pics.auth.{SecretKey, SignInWithApple, Social}
 import com.malliina.pics.db.DatabaseConf
 import com.malliina.values.ErrorMessage
 import com.malliina.web.{AuthConf, ClientId, ClientSecret}
 import com.typesafe.config.{Config, ConfigFactory}
-import controllers.Social
 
 case class SocialConf(id: ClientId, secret: ClientSecret):
   def auth = AuthConf(id, secret)
