@@ -35,7 +35,7 @@ class StaticService[F[_]: Async] extends BasicService[F]:
         else NonEmptyList.of(`no-cache`())
       val assetPath: fs2.io.file.Path = publicDir.resolve(file.value)
       val resourcePath = s"${BuildInfo.publicFolder}/${file.value}"
-      log.info(s"Searching for '$resourcePath' or '$assetPath'....")
+      log.info(s"Searching for '$resourcePath' or '$assetPath'...")
       StaticFile
         .fromResource(resourcePath, Option(req))
         .orElse(StaticFile.fromPath(assetPath, Option(req)))

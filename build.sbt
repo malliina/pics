@@ -3,8 +3,8 @@ import com.typesafe.sbt.packager.MappingsHelper.directory
 import scala.sys.process.Process
 import scala.util.Try
 
-val webAuthVersion = "6.2.0"
-val primitivesVersion = "3.1.2"
+val webAuthVersion = "6.2.2"
+val primitivesVersion = "3.1.3"
 val munitVersion = "0.7.29"
 
 inThisBuild(
@@ -106,20 +106,20 @@ val backend = project
       "publicFolder" -> (frontend / assetsPrefix).value,
       "mode" -> (if ((Global / scalaJSStage).value == FullOptStage) "prod" else "dev")
     ),
-    libraryDependencies ++= Seq("ember-server", "ember-client", "dsl", "circe").map { m =>
+    libraryDependencies ++= Seq("ember-server", "dsl", "circe").map { m =>
       "org.http4s" %% s"http4s-$m" % "0.23.10"
-    } ++ Seq("doobie-core", "doobie-hikari").map { d =>
-      "org.tpolecat" %% d % "1.0.0-RC2"
+    } ++ Seq("core", "hikari").map { d =>
+      "org.tpolecat" %% s"doobie-$d" % "1.0.0-RC2"
     } ++ Seq("classic", "core").map { m =>
-      "ch.qos.logback" % s"logback-$m" % "1.2.10"
+      "ch.qos.logback" % s"logback-$m" % "1.2.11"
     } ++ Seq(
       "com.typesafe" % "config" % "1.4.1",
       "org.apache.commons" % "commons-text" % "1.9",
-      "software.amazon.awssdk" % "s3" % "2.17.120",
+      "software.amazon.awssdk" % "s3" % "2.17.143",
       "org.flywaydb" % "flyway-core" % "7.15.0",
       "mysql" % "mysql-connector-java" % "5.1.49",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.24",
-      "com.malliina" %% "logstreams-client" % "2.1.1",
+      "com.malliina" %% "logstreams-client" % "2.1.6",
       "com.malliina" %% "web-auth" % webAuthVersion,
       "org.slf4j" % "slf4j-api" % "1.7.36",
       "org.scalameta" %% "munit" % munitVersion % Test,
@@ -133,8 +133,10 @@ val backend = project
     ),
     Universal / mappings ++= directory((Compile / resourceDirectory).value / "public"),
     rpmVendor := "Skogberg Labs",
-    Compile / unmanagedResourceDirectories += baseDirectory.value / "public",
-    Compile / unmanagedResourceDirectories += (frontend / Compile / assetsRoot).value.getParent.toFile,
+    Compile / unmanagedResourceDirectories ++= Seq(
+      baseDirectory.value / "public",
+      (frontend / Compile / assetsRoot).value.getParent.toFile
+    ),
     assembly / assemblyJarName := "app.jar"
   )
 

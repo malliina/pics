@@ -49,7 +49,7 @@ object PicsServer extends IOApp:
   ): Resource[IO, PicsService] = for
     topic <- Resource.eval(Topic[IO, PicMessage])
     tx <- DoobieDatabase.migratedResource(conf.db)
-    http <- Resource.make(IO(HttpClientIO()))(c => IO(c.close()))
+    http <- HttpClientIO.resource
   yield
     val db = PicsDatabase(DoobieDatabase(tx))
 //    val csrf =
@@ -65,7 +65,7 @@ object PicsServer extends IOApp:
         orNotFound {
           Router(
             "/" -> svc.routes(sockets),
-            "/assets" -> StaticService[IO]().routes
+            "/assets" -> StaticService[IO].routes
           )
         }
       }

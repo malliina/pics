@@ -14,11 +14,11 @@ import com.malliina.pics.http4s.PicsServer
 import com.malliina.pics.http4s.PicsServer.AppService
 import munit.FunSuite
 import com.malliina.http.io.HttpClientIO
+import com.malliina.values.ErrorMessage
 import org.slf4j.LoggerFactory
 import org.testcontainers.utility.DockerImageName
 import tests.MUnitDatabaseSuite.log
 import org.http4s.server.Server
-import org.http4s.client.Client
 import org.http4s.Uri
 import com.malliina.http.FullUrl
 
@@ -34,7 +34,7 @@ trait MUnitDatabaseSuite:
   val db: Fixture[DatabaseConf] = new Fixture[DatabaseConf]("database"):
     var container: Option[MySQLContainer] = None
     var conf: Option[DatabaseConf] = None
-    def apply() = conf.get
+    def apply(): DatabaseConf = conf.get
 
     override def beforeAll(): Unit =
       val testDb = readTestConf.recover { err =>
@@ -48,7 +48,8 @@ trait MUnitDatabaseSuite:
     override def afterAll(): Unit =
       container.foreach(_.stop())
 
-    def readTestConf = PicsConf.picsConf.read[DatabaseConf]("testdb")
+    def readTestConf: Either[ErrorMessage, DatabaseConf] =
+      PicsConf.picsConf.read[DatabaseConf]("testdb")
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(db)
 
@@ -105,7 +106,7 @@ trait DoobieSuite extends MUnitDatabaseSuite:
   override def munitFixtures: Seq[Fixture[?]] = Seq(db, doobie)
 
 object TestConf:
-  def apply(container: MySQLContainer) = DatabaseConf(
+  def apply(container: MySQLContainer): DatabaseConf = DatabaseConf(
     s"${container.jdbcUrl}?useSSL=false",
     container.username,
     container.password
