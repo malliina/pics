@@ -1,6 +1,7 @@
 package tests
 
 import cats.effect.IO
+import cats.effect.kernel.Resource
 import cats.effect.unsafe.IORuntime
 import cats.effect.unsafe.implicits.global
 import cats.syntax.flatMap.*
@@ -67,7 +68,7 @@ trait ServerSuite extends MUnitDatabaseSuite with ClientSuite:
     override def beforeAll(): Unit =
       val testServer = PicsServer.server(
         PicsConf.unsafeLoadWith(PicsConf.picsConf, db()),
-        IO.pure(MultiSizeHandlerIO.empty()),
+        Resource.eval(IO(MultiSizeHandlerIO.empty())),
         port = port"12345"
       )
       val (instance, closable) = testServer.map(s => ServerTools(s)).allocated.unsafeRunSync()

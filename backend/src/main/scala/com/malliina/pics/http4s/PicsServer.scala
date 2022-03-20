@@ -1,7 +1,7 @@
 package com.malliina.pics.http4s
 
 import cats.data.Kleisli
-import cats.effect.kernel.{Temporal, Resource}
+import cats.effect.kernel.{Resource, Temporal}
 import cats.effect.{ExitCode, IO, IOApp}
 import com.malliina.pics.db.{DoobieDatabase, PicsDatabase}
 import com.malliina.pics.{BuildInfo, MultiSizeHandlerIO, PicsConf}
@@ -13,7 +13,9 @@ import org.http4s.server.middleware.{GZip, HSTS}
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.server.{Router, Server}
 import org.http4s.{HttpRoutes, Request, Response}
-import com.comcast.ip4s.{host, port, Port}
+import com.comcast.ip4s.{Port, host, port}
+import org.http4s.blaze.server.BlazeServerBuilder
+
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationInt
 
@@ -27,21 +29,29 @@ object PicsServer extends IOApp:
 
   def server(
     conf: PicsConf,
-    sizeHandler: IO[MultiSizeHandlerIO] = MultiSizeHandlerIO.default(),
+    sizeHandler: Resource[IO, MultiSizeHandlerIO] = MultiSizeHandlerIO.default,
     port: Port = serverPort
   ): Resource[IO, Server] = for
-    handler <- Resource.eval(sizeHandler)
+    handler <- sizeHandler
     picsApp <- appResource(conf, handler)
     _ = log.info(s"Binding on port $port using app version ${BuildInfo.gitHash}...")
-    server <- EmberServerBuilder
-      .default[IO]
-      .withHost(host"0.0.0.0")
-      .withPort(serverPort)
+//    server <- EmberServerBuilder
+//      .default[IO]
+//      .withHost(host"0.0.0.0")
+//      .withPort(serverPort)
+//      .withHttpWebSocketApp(sockets => app(picsApp, sockets))
+//      .withErrorHandler(ErrorHandler[IO].partial)
+//      .withIdleTimeout(60.minutes)
+//      .withRequestHeaderReceiveTimeout(30.minutes)
+//      .build
+    server <- BlazeServerBuilder[IO]
+      .bindHttp(port = port.value, "0.0.0.0")
       .withHttpWebSocketApp(sockets => app(picsApp, sockets))
-      .withErrorHandler(ErrorHandler[IO].partial)
       .withIdleTimeout(60.minutes)
-      .withRequestHeaderReceiveTimeout(30.minutes)
-      .build
+      .withResponseHeaderTimeout(30.minutes)
+      .withServiceErrorHandler(ErrorHandler[IO].blaze)
+      .withBanner(Nil)
+      .resource
   yield server
 
   def appResource(conf: PicsConf, handler: MultiSizeHandlerIO)(implicit

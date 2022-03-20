@@ -1,6 +1,7 @@
 package com.malliina.pics
 
 import java.nio.file.Path
+import cats.effect.Resource
 import cats.implicits.*
 import cats.syntax.*
 import cats.data.NonEmptyList
@@ -9,7 +10,7 @@ import com.malliina.pics.s3.S3Source
 import com.sksamuel.scrimage.ImmutableImage
 
 object MultiSizeHandlerIO:
-  def default(): IO[MultiSizeHandlerIO] = for
+  def default: Resource[IO, MultiSizeHandlerIO] = for
     sm <- S3Source.Small
     md <- S3Source.Medium
     lg <- S3Source.Large

@@ -106,8 +106,8 @@ val backend = project
       "publicFolder" -> (frontend / assetsPrefix).value,
       "mode" -> (if ((Global / scalaJSStage).value == FullOptStage) "prod" else "dev")
     ),
-    libraryDependencies ++= Seq("ember-server", "dsl", "circe").map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.23.10"
+    libraryDependencies ++= Seq("blaze-server", "ember-server", "dsl", "circe").map { m =>
+      "org.http4s" %% s"http4s-$m" % "0.23.11"
     } ++ Seq("core", "hikari").map { d =>
       "org.tpolecat" %% s"doobie-$d" % "1.0.0-RC2"
     } ++ Seq("classic", "core").map { m =>
@@ -123,7 +123,7 @@ val backend = project
       "com.malliina" %% "web-auth" % webAuthVersion,
       "org.slf4j" % "slf4j-api" % "1.7.36",
       "org.scalameta" %% "munit" % munitVersion % Test,
-      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.2" % Test
+      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.3" % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     maintainer := "Michael Skogberg <malliina123@gmail.com>",

@@ -1,6 +1,7 @@
 package com.malliina.pics.s3
 
 import cats.effect.IO
+import cats.effect.kernel.Resource
 import com.malliina.pics.s3.S3Source.log
 import com.malliina.pics.{BucketName, DataFile, DataSourceT, FilePicsIO, FlatMeta, Key, PicResult, PicSuccess, Util}
 import com.malliina.storage.{StorageLong, StorageSize}
@@ -17,20 +18,26 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 object S3Source:
   private val log = AppLogger(getClass)
 
-  def apply(bucket: BucketName): IO[S3Source] =
+  def forBucket(bucket: BucketName): Resource[IO, S3Source] =
     val creds = DefaultCredentialsProvider.builder().profileName("pics").build()
-    val s3Client = S3AsyncClient
-      .builder()
-      .region(Region.EU_WEST_1)
-      .credentialsProvider(creds)
-      .build()
-    val client = S3BucketIO(s3Client)
-    client.createIfNotExists(bucket).map(_ => new S3Source(bucket, s3Client))
-
-  val Small = apply(BucketName("malliina-pics-small"))
-  val Medium = apply(BucketName("malliina-pics-medium"))
-  val Large = apply(BucketName("malliina-pics-large"))
-  val Original = apply(BucketName("malliina-pics"))
+    val s3Client = IO(
+      S3AsyncClient
+        .builder()
+        .region(Region.EU_WEST_1)
+        .credentialsProvider(creds)
+        .build()
+    )
+    val clientRes = Resource.make(s3Client)(c => IO(c.close()))
+    clientRes.evalMap { c =>
+      val client = S3BucketIO(c)
+      client.createIfNotExists(bucket).map { _ =>
+        S3Source(bucket, c)
+      }
+    }
+  val Small = forBucket(BucketName("malliina-pics-small"))
+  val Medium = forBucket(BucketName("malliina-pics-medium"))
+  val Large = forBucket(BucketName("malliina-pics-large"))
+  val Original = forBucket(BucketName("malliina-pics"))
 
 class S3Source(bucket: BucketName, client: S3AsyncClient) extends DataSourceT[IO]:
   val bucketName = bucket.name
