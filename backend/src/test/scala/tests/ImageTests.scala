@@ -1,16 +1,16 @@
 package tests
 
-import cats.effect.unsafe.implicits.global
-import com.malliina.pics.{ContentType, Resizer, ScrimageResizerIO, Util}
-import com.malliina.storage.StorageInt
+import cats.effect.IO
+import com.malliina.pics.{ContentType, ImageException, Resizer, ScrimageResizerIO, Util}
+import com.malliina.storage.{StorageInt, StorageSize}
 
 import java.nio.file.{Files, Paths}
 import javax.imageio.ImageIO
 
-class ImageTests extends munit.FunSuite:
-  val picDir = Paths.get("backend/files")
-  val original = picDir.resolve("original.jpg")
-  val origLarge = picDir.resolve("demo-original.jpeg")
+class ImageTests extends munit.CatsEffectSuite:
+  private val picDir = Paths.get("backend/files")
+  private val original = picDir.resolve("original.jpg")
+  private val origLarge = picDir.resolve("demo-original.jpeg")
 
   test("file content type") {
     assert(ContentType.parse("image.jpg").contains(ContentType.ImageJpeg))
@@ -44,27 +44,33 @@ class ImageTests extends munit.FunSuite:
 
   test("resize to small".ignore) {
     val resizer = ScrimageResizerIO.Small
-    val result = resizeWith(resizer, "demo-scrimage-small.jpeg")
-    assert(result.isRight)
-    val size = result.toOption.get
-    assert(size < 100.kilos)
+    resizeWith(resizer, "demo-scrimage-small.jpeg").map { result =>
+      assert(result.isRight)
+      val size = result.toOption.get
+      assert(size < 100.kilos)
+    }
   }
 
   test("resize to medium scrimage".ignore) {
     val resizer = ScrimageResizerIO.Medium
-    val result = resizeWith(resizer, "demo-scrimage-normal.jpeg")
-    assert(result.isRight)
-    val size = result.toOption.get
-    assert(size < 200.kilos)
+    resizeWith(resizer, "demo-scrimage-normal.jpeg").map { result =>
+      assert(result.isRight)
+      val size = result.toOption.get
+      assert(size < 200.kilos)
+    }
   }
 
   test("resize to large scrimage".ignore) {
     val resizer = ScrimageResizerIO.Large
-    val result = resizeWith(resizer, "demo-scrimage-large.jpeg")
-    assert(result.isRight)
-    val size = result.toOption.get
-    assert(size < 600.kilos)
+    resizeWith(resizer, "demo-scrimage-large.jpeg").map { result =>
+      assert(result.isRight)
+      val size = result.toOption.get
+      assert(size < 600.kilos)
+    }
   }
 
-  def resizeWith(resizer: ScrimageResizerIO, name: String) =
-    resizer.resizeFile(origLarge, picDir.resolve(name)).unsafeRunSync()
+  def resizeWith(
+    resizer: ScrimageResizerIO,
+    name: String
+  ): IO[Either[ImageException, StorageSize]] =
+    resizer.resizeFile(origLarge, picDir.resolve(name))

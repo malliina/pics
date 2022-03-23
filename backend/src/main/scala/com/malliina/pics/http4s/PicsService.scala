@@ -46,7 +46,7 @@ object PicsService:
   val version10String = Show[MediaType].show(version10)
 
   def apply(
-    conf: PicsConf,
+    conf: => PicsConf,
     db: PicsDatabase[IO],
     topic: Topic[IO, PicMessage],
     handler: MultiSizeHandlerIO,

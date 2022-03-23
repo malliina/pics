@@ -39,7 +39,7 @@ object AsIsResizerIO extends ImageResizerIO:
     }
 
 object ImageResizerIO:
-  val log = AppLogger(getClass)
+  private val log = AppLogger(getClass)
 
 trait ImageResizerIO extends ImageResizerT[IO]:
   def recovered[T](work: => T): IO[Either[ImageException, T]] =

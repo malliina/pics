@@ -63,7 +63,7 @@ object AppMeta:
   val default = AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash)
 
 object Keys:
-  val generator = new RandomStringGenerator.Builder()
+  private val generator = new RandomStringGenerator.Builder()
     .withinRange('0', 'z')
     .filteredBy(CharacterPredicates.LETTERS, CharacterPredicates.DIGITS)
     .build()

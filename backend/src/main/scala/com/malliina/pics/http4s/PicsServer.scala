@@ -28,7 +28,7 @@ object PicsServer extends IOApp:
     sys.env.get("SERVER_PORT").flatMap(s => Port.fromString(s)).getOrElse(port"9000")
 
   def server(
-    conf: PicsConf,
+    conf: => PicsConf,
     sizeHandler: Resource[IO, MultiSizeHandlerIO] = MultiSizeHandlerIO.default,
     port: Port = serverPort
   ): Resource[IO, Server] = for
@@ -54,7 +54,7 @@ object PicsServer extends IOApp:
       .resource
   yield server
 
-  def appResource(conf: PicsConf, handler: MultiSizeHandlerIO)(implicit
+  def appResource(conf: => PicsConf, handler: MultiSizeHandlerIO)(implicit
     t: Temporal[IO]
   ): Resource[IO, PicsService] = for
     topic <- Resource.eval(Topic[IO, PicMessage])

@@ -123,7 +123,8 @@ val backend = project
       "com.malliina" %% "web-auth" % webAuthVersion,
       "org.slf4j" % "slf4j-api" % "1.7.36",
       "org.scalameta" %% "munit" % munitVersion % Test,
-      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.3" % Test
+      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.3" % Test,
+      "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     maintainer := "Michael Skogberg <malliina123@gmail.com>",

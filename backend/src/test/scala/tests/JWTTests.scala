@@ -6,7 +6,7 @@ import com.malliina.web.Expired
 import com.nimbusds.jwt.JWTClaimsSet
 
 class JWTTests extends munit.FunSuite:
-  val validator = LiberalValidators.auth0
+  private val validator = LiberalValidators.auth0
 
   test("expired JWT fails") {
     val token = AccessToken(

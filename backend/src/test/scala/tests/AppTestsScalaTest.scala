@@ -31,7 +31,7 @@ object MUnitDatabaseSuite:
   private val log = LoggerFactory.getLogger(getClass)
 
 trait MUnitDatabaseSuite:
-  self: munit.Suite =>
+  self: munit.CatsEffectSuite =>
   val db: Fixture[DatabaseConf] = new Fixture[DatabaseConf]("database"):
     var container: Option[MySQLContainer] = None
     var conf: Option[DatabaseConf] = None
@@ -60,49 +60,30 @@ case class ServerTools(server: Server):
   def baseWsUrl = FullUrl("ws", s"localhost:$port", "")
 
 trait ServerSuite extends MUnitDatabaseSuite with ClientSuite:
-  self: FunSuite =>
-  val server: Fixture[ServerTools] = new Fixture[ServerTools]("server"):
-    private var tools: Option[ServerTools] = None
-    val finalizer = new AtomicReference[IO[Unit]](IO.pure(()))
-    override def apply(): ServerTools = tools.get
-    override def beforeAll(): Unit =
-      val testServer = PicsServer.server(
+  self: munit.CatsEffectSuite =>
+  val server: Fixture[ServerTools] = ResourceSuiteLocalFixture(
+    "server",
+    PicsServer
+      .server(
         PicsConf.unsafeLoadWith(PicsConf.picsConf, db()),
         Resource.eval(IO(MultiSizeHandlerIO.empty())),
         port = port"12345"
       )
-      val (instance, closable) = testServer.map(s => ServerTools(s)).allocated.unsafeRunSync()
-      tools = Option(instance)
-      finalizer.set(closable)
-
-    override def afterAll(): Unit =
-      finalizer.get().unsafeRunSync()
+      .map(s => ServerTools(s))
+  )
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(db, server, client)
 
 trait ClientSuite:
-  self: FunSuite =>
-  implicit val ioRuntime: IORuntime = IORuntime.global
-
-  val client: Fixture[HttpClientIO] = new Fixture[HttpClientIO]("client"):
-    var c: Option[HttpClientIO] = None
-    def apply(): HttpClientIO = c.get
-    override def beforeAll(): Unit =
-      c = Option(HttpClientIO())
-    override def afterAll(): Unit =
-      c.foreach(_.close())
+  self: munit.CatsEffectSuite =>
+  val client: Fixture[HttpClientIO] = ResourceSuiteLocalFixture("client", HttpClientIO.resource)
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(client)
 
 trait DoobieSuite extends MUnitDatabaseSuite:
-  self: munit.Suite =>
-  val doobie: Fixture[DatabaseRunner[IO]] = new Fixture[DatabaseRunner[IO]]("doobie"):
-    var database: Option[DatabaseRunner[IO]] = None
-    def apply(): DatabaseRunner[IO] = database.get
-    override def beforeAll(): Unit =
-      database = Option(DoobieDatabase.withMigrations(db()))
-    override def afterAll(): Unit =
-      database.foreach(_.close())
+  self: munit.CatsEffectSuite =>
+  val doobie: Fixture[DatabaseRunner[IO]] =
+    ResourceSuiteLocalFixture("doobie", DoobieDatabase.withMigrations(db()))
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(db, doobie)
 
