@@ -11,7 +11,6 @@ object PicsJS extends BaseHtml:
   val popperJs = Popper
   val bootstrapJs = Bootstrap
   val bootstrapCss = BootstrapCss
-  val fontAwesomeCss = FontAwesomeCss
 
   def main(args: Array[String]): Unit =
     if has(PicsClass) then
@@ -51,7 +50,3 @@ class Popover(e: dom.Element, options: PopoverOptions) extends js.Any:
 @js.native
 @JSImport("bootstrap/dist/css/bootstrap.min.css", JSImport.Namespace)
 object BootstrapCss extends js.Object
-
-@js.native
-@JSImport("@fortawesome/fontawesome-free/css/all.min.css", JSImport.Namespace)
-object FontAwesomeCss extends js.Object

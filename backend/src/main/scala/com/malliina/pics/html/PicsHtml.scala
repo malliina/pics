@@ -174,7 +174,7 @@ class PicsHtml(
             ulClass(DropdownMenu)(
               li(
                 a(href := reverse.signOut, `class` := "nav-link")(
-                  fa("sign-in-alt"),
+                  fa("arrow-right-from-bracket"),
                   " Sign Out"
                 )
               )
@@ -186,13 +186,14 @@ class PicsHtml(
       modifier(
         ulClass(s"${navbars.Nav} $MrAuto")(),
         ulClass(navbars.Nav)(
-          navItem("Sign In", "signin", reverse.signIn, "sign-out-alt")
+          navItem("Sign In", "signin", reverse.signIn, "arrow-right-to-bracket")
         )
       )
     }
     basePage(conf.copy(inner = modifier(withNavbar(navContent), conf.inner)))
 
-  def fa(faName: String) = i(`class` := s"fa fa-$faName", title := faName, aria.hidden := tags.True)
+  def fa(faName: String) =
+    i(`class` := s"nav-icon $faName", title := faName, aria.hidden := tags.True)
 
   def withNavbar(navLinks: Modifier*) =
     navbar.basic(
