@@ -15,12 +15,12 @@ object PicsJS extends BaseHtml:
 
   def main(args: Array[String]): Unit =
     if has(PicsClass) then
-      new PicsSocket
+      PicsSocket()
       LazyLoader()
-    if has(DropClass) then new PicDrop
-    if has(LoginClass) then new Login
-    if has(SignUpClass) then new SignUp
-    if has(ProfileClass) then new Profile
+    if has(DropClass) then PicDrop()
+    if has(LoginClass) then Login()
+    if has(SignUpClass) then SignUp()
+    if has(ProfileClass) then Profile()
 
   def has(feature: String) = dom.document.body.classList.contains(feature)
 

@@ -337,12 +337,7 @@ class PicsService(
           handleCallbackV(socials.apple, reverseSocial.apple, req, id)
     case req @ GET -> Root / "sign-out" / "leave" =>
       SeeOther(Location(Reverse.signOutCallback)).map { res =>
-        import com.malliina.pics.auth.Social.*
-        auth
-          .clearSession(req, res)
-          .removeCookie(ResponseCookie(cookieNames.lastId, "", path = auth.cookiePath))
-          .removeCookie(ResponseCookie(cookieNames.provider, "", path = auth.cookiePath))
-          .addCookie(cookieNames.prompt, SelectAccount)
+        auth.clearSession(req, res)
       }
     case GET -> Root / "sign-out" =>
       // TODO .flashing("message" -> "You have now logged out.")

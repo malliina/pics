@@ -153,6 +153,9 @@ class Http4sAuth(
     res
       .removeCookie(removalCookie(cookieNames.session, req))
       .removeCookie(removalCookie(cookieNames.user, req))
+      .removeCookie(removalCookie(cookieNames.lastId, req))
+      .removeCookie(removalCookie(cookieNames.provider, req))
+      .addCookie(additionCookie(cookieNames.prompt, Social.SelectAccount, req))
 
   private def user(headers: Headers): Either[IdentityError, Username] =
     readUser(cookieNames.user, headers)
