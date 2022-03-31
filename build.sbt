@@ -127,10 +127,6 @@ val backend = project
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     maintainer := "Michael Skogberg <malliina123@gmail.com>",
-    Universal / javaOptions ++= Seq(
-      "-J-Xmx1024m",
-      "-Dlogback.configurationFile=logback-prod.xml"
-    ),
     Universal / mappings ++= directory((Compile / resourceDirectory).value / "public"),
     rpmVendor := "Skogberg Labs",
     Compile / unmanagedResourceDirectories ++= Seq(
