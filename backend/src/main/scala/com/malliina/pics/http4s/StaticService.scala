@@ -7,7 +7,7 @@ import com.malliina.pics.BuildInfo
 import com.malliina.pics.http4s.StaticService.log
 import com.malliina.util.AppLogger
 import com.malliina.values.UnixPath
-import org.http4s.CacheDirective.{`max-age`, `no-cache`, `public`}
+import org.http4s.CacheDirective.{`max-age`, `no-cache`, `public`, `no-store`, `must-revalidate`}
 import org.http4s.headers.`Cache-Control`
 import org.http4s.{Header, HttpRoutes, Request, StaticFile}
 import org.typelevel.ci.CIStringSyntax
@@ -32,7 +32,7 @@ class StaticService[F[_]: Async] extends BasicService[F]:
       val isCacheable = file.value.count(_ == '.') == 2 || file.value.startsWith("static/")
       val cacheHeaders =
         if isCacheable then NonEmptyList.of(`max-age`(365.days), `public`)
-        else NonEmptyList.of(`no-cache`())
+        else NonEmptyList.of(`no-cache`(), `no-store`, `must-revalidate`)
       val assetPath: fs2.io.file.Path = publicDir.resolve(file.value)
       val resourcePath = s"${BuildInfo.publicFolder}/${file.value}"
       log.info(s"Searching for '$resourcePath' or '$assetPath'...")
