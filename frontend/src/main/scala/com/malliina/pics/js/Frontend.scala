@@ -7,5 +7,4 @@ trait Frontend:
   val document = dom.document
 
   def input(id: String) = elem[HTMLInputElement](id)
-
   def elem[T](id: String) = document.getElementById(id).asInstanceOf[T]

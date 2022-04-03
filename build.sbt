@@ -103,7 +103,8 @@ val backend = project
         }
       },
       "publicFolder" -> (frontend / assetsPrefix).value,
-      "mode" -> (if ((Global / scalaJSStage).value == FullOptStage) "prod" else "dev")
+      "mode" -> (if ((Global / scalaJSStage).value == FullOptStage) "prod" else "dev"),
+      "isProd" -> ((Global / scalaJSStage).value == FullOptStage)
     ),
     libraryDependencies ++= Seq("blaze-server", "ember-server", "dsl", "circe").map { m =>
       "org.http4s" %% s"http4s-$m" % "0.23.11"
