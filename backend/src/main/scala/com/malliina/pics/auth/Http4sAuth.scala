@@ -168,7 +168,7 @@ class Http4sAuth(
   ) =
     withUser(user, req, res)
       .removeCookie(cookieNames.returnUri)
-      .removeCookie(cookieNames.prompt)
+      .removeCookie(removalCookie(cookieNames.prompt, req))
       .addCookie(additionCookie(cookieNames.lastId, user.username.name, req))
       .addCookie(additionCookie(cookieNames.provider, provider.name, req))
 
@@ -198,7 +198,7 @@ class Http4sAuth(
     ResponseCookie(
       name,
       value,
-      Option(HttpDate.MaxValue),
+      expires,
       path = cookiePath,
       secure = Urls.isSecure(req),
       httpOnly = true,
