@@ -7,7 +7,7 @@ This is a pic app. Available at [pics.malliina.com](https://pics.malliina.com).
 
 ## Development
 
-    sbt ~start
+    sbt ~Compile/start
 
 Navigate to http://localhost:9000.
 

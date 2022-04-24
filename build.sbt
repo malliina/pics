@@ -7,6 +7,8 @@ val webAuthVersion = "6.2.2"
 val primitivesVersion = "3.1.3"
 val munitVersion = "0.7.29"
 
+val isProd = settingKey[Boolean]("isProd")
+
 inThisBuild(
   Seq(
     organization := "com.malliina",
@@ -52,7 +54,7 @@ val frontend = project
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     Compile / npmDependencies ++= Seq(
-      "@popperjs/core" -> "2.10.2",
+      "@popperjs/core" -> "2.11.0",
       "bootstrap" -> "5.1.3"
     ),
     Compile / npmDevDependencies ++= Seq(
@@ -68,16 +70,14 @@ val frontend = project
       "postcss-preset-env" -> "7.2.0",
       "style-loader" -> "3.3.1",
       "webpack-merge" -> "5.8.0"
-    )
+    ),
+    isProd := (Global / scalaJSStage).value == FullOptStage
   )
-
-val build = taskKey[Unit]("build")
 
 val backend = project
   .in(file("backend"))
   .enablePlugins(
     FileTreePlugin,
-    JavaServerAppPackaging,
     BuildInfoPlugin,
     ServerPlugin,
     LiveRevolverPlugin
@@ -92,19 +92,10 @@ val backend = project
       version,
       scalaVersion,
       "gitHash" -> gitHash,
-      "assetsDir" -> {
-        val isDocker = (Global / scalaJSStage).value == FullOptStage
-        if (isDocker) {
-          val dockerDir = (Docker / defaultLinuxInstallLocation).value
-          val assetsFolder = (frontend / assetsPrefix).value
-          s"$dockerDir/$assetsFolder"
-        } else {
-          (frontend / assetsRoot).value
-        }
-      },
+      "assetsDir" -> (frontend / assetsRoot).value,
       "publicFolder" -> (frontend / assetsPrefix).value,
-      "mode" -> (if ((Global / scalaJSStage).value == FullOptStage) "prod" else "dev"),
-      "isProd" -> ((Global / scalaJSStage).value == FullOptStage)
+      "mode" -> (if ((frontend / isProd).value) "prod" else "dev"),
+      "isProd" -> (frontend / isProd).value
     ),
     libraryDependencies ++= Seq("blaze-server", "ember-server", "dsl", "circe").map { m =>
       "org.http4s" %% s"http4s-$m" % "0.23.11"
@@ -118,34 +109,43 @@ val backend = project
       "software.amazon.awssdk" % "s3" % "2.17.143",
       "org.flywaydb" % "flyway-core" % "7.15.0",
       "mysql" % "mysql-connector-java" % "5.1.49",
-      "com.sksamuel.scrimage" % "scrimage-core" % "4.0.24",
+      "com.sksamuel.scrimage" % "scrimage-core" % "4.0.30",
       "com.malliina" %% "logstreams-client" % "2.1.6",
       "com.malliina" %% "web-auth" % webAuthVersion,
       "org.slf4j" % "slf4j-api" % "1.7.36",
       "org.scalameta" %% "munit" % munitVersion % Test,
-      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.3" % Test,
+      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.5" % Test,
       "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
-    maintainer := "Michael Skogberg <malliina123@gmail.com>",
-    Universal / mappings ++= directory((Compile / resourceDirectory).value / "public"),
-    rpmVendor := "Skogberg Labs",
-    Compile / unmanagedResourceDirectories ++= Seq(
-      baseDirectory.value / "public",
-      (frontend / Compile / assetsRoot).value.getParent.toFile
-    ),
+    Compile / start := Def.taskIf {
+      if (start.inputFileChanges.hasChanges) {
+        refreshBrowsers.value
+      } else {
+        Def.task(streams.value.log.info("No backend changes."))
+      }
+    }.dependsOn(start).value,
+    (frontend / Compile / start) := Def.taskIf {
+      if ((frontend / Compile / start).inputFileChanges.hasChanges) {
+        refreshBrowsers.value
+      } else {
+        Def.task(streams.value.log.info("No frontend changes.")).value
+      }
+    }.dependsOn(frontend / start).value,
+    Compile / unmanagedResourceDirectories ++= {
+      val prodAssets =
+        if ((frontend / isProd).value) List((frontend / Compile / assetsRoot).value.getParent.toFile)
+        else Nil
+      (baseDirectory.value / "public") +: prodAssets
+    },
     assembly / assemblyJarName := "app.jar"
   )
 
-val runApp = inputKey[Unit]("Runs the app")
-
 val pics = project
   .in(file("."))
-  .disablePlugins(RevolverPlugin)
   .aggregate(frontend, backend)
-  .settings(commonSettings)
   .settings(
-    start := (backend / start).value
+//    start := (Compile / start).value
   )
 
 def gitHash: String =

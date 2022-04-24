@@ -35,10 +35,12 @@ class StaticService[F[_]: Async] extends BasicService[F]:
         else NonEmptyList.of(`no-cache`(), `no-store`, `must-revalidate`)
       val assetPath: fs2.io.file.Path = publicDir.resolve(file.value)
       val resourcePath = s"${BuildInfo.publicFolder}/${file.value}"
-      log.info(s"Searching for '$resourcePath' or '$assetPath'...")
-      StaticFile
-        .fromResource(resourcePath, Option(req))
-        .orElse(StaticFile.fromPath(assetPath, Option(req)))
+      val path = if BuildInfo.isProd then resourcePath else assetPath.toNioPath.toAbsolutePath
+      log.info(s"Searching for '$path'...")
+      val search =
+        if BuildInfo.isProd then StaticFile.fromResource(resourcePath, Option(req))
+        else StaticFile.fromPath(assetPath, Option(req))
+      search
         .map(_.putHeaders(`Cache-Control`(cacheHeaders), allowAllOrigins))
         .fold(onNotFound(req))(_.pure[F])
         .flatten
