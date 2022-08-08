@@ -73,7 +73,7 @@ object PicsService:
     handler: MultiSizeHandlerIO,
     t: Temporal[IO]
   ): PicsService =
-    val service = new PicServiceIO(db, handler)
+    val service = PicServiceIO(db, handler)
     new PicsService(service, html, auth, socials, db, topic, handler)(t)
 
   def ranges(headers: Headers) = headers
@@ -188,7 +188,7 @@ class PicsService(
         }
     case req @ POST -> Root / "pics" / KeyParam(key) / "delete" =>
       removeKey(key, Reverse.list, req)
-    case req @ DELETE -> Root / KeyParam(key) =>
+    case req @ DELETE -> Root / "pics" / KeyParam(key) =>
       removeKey(key, Reverse.drop, req)
     case req @ POST -> Root / "sync" =>
       import cats.implicits.*
