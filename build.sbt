@@ -1,10 +1,9 @@
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
-import com.typesafe.sbt.packager.MappingsHelper.directory
 import scala.sys.process.Process
 import scala.util.Try
 
-val webAuthVersion = "6.2.2"
-val primitivesVersion = "3.1.3"
+val webAuthVersion = "6.2.3"
+val primitivesVersion = "3.2.0"
 val munitVersion = "0.7.29"
 
 val isProd = settingKey[Boolean]("isProd")
@@ -27,7 +26,7 @@ inThisBuild(
 
 val commonSettings = Seq(
   libraryDependencies ++=
-    Seq("generic", "parser").map(m => "io.circe" %%% s"circe-$m" % "0.14.1") ++ Seq(
+    Seq("generic", "parser").map(m => "io.circe" %%% s"circe-$m" % "0.14.2") ++ Seq(
       "com.malliina" %%% "primitives" % primitivesVersion,
       "com.malliina" %%% "util-html" % webAuthVersion
     )
@@ -98,23 +97,23 @@ val backend = project
       "isProd" -> (frontend / isProd).value
     ),
     libraryDependencies ++= Seq("blaze-server", "ember-server", "dsl", "circe").map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.23.11"
+      "org.http4s" %% s"http4s-$m" % "0.23.12"
     } ++ Seq("core", "hikari").map { d =>
       "org.tpolecat" %% s"doobie-$d" % "1.0.0-RC2"
     } ++ Seq("classic", "core").map { m =>
       "ch.qos.logback" % s"logback-$m" % "1.2.11"
     } ++ Seq(
-      "com.typesafe" % "config" % "1.4.1",
+      "com.typesafe" % "config" % "1.4.2",
       "org.apache.commons" % "commons-text" % "1.9",
-      "software.amazon.awssdk" % "s3" % "2.17.143",
+      "software.amazon.awssdk" % "s3" % "2.17.243",
       "org.flywaydb" % "flyway-core" % "7.15.0",
       "mysql" % "mysql-connector-java" % "5.1.49",
-      "com.sksamuel.scrimage" % "scrimage-core" % "4.0.30",
-      "com.malliina" %% "logstreams-client" % "2.1.6",
+      "com.sksamuel.scrimage" % "scrimage-core" % "4.0.31",
+      "com.malliina" %% "logstreams-client" % "2.2.1",
       "com.malliina" %% "web-auth" % webAuthVersion,
       "org.slf4j" % "slf4j-api" % "1.7.36",
       "org.scalameta" %% "munit" % munitVersion % Test,
-      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.5" % Test,
+      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.10" % Test,
       "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
@@ -144,9 +143,6 @@ val backend = project
 val pics = project
   .in(file("."))
   .aggregate(frontend, backend)
-  .settings(
-//    start := (Compile / start).value
-  )
 
 def gitHash: String =
   sys.env
