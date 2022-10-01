@@ -71,9 +71,9 @@ object Keys:
   def randomish(): Key = Key(generator.generate(Key.Length).toLowerCase)
 
 case class FlatMeta(key: Key, lastModified: Instant):
-  def withUser(user: PicOwner) = KeyMeta(key, user, lastModified)
+  def withUser(user: PicOwner) = KeyMeta(key, user, Access.Private, lastModified)
 
-case class KeyMeta(key: Key, owner: PicOwner, added: Instant)
+case class KeyMeta(key: Key, owner: PicOwner, access: Access, added: Instant)
 
 object PicMetas:
   def from[F[_]](meta: KeyMeta, rh: Request[F]): PicMeta = fromHost(meta, Urls.hostOnly(rh))

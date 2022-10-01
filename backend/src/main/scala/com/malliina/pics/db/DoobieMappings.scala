@@ -1,6 +1,6 @@
 package com.malliina.pics.db
 
-import com.malliina.pics.{Key, PicOwner}
+import com.malliina.pics.{Access, Key, PicOwner}
 import com.malliina.values.Username
 import doobie.Meta
 
@@ -11,3 +11,4 @@ trait DoobieMappings:
   implicit val keyMapping: Meta[Key] = Meta[String].timap(Key.apply)(_.key)
   implicit val picOwnerMapping: Meta[PicOwner] = Meta[String].timap(PicOwner.apply)(_.name)
   implicit val usernameMapping: Meta[Username] = Meta[String].timap(Username.apply)(_.name)
+  implicit val accessMapping: Meta[Access] = Meta[String].timap(Access.parseUnsafe)(_.name)

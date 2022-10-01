@@ -8,11 +8,27 @@ import io.circe.generic.semiauto.deriveCodec
 import io.circe.{Codec, Json, Decoder, Encoder}
 import io.circe.syntax.EncoderOps
 
+enum Access(val name: String):
+  case Public extends Access("public")
+  case Private extends Access("private")
+
+object Access:
+  implicit val json: Codec[Access] = Codec.from(
+    Decoder.decodeString.emap(parse),
+    Encoder.encodeString.contramap(_.name)
+  )
+
+  def parse(in: String): Either[String, Access] =
+    Access.values.find(v => v.name == in).toRight(s"Unknown access value: '$in'.")
+
+  def parseUnsafe(in: String): Access =
+    parse(in).fold(err => throw new IllegalArgumentException(err), identity)
+
 case class PicOwner(name: String) extends AnyVal:
-  override def toString = name
+  override def toString: String = name
 
 object PicOwner extends ValidatingCompanion[String, PicOwner]:
-  val anon = PicOwner("anon")
+  val anon: PicOwner = PicOwner("anon")
 
   override def build(input: String): Either[ErrorMessage, PicOwner] = Right(apply(input))
 
@@ -27,7 +43,7 @@ object ProfileInfo:
 case class Key(key: String) extends AnyVal:
   override def toString: String = key
 
-  def append(s: String) = Key(s"$key$s")
+  def append(s: String): Key = Key(s"$key$s")
 
 object Key:
   val Length = 7

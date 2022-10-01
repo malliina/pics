@@ -2,7 +2,7 @@ package com.malliina.pics.db
 
 import cats.implicits.*
 import com.malliina.pics.db.PicsDatabase.log
-import com.malliina.pics.{Key, KeyMeta, MetaSourceT, PicOwner, UserDatabase}
+import com.malliina.pics.{Access, Key, KeyMeta, MetaSourceT, PicOwner, UserDatabase}
 import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, UserId, Username}
 import doobie.ConnectionIO
@@ -11,11 +11,9 @@ import doobie.implicits.*
 object PicsDatabase:
   private val log = AppLogger(getClass)
 
-  def apply[F[_]](db: DatabaseRunner[F]): PicsDatabase[F] = new PicsDatabase(db)
-
 class PicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with UserDatabase[F]:
   def load(offset: Int, limit: Int, user: PicOwner): F[List[KeyMeta]] = db.run {
-    sql"""select p.`key`, u.username, p.added
+    sql"""select p.`key`, u.username, p.access, p.added
           from pics p, users u
           where p.user = u.id and u.username = $user 
           order by p.added desc limit $limit offset $offset"""
@@ -24,11 +22,12 @@ class PicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with User
   }
 
   def saveMeta(key: Key, owner: PicOwner): F[KeyMeta] = db.run {
+    val access = if owner == PicOwner.anon then Access.Public else Access.Private
     for
       userId <- fetchOrCreateUser(owner)
-      _ <- sql"insert into pics(`key`, user) values ($key, $userId)".update.run
+      _ <- sql"insert into pics(`key`, user, access) values ($key, $userId, $access)".update.run
       row <-
-        sql"""select p.`key`, u.username, p.added 
+        sql"""select p.`key`, u.username, p.access, p.added 
               from pics p, users u 
               where p.user = u.id and p.`key` = $key and u.username = $owner"""
           .query[KeyMeta]
@@ -61,7 +60,7 @@ class PicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with User
         for
           userId <- fetchOrCreateUser(meta.owner)
           rows <-
-            sql"insert into pics(`key`, user, added) values(${meta.key}, $userId, ${meta.added})".update.run
+            sql"insert into pics(`key`, user, access, added) values(${meta.key}, $userId, ${meta.access}, ${meta.added})".update.run
         yield rows
     }
   }

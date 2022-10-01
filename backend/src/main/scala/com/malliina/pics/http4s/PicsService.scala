@@ -26,6 +26,7 @@ import com.malliina.web.Utils.randomString
 import com.malliina.pics.auth.AuthProvider.*
 import com.malliina.pics.auth.Social.*
 import fs2.concurrent.Topic
+import fs2.io.file.Path as FS2Path
 import io.circe.syntax.EncoderOps
 import io.circe.{Codec, Decoder, Encoder, Json}
 import org.http4s.CacheDirective.*
@@ -373,7 +374,7 @@ class PicsService(
     handler(size).storage.find(key).flatMap { maybeFile =>
       maybeFile.map { file =>
         StaticFile
-          .fromFile(file.file.toFile, Option(req))
+          .fromPath(FS2Path.fromNioPath(file.file), Option(req))
           .map(_.putHeaders(cached(365.days)))
           .getOrElseF(notFound(req))
       }.getOrElse {
