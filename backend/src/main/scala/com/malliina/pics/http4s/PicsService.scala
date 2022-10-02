@@ -149,11 +149,11 @@ class PicsService(
               val tempFile = Files.createTempFile("pic", ".jpg")
               val logging =
                 IO(log.info(s"Saving new pic by '${user.name}' to '${tempFile.toAbsolutePath}'..."))
-              val decoder = EntityDecoder.binFile[IO](tempFile.toFile)
+              val decoder = EntityDecoder.binFile[IO](FS2Path.fromNioPath(tempFile))
               val receive = req.decodeWith(decoder, strict = true) { file =>
                 service
                   .save(
-                    file.toPath,
+                    file.toNioPath,
                     user,
                     req.headers.get(CIString(XName)).map(_.head.value)
                   )
@@ -371,7 +371,7 @@ class PicsService(
   }
 
   private def sendPic(key: Key, size: PicSize, req: Request[IO]) =
-    handler(size).storage.find(key).flatMap { maybeFile =>
+    val sendPic = handler(size).storage.find(key).flatMap { maybeFile =>
       maybeFile.map { file =>
         StaticFile
           .fromPath(FS2Path.fromNioPath(file.file), Option(req))
@@ -380,6 +380,16 @@ class PicsService(
       }.getOrElse {
         notFoundWith(s"Not found: '$key'.")
       }
+    }
+    service.db.meta(key).flatMap { meta =>
+      if meta.access == Access.Public then sendPic
+      else
+        authed(req) { user =>
+          if meta.owner == user.name then sendPic
+          else
+            log.warn(s"User '${user.name}' not authorized to view '$key' owned by '${meta.owner}'.")
+            unauthorized(Errors.single(s"Unauthorized."), req)
+        }
     }
 
   private def removeKey(key: Key, redir: Uri, req: Request[IO]) =

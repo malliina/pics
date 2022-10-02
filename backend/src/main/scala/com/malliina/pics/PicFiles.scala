@@ -50,6 +50,7 @@ trait DataSourceIO extends DataSourceT[IO]:
     }
 
 trait MetaSourceT[F[_]] extends SourceLike[F]:
+  def meta(key: Key): F[KeyMeta]
   def load(from: Int, until: Int, user: PicOwner): F[List[KeyMeta]]
   def saveMeta(key: Key, owner: PicOwner): F[KeyMeta]
   def putMetaIfNotExists(meta: KeyMeta): F[Int]

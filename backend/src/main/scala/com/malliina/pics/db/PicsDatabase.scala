@@ -12,6 +12,12 @@ object PicsDatabase:
   private val log = AppLogger(getClass)
 
 class PicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with UserDatabase[F]:
+  override def meta(key: Key): F[KeyMeta] = db.run {
+    sql"""select p.`key`, u.username, p.access, p.added
+          from pics p, users u
+          where p.user = u.id and p.`key` = $key""".query[KeyMeta].unique
+  }
+
   def load(offset: Int, limit: Int, user: PicOwner): F[List[KeyMeta]] = db.run {
     sql"""select p.`key`, u.username, p.access, p.added
           from pics p, users u
