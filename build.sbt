@@ -96,8 +96,8 @@ val backend = project
       "mode" -> (if ((frontend / isProd).value) "prod" else "dev"),
       "isProd" -> (frontend / isProd).value
     ),
-    libraryDependencies ++= Seq("blaze-server", "ember-server", "dsl", "circe").map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.23.12"
+    libraryDependencies ++= Seq("ember-server", "dsl", "circe").map { m =>
+      "org.http4s" %% s"http4s-$m" % "0.23.16"
     } ++ Seq("core", "hikari").map { d =>
       "org.tpolecat" %% s"doobie-$d" % "1.0.0-RC2"
     } ++ Seq("classic", "core").map { m =>

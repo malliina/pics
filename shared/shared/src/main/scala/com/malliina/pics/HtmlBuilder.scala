@@ -30,7 +30,6 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
 
   val galleryId = "pic-gallery"
   val picsId = "pics-container"
-  val demoButtonId = "demo-button"
 
   implicit val urlAttr: AttrValue[FullUrl] = genericAttr[FullUrl]
   implicit val keyAttr: AttrValue[Key] = genericAttr[Key]

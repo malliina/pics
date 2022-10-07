@@ -10,6 +10,6 @@ import scalatags.text.Builder
 class BaseHtml extends HtmlBuilder(HtmlTags) with LoginStrings:
   implicit def showAttrValue[T](implicit s: Show[T]): AttrValue[T] =
     (t: Builder, a: Attr, v: T) => t.setAttr(a.name, Builder.GenericAttrValueSource(s.show(v)))
-  implicit val uriAttrValue: AttrValue[Uri] = new AttrValue[Uri]:
-    override def apply(t: Builder, a: Attr, v: Uri): Unit =
+  implicit val uriAttrValue: AttrValue[Uri] =
+    (t: Builder, a: Attr, v: Uri) =>
       t.setAttr(a.name, Builder.GenericAttrValueSource(v.renderString))

@@ -14,7 +14,6 @@ import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.server.{Router, Server}
 import org.http4s.{HttpRoutes, Request, Response}
 import com.comcast.ip4s.{Port, host, port}
-import org.http4s.blaze.server.BlazeServerBuilder
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationInt
@@ -35,23 +34,23 @@ object PicsServer extends IOApp:
     handler <- sizeHandler
     picsApp <- appResource(conf, handler)
     _ = log.info(s"Binding on port $port using app version ${BuildInfo.gitHash}...")
-//    server <- EmberServerBuilder
-//      .default[IO]
-//      .withHost(host"0.0.0.0")
-//      .withPort(serverPort)
-//      .withHttpWebSocketApp(sockets => app(picsApp, sockets))
-//      .withErrorHandler(ErrorHandler[IO].partial)
-//      .withIdleTimeout(60.minutes)
-//      .withRequestHeaderReceiveTimeout(30.minutes)
-//      .build
-    server <- BlazeServerBuilder[IO]
-      .bindHttp(port = port.value, "0.0.0.0")
+    server <- EmberServerBuilder
+      .default[IO]
+      .withHost(host"0.0.0.0")
+      .withPort(serverPort)
       .withHttpWebSocketApp(sockets => app(picsApp, sockets))
+      .withErrorHandler(ErrorHandler[IO].partial)
       .withIdleTimeout(60.minutes)
-      .withResponseHeaderTimeout(30.minutes)
-      .withServiceErrorHandler(ErrorHandler[IO].blaze)
-      .withBanner(Nil)
-      .resource
+      .withRequestHeaderReceiveTimeout(30.minutes)
+      .build
+//    server2 <- BlazeServerBuilder[IO]
+//      .bindHttp(port = port.value, "0.0.0.0")
+//      .withHttpWebSocketApp(sockets => app(picsApp, sockets))
+//      .withIdleTimeout(60.minutes)
+//      .withResponseHeaderTimeout(30.minutes)
+//      .withServiceErrorHandler(ErrorHandler[IO].blaze)
+//      .withBanner(Nil)
+//      .resource
   yield server
 
   def appResource(conf: => PicsConf, handler: MultiSizeHandlerIO)(implicit
