@@ -43,14 +43,6 @@ object PicsServer extends IOApp:
       .withIdleTimeout(60.minutes)
       .withRequestHeaderReceiveTimeout(30.minutes)
       .build
-//    server2 <- BlazeServerBuilder[IO]
-//      .bindHttp(port = port.value, "0.0.0.0")
-//      .withHttpWebSocketApp(sockets => app(picsApp, sockets))
-//      .withIdleTimeout(60.minutes)
-//      .withResponseHeaderTimeout(30.minutes)
-//      .withServiceErrorHandler(ErrorHandler[IO].blaze)
-//      .withBanner(Nil)
-//      .resource
   yield server
 
   def appResource(conf: => PicsConf, handler: MultiSizeHandlerIO)(implicit

@@ -31,13 +31,11 @@ class PicsServerTests extends munit.CatsEffectSuite with ServerSuite with CirceI
   test("version endpoint returns ok for acceptable Accept header") {
     val req = getUri("version", PicsService.version10)
     req.map(res => assertEquals(res.code, Status.Ok.code))
-
   }
 
   test("version endpoint returns not acceptable for unacceptable Accept header") {
     val req = getUri("/version", mediaType"application/vnd.pics.v09+json")
     req.map(res => assertEquals(res.status, Status.NotAcceptable.code))
-
   }
 
   test("anon can list pics") {
@@ -46,12 +44,12 @@ class PicsServerTests extends munit.CatsEffectSuite with ServerSuite with CirceI
   }
 
   test("anon cannot delete") {
-    val req = make("/pics/pic123.jpg/delete", Method.POST, PicsService.version10)
+    val req = make("/pics/pic123.jpg/delete", PicsService.version10)
     req.map(res => assertEquals(res.status, Status.Unauthorized.code))
   }
 
   test("anon cannot sync") {
-    val req = make("/sync", Method.POST, PicsService.version10)
+    val req = make("/sync", PicsService.version10)
     req.map(res => assertEquals(res.status, Status.Unauthorized.code))
   }
 
@@ -61,7 +59,7 @@ class PicsServerTests extends munit.CatsEffectSuite with ServerSuite with CirceI
   ): IO[OkHttpResponse] =
     http.get(baseUrl / uri, Map("Accept" -> Show[MediaType].show(mediaType)))
 
-  def make(uri: String, method: Method, mediaType: MediaType): IO[OkHttpResponse] =
+  def make(uri: String, mediaType: MediaType): IO[OkHttpResponse] =
     http.post(
       baseUrl / uri,
       RequestBody.create(Array.empty[Byte]),
