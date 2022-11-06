@@ -11,4 +11,4 @@ object AccessLevel:
 
 object Forms:
   def access(form: FormReader): Either[Errors, AccessLevel] =
-    form.readT[Access](Access.FormKey).map(AccessLevel.apply)
+    form.read[Access](Access.FormKey).map(AccessLevel.apply)

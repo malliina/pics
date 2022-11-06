@@ -1,11 +1,28 @@
 package com.malliina.pics.http4s
 
-import com.malliina.pics.{Errors, Readable}
+import com.malliina.pics.{Errors, SingleError}
+import com.malliina.values.{ErrorMessage, Readable}
 import org.http4s.UrlForm
 
 class FormReader(form: UrlForm):
-  def read[T](key: String, build: Option[String] => Either[Errors, T]): Either[Errors, T] =
-    build(form.getFirst(key))
+  def read[T](key: String)(implicit r: Readable[T]): Either[Errors, T] =
+    FormReadable[T].read(key, form).left.map(err => Errors(SingleError.input(err.message)))
 
-  def readT[T](key: String)(implicit r: Readable[T]): Either[Errors, T] =
-    read[T](key, s => r(s))
+trait FormReadable[T]:
+  def read(key: String, form: UrlForm): Either[ErrorMessage, T]
+
+  def emap[U](f: T => Either[ErrorMessage, U]): FormReadable[U] = (key: String, form: UrlForm) =>
+    read(key, form).flatMap(f)
+
+object FormReadable:
+  val string: FormReadable[String] = (key: String, form: UrlForm) =>
+    form.getFirst(key).toRight(ErrorMessage(s"Not found: '$key'."))
+
+  def apply[T](implicit fr: FormReadable[T]): FormReadable[T] = fr
+
+  implicit def option[T](implicit r: Readable[T]): FormReadable[Option[T]] =
+    (key: String, form: UrlForm) =>
+      form.getFirst(key).fold(Right(None))(s => r.read(s).map(Option.apply))
+
+  implicit def readable[T](implicit r: Readable[T]): FormReadable[T] =
+    string.emap(str => r.read(str))

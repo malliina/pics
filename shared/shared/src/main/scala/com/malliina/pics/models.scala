@@ -3,7 +3,7 @@ package com.malliina.pics
 import java.util.Date
 
 import com.malliina.http.FullUrl
-import com.malliina.values.{ValidatingCompanion, ErrorMessage}
+import com.malliina.values.{ValidatingCompanion, ErrorMessage, Readable}
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.{Codec, Json, Decoder, Encoder}
 import io.circe.syntax.EncoderOps
@@ -12,12 +12,15 @@ enum Access(val name: String):
   case Public extends Access("public")
   case Private extends Access("private")
 
+  override def toString: String = name
+
 object Access:
   val FormKey = "access"
   implicit val json: Codec[Access] = Codec.from(
     Decoder.decodeString.emap(s => parse(s).left.map(_.message)),
     Encoder.encodeString.contramap(_.name)
   )
+  implicit val readable: Readable[Access] = Readable.string.emap(parse)
 
   def parse(in: String): Either[ErrorMessage, Access] =
     Access.values.find(v => v.name == in).toRight(ErrorMessage(s"Unknown access value: '$in'."))
