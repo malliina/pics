@@ -3,7 +3,7 @@ package com.malliina.pics
 import java.util.Date
 
 import com.malliina.http.FullUrl
-import com.malliina.values.{ValidatingCompanion, ErrorMessage}
+import com.malliina.values.{ValidatingCompanion, ErrorMessage, Readable}
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.{Codec, Json, Decoder, Encoder}
 import io.circe.syntax.EncoderOps
@@ -18,6 +18,7 @@ object Access:
     Decoder.decodeString.emap(s => parse(s).left.map(_.message)),
     Encoder.encodeString.contramap(_.name)
   )
+  implicit val readable: Readable[Access] = Readable.string.emap(parse)
 
   def parse(in: String): Either[ErrorMessage, Access] =
     Access.values.find(v => v.name == in).toRight(ErrorMessage(s"Unknown access value: '$in'."))
@@ -32,7 +33,6 @@ object PicOwner extends ValidatingCompanion[String, PicOwner]:
   val anon: PicOwner = PicOwner("anon")
 
   override def build(input: String): Either[ErrorMessage, PicOwner] = Right(apply(input))
-
   override def write(t: PicOwner): String = t.name
 
 case class ProfileInfo(user: PicOwner, readOnly: Boolean)
