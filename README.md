@@ -21,6 +21,11 @@ Check [pics-docs.malliina.com](https://pics-docs.malliina.com).
 
 ### Deploying documentation
 
+Install dependencies:
+
+    pip3 install mkdocs
+    pip3 install mkdocs-material
+
 To deploy the documentation site:
 
     mkdocs gh-deploy
