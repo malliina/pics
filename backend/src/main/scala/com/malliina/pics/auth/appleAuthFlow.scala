@@ -1,7 +1,8 @@
 package com.malliina.pics.auth
 
 import java.time.Instant
-import cats.effect.IO
+import cats.effect.Sync
+import cats.syntax.all.*
 import com.malliina.http.{FullUrl, HttpClient}
 import com.malliina.oauth.TokenResponse
 import com.malliina.pics.auth.AppleAuthFlow.staticConf
@@ -53,19 +54,19 @@ object AppleAuthFlow:
 /** @see
   *   https://developer.apple.com/documentation/signinwithapplejs/incorporating_sign_in_with_apple_into_other_platforms
   */
-class AppleAuthFlow(
+class AppleAuthFlow[F[_]: Sync](
   authConf: AuthConf,
   validator: AppleTokenValidator,
-  http: HttpClient[IO]
-) extends StaticFlowStart
-  with CallbackValidator[Email]:
+  http: HttpClient[F]
+) extends StaticFlowStart[F]
+  with CallbackValidator[F, Email]:
   override val conf: StaticConf = staticConf(authConf)
 
   override def validate(
     code: Code,
     redirectUrl: FullUrl,
     requestNonce: Option[String]
-  ): IO[Either[AuthError, Email]] =
+  ): F[Either[AuthError, Email]] =
     val params = tokenParameters(code, redirectUrl)
     http.postFormAs[TokenResponse](conf.tokenEndpoint, params).flatMap { tokens =>
       http.getAs[JWTKeys](AppleAuthFlow.jwksUri).map { keys =>

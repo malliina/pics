@@ -1,6 +1,7 @@
 package com.malliina.pics.auth
 
-import cats.effect.IO
+import cats.effect.{IO, Sync}
+import cats.syntax.all.*
 import com.malliina.http.HttpClient
 import com.malliina.values.{Email, ErrorMessage, IdToken}
 import com.malliina.web.*
@@ -14,20 +15,21 @@ object GoogleTokenAuth:
     * @param iosClientId
     *   ios apps
     */
-  def apply(
+  def default[F[_]: Sync](
     webClientId: ClientId,
     iosClientId: ClientId,
-    http: HttpClient[IO]
-  ): GoogleTokenAuth =
-    new GoogleTokenAuth(GoogleAuthFlow.keyClient(Seq(webClientId, iosClientId), http))
+    http: HttpClient[F]
+  ): GoogleTokenAuth[F] =
+    val keyClient = GoogleAuthFlow.keyClient(Seq(webClientId, iosClientId), http)
+    GoogleTokenAuth(keyClient)
 
 /** Validates Google ID tokens and extracts the email address.
   */
-class GoogleTokenAuth(validator: KeyClient):
+class GoogleTokenAuth[F[_]: Sync](validator: KeyClient[F]):
   val EmailKey = "email"
   val EmailVerified = "email_verified"
 
-  def validate(token: IdToken): IO[Either[AuthError, Email]] =
+  def validate(token: IdToken): F[Either[AuthError, Email]] =
     validator.validate(token).map { outcome =>
       outcome.flatMap { v =>
         val parsed = v.parsed

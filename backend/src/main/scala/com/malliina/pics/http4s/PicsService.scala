@@ -46,7 +46,7 @@ object PicsService:
   val version10 = mediaType"application/vnd.pics.v10+json"
   val version10String = Show[MediaType].show(version10)
 
-  def apply(
+  def default(
     conf: => PicsConf,
     db: PicsDatabase[IO],
     topic: Topic[IO, PicMessage],
@@ -54,28 +54,15 @@ object PicsService:
     http: HttpClient[IO],
     t: Temporal[IO]
   ): PicsService =
-    val socials = Socials(conf.social, http)
-    apply(
+    PicsService(
+      PicServiceIO(db, handler),
       PicsHtml.build(conf.mode.isProd),
-      Http4sAuth(conf.app, db, http),
-      socials,
+      Http4sAuth.default(conf.app, db, http),
+      Socials(conf.social, http),
       db,
       topic,
-      handler,
-      t
-    )
-
-  def apply(
-    html: PicsHtml,
-    auth: Http4sAuth,
-    socials: Socials,
-    db: MetaSourceT[IO],
-    topic: Topic[IO, PicMessage],
-    handler: MultiSizeHandlerIO,
-    t: Temporal[IO]
-  ): PicsService =
-    val service = PicServiceIO(db, handler)
-    new PicsService(service, html, auth, socials, db, topic, handler)(t)
+      handler
+    )(t)
 
   def ranges(headers: Headers) = headers
     .get[Accept]
@@ -85,8 +72,8 @@ object PicsService:
 class PicsService(
   service: PicServiceIO,
   html: PicsHtml,
-  auth: Http4sAuth,
-  socials: Socials,
+  auth: Http4sAuth[IO],
+  socials: Socials[IO],
   db: MetaSourceT[IO],
   topic: Topic[IO, PicMessage],
   handler: MultiSizeHandlerIO
@@ -489,7 +476,7 @@ class PicsService(
   }
 
   private def handleCallbackD(
-    validator: DiscoveringAuthFlow[Email],
+    validator: DiscoveringAuthFlow[IO, Email],
     reverse: SocialRoute,
     req: Request[IO],
     provider: AuthProvider
@@ -502,7 +489,7 @@ class PicsService(
     )
 
   private def handleCallbackV(
-    validator: CallbackValidator[Email],
+    validator: CallbackValidator[IO, Email],
     reverse: SocialRoute,
     req: Request[IO],
     provider: AuthProvider

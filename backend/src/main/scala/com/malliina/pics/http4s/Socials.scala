@@ -1,7 +1,7 @@
 package com.malliina.pics.http4s
 
 import Socials.log
-import cats.effect.IO
+import cats.effect.{IO, Sync}
 import com.malliina.http.HttpClient
 import com.malliina.pics.auth.*
 import com.malliina.pics.http4s.Socials.cognitoAuthConf
@@ -15,13 +15,13 @@ import java.time.Instant
 object Socials:
   private val log = AppLogger(getClass)
 
-  def cognitoAuthConf(authConf: AuthConf, httpClient: HttpClient[IO]): GenericAuthConf =
-    new GenericAuthConf:
+  def cognitoAuthConf[F[_]](authConf: AuthConf, httpClient: HttpClient[F]): GenericAuthConf[F] =
+    new GenericAuthConf[F]:
       override def conf = authConf
       override def http = httpClient
 
-class Socials(conf: SocialConf, http: HttpClient[IO]):
-  def cognitoValidator(identityProvider: IdentityProvider): CognitoAuthFlow = CognitoAuthFlow(
+class Socials[F[_]: Sync](conf: SocialConf, http: HttpClient[F]):
+  def cognitoValidator(identityProvider: IdentityProvider): CognitoAuthFlow[F] = CognitoAuthFlow(
     "pics.auth.eu-west-1.amazoncognito.com",
     identityProvider,
     Validators.picsId,

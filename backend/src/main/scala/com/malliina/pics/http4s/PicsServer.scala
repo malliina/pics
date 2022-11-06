@@ -59,7 +59,7 @@ object PicsServer extends IOApp:
 //        CSRF[IO, IO](key, _ => true)
 //          .withOnFailure(Unauthorized(Json.toJson(Errors.single("CSRF failure."))))
 //      }
-    PicsService(conf, db, topic, handler, http, t)
+    PicsService.default(conf, db, topic, handler, http, t)
 
   def app(svc: PicsService, sockets: WebSocketBuilder2[IO])(implicit t: Temporal[IO]): AppService =
     GZip {

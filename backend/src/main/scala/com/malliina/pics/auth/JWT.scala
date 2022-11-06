@@ -5,8 +5,8 @@ import java.time.Instant
 import java.util.Date
 import com.malliina.pics.auth.JWT.{Parsed, Verified}
 import com.malliina.util.AppLogger
-import com.malliina.values.{ErrorMessage, IdToken, TokenValue}
-import com.malliina.web.{Expired, InvalidClaims, InvalidSignature, Issuer, JWTError, MissingData, ParseError, Readable}
+import com.malliina.values.{ErrorMessage, IdToken, Readable, TokenValue}
+import com.malliina.web.{Expired, InvalidClaims, InvalidSignature, Issuer, JWTError, MissingData, ParseError}
 import com.nimbusds.jose.crypto.{MACSigner, MACVerifier}
 import com.nimbusds.jose.util.JSONObjectUtils
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}

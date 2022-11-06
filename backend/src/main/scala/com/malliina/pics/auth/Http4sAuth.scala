@@ -1,6 +1,7 @@
 package com.malliina.pics.auth
 
-import cats.effect.IO
+import cats.effect.{IO, Sync}
+import cats.syntax.all.*
 import com.malliina.http.HttpClient
 import com.malliina.http.io.HttpClientIO
 import com.malliina.pics.auth.CredentialsResult.{AccessTokenResult, IdTokenResult, NoCredentials}
@@ -26,8 +27,8 @@ import scala.concurrent.duration.DurationInt
 object Http4sAuth:
   private val log = AppLogger(getClass)
 
-  def apply(conf: AppConf, db: PicsDatabase[IO], http: HttpClient[IO]): Http4sAuth =
-    new Http4sAuth(
+  def default[F[_]: Sync](conf: AppConf, db: PicsDatabase[F], http: HttpClient[F]): Http4sAuth[F] =
+    Http4sAuth(
       JWT(conf.secret),
       Validators.picsAccess,
       Validators.picsId,
@@ -41,24 +42,25 @@ object Http4sAuth:
   object TwitterState:
     implicit val json: Codec[TwitterState] = deriveCodec[TwitterState]
 
-class Http4sAuth(
+class Http4sAuth[F[_]: Sync](
   val webJwt: JWT,
   ios: CognitoAccessValidator,
   android: CognitoIdValidator,
-  google: GoogleTokenAuth,
-  db: PicsDatabase[IO],
+  google: GoogleTokenAuth[F],
+  db: PicsDatabase[F],
   val cookieNames: CookieConf
-):
+) extends BasicService[F]:
   val cookiePath = Option("/")
+  val F = Sync[F]
 
-  def authenticate(headers: Headers): IO[Either[IO[Response[IO]], PicRequest]] =
+  def authenticate(headers: Headers): F[Either[F[Response[F]], PicRequest]] =
     val rs = PicsService.ranges(headers)
-    if rs.exists(r => r.satisfiedBy(MediaType.text.html)) then IO.pure(web(headers))
+    if rs.exists(r => r.satisfiedBy(MediaType.text.html)) then F.pure(web(headers))
     else if rs.exists(m =>
         m.satisfiedBy(version10) || m.satisfiedBy(MediaType.application.json)
       )
     then jwt(headers)
-    else IO.pure(Left(NotAcceptable(Errors("Not acceptable.").asJson, BasicService.noCache)))
+    else F.pure(Left(NotAcceptable(Errors("Not acceptable.").asJson, noCache)))
 
   /** Performs authentication disregarding the Accept header; tries opportunistically cookie-based
     * auth first, falling back to Bearer token auth should cookie auth fail.
@@ -66,11 +68,11 @@ class Http4sAuth(
     * @param headers
     *   request headers
     */
-  def authenticateAll(headers: Headers): IO[Either[IO[Response[IO]], PicRequest]] =
-    val userAuth: IO[Either[IdentityError, Username]] = IO.pure(user(headers)).flatMap { e =>
+  def authenticateAll(headers: Headers): F[Either[F[Response[F]], PicRequest]] =
+    val userAuth: F[Either[IdentityError, Username]] = F.pure(user(headers)).flatMap { e =>
       e.fold(
-        _ => readJwt(headers).fold(l => IO.pure(Left(l)), r => r.map(_.map(_.username))),
-        user => IO.pure(Right(user))
+        _ => readJwt(headers).fold(l => F.pure(Left(l)), r => r.map(_.map(_.username))),
+        user => F.pure(Right(user))
       )
     }
     userAuth.map { e =>
@@ -85,7 +87,7 @@ class Http4sAuth(
       )
     }
 
-  private def web(headers: Headers): Either[IO[Response[IO]], PicRequest] = user(headers).fold(
+  private def web(headers: Headers): Either[F[Response[F]], PicRequest] = user(headers).fold(
     {
       case MissingCredentials(_, headers)
           if !headers.get[Cookie].exists(_.values.exists(_.name == cookieNames.provider)) =>
@@ -104,9 +106,9 @@ class Http4sAuth(
         )
       }
     }
-      .fold(_ => IO.pure(Right(PicRequest.anon(headers))), identity)
+      .fold(_ => F.pure(Right(PicRequest.anon(headers))), identity)
 
-  private def readJwt(headers: Headers): Either[IdentityError, IO[Either[TokenError, JWTUser]]] =
+  private def readJwt(headers: Headers): Either[IdentityError, F[Either[TokenError, JWTUser]]] =
     token(headers) match
       case AccessTokenResult(token) =>
         val res = db.userByToken(token).map { opt =>
@@ -115,20 +117,22 @@ class Http4sAuth(
         }
         Right(res)
       case IdTokenResult(token) =>
-        val res =
-          IO(ios.validate(AccessToken(token.value)).orElse(android.validate(token))).flatMap { e =>
-            e.fold(
-              err =>
-                google.validate(token).map { e =>
-                  e.map { email => EmailUser(email) }
-                },
-              user => IO.pure(Right(user))
-            )
-          }.map { e =>
-            e.left.map { error =>
-              TokenError(error, headers)
+        val res: F[Either[TokenError, JWTUser]] =
+          F.delay(ios.validate(AccessToken(token.value)).orElse(android.validate(token)))
+            .flatMap { e =>
+              e.fold(
+                err =>
+                  google.validate(token).map { e =>
+                    e.map { email => EmailUser(email) }
+                  },
+                user => F.pure(Right(user))
+              )
             }
-          }
+            .map { e =>
+              e.left.map { error =>
+                TokenError(error, headers)
+              }
+            }
         Right(res)
       case NoCredentials(headers) => Left(MissingCredentials("Creds required.", headers))
 
@@ -146,10 +150,10 @@ class Http4sAuth(
   def session[T: Decoder](from: Headers): Either[IdentityError, T] =
     read[T](cookieNames.session, from)
 
-  def withSession[T: Encoder](t: T, req: Request[IO], res: Response[IO]): res.Self =
+  def withSession[T: Encoder](t: T, req: Request[F], res: Response[F]): res.Self =
     withJwt(cookieNames.session, t, req, res)
 
-  def clearSession(req: Request[IO], res: Response[IO]): res.Self =
+  def clearSession(req: Request[F], res: Response[F]): res.Self =
     res
       .removeCookie(removalCookie(cookieNames.session, req))
       .removeCookie(removalCookie(cookieNames.user, req))
@@ -163,8 +167,8 @@ class Http4sAuth(
   def withPicsUser(
     user: UserPayload,
     provider: AuthProvider,
-    req: Request[IO],
-    res: Response[IO]
+    req: Request[F],
+    res: Response[F]
   ) =
     withUser(user, req, res)
       .removeCookie(cookieNames.returnUri)
@@ -172,27 +176,27 @@ class Http4sAuth(
       .addCookie(additionCookie(cookieNames.lastId, user.username.name, req))
       .addCookie(additionCookie(cookieNames.provider, provider.name, req))
 
-  def withUser[T: Encoder](t: T, req: Request[IO], res: Response[IO]): res.Self =
+  def withUser[T: Encoder](t: T, req: Request[F], res: Response[F]): res.Self =
     withJwt(cookieNames.user, t, req, res)
 
   def withJwt[T: Encoder](
     cookieName: String,
     t: T,
-    req: Request[IO],
-    res: Response[IO]
+    req: Request[F],
+    res: Response[F]
   ): res.Self =
     val signed = webJwt.sign(t, 12.hours)
     res.addCookie(additionCookie(cookieName, signed.value, req))
 
-  private def additionCookie(name: String, value: String, req: Request[IO]) =
+  private def additionCookie(name: String, value: String, req: Request[F]) =
     responseCookie(name, value, Option(HttpDate.MaxValue), req)
-  private def removalCookie(name: String, req: Request[IO]) =
+  private def removalCookie(name: String, req: Request[F]) =
     responseCookie(name, "", None, req)
   private def responseCookie(
     name: String,
     value: String,
     expires: Option[HttpDate],
-    req: Request[IO]
+    req: Request[F]
   ): ResponseCookie =
     val top = Urls.topDomainFrom(req)
     ResponseCookie(
