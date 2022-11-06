@@ -7,13 +7,13 @@ import com.malliina.web.{ClientId, CognitoAccessValidator, CognitoIdValidator, I
 object Validators:
   val ExpectedPicsGroup = "pics-group"
 
-  val picsAccess = new CognitoAccessValidator(
+  val picsAccess = CognitoAccessValidator(
     Seq(KeyConfs.cognitoAccess, KeyConfs.cognitoId),
     Issuer("https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_egi2PEe65"),
     ClientId("2rnqepv44epargdosba6nlg2t9")
   )
 
-  val picsId = new CognitoIdValidator(
+  val picsId = CognitoIdValidator(
     Seq(KeyConfs.cognitoAccess, KeyConfs.cognitoId),
     Issuer("https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_egi2PEe65"),
     ClientId("2rnqepv44epargdosba6nlg2t9")

@@ -11,7 +11,7 @@ trait QueryParsers:
 
   def parse[T: QueryParamDecoder](q: Query, key: String) =
     parseOpt[T](q, key)
-      .getOrElse(Left(Errors.single(s"Query key not found: '$key'.")))
+      .getOrElse(Left(Errors(s"Query key not found: '$key'.")))
 
   def parseOpt[T](q: Query, key: String)(implicit
     dec: QueryParamDecoder[T]

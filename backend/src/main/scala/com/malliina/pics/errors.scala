@@ -19,23 +19,26 @@ case class ResizeException(ipe: ImageParseException) extends ImageFailure
 
 class KeyNotFound(key: Key) extends Exception(s"Key not found: '$key'.")
 
-case class SingleError(message: String, key: String)
+case class SingleError(message: ErrorMessage, key: String)
 
 object SingleError:
   implicit val json: Codec[SingleError] = deriveCodec[SingleError]
 
-  def apply(message: String): SingleError = apply(message, "generic")
+  def apply(message: String, key: String): SingleError = SingleError(ErrorMessage(message), key)
 
-  def forJWT(error: JWTError): SingleError =
-    SingleError(error.message.message, error.key)
+  def input(message: String) = apply(ErrorMessage(message), "input")
 
-case class Errors(errors: NonEmptyList[SingleError])
+case class Errors(errors: NonEmptyList[SingleError]):
+  def message = errors.head.message
+  def asException = new ErrorsException(this)
+
+class ErrorsException(val errors: Errors) extends Exception(errors.message.message):
+  def message = errors.message
 
 object Errors:
-  implicit val se: Codec[SingleError] = SingleError.json
-  import cats.implicits.*
-
   implicit val json: Codec[Errors] = deriveCodec[Errors]
 
-  def apply(message: ErrorMessage): Errors = Errors.single(message.message)
-  def single(message: String): Errors = Errors(NonEmptyList.of(SingleError(message)))
+  def apply(error: SingleError): Errors = Errors(NonEmptyList.of(error))
+  def apply(message: String): Errors = apply(message, "generic")
+  def apply(e: ErrorMessage): Errors = apply(e.message)
+  def apply(message: String, key: String): Errors = apply(SingleError(message, key))

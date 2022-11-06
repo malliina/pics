@@ -15,6 +15,7 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
   val FormRole = "form"
   val LoginClass = "login"
   val PicsClass = "pics"
+  val Patch = "PATCH"
   val Post = "POST"
   val ProfileClass = "profile"
   val SignUpClass = "signup"
@@ -60,12 +61,20 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
   def thumbId(key: Key) = s"pic-$key"
 
   def thumbnail(pic: BaseMeta, readOnly: Boolean, visible: Boolean, lazyLoaded: Boolean) =
+    val toggleText = if pic.access == Access.Public then "Make private" else "Make public"
+    val newAccess = if pic.access == Access.Public then Access.Private else Access.Public
     if readOnly then thumb(pic, visible, lazyLoaded)
     else
       val more = figcaption(`class` := "figure-caption caption")(
         div(
           postableForm(s"/pics/${pic.key}/delete")(
             submitButton(`class` := s"${btnOutline.danger} ${btn.sm}")("Delete")
+          )
+        ),
+        div(
+          postableForm(s"/pics/${pic.key}")(
+            input(`type` := "hidden", name := Access.FormKey, value := newAccess.name),
+            submitButton(`class` := s"${btnOutline.default} ${btn.sm}")(toggleText)
           )
         ),
         divClass("pic-link")(a(href := pic.url)(pic.key)),

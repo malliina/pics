@@ -32,9 +32,9 @@ class Crypto(key: PrivateKey):
       case Array(signature, nonce, payload) =>
         val signed = hexSignature(s"$nonce$sep$payload")
         if constantTimeEquals(signature, signed) then Right(payload)
-        else Left(Errors.single(s"Signature mismatch. Token: '$token'."))
+        else Left(Errors(s"Signature mismatch. Token: '$token'."))
       case _ =>
-        Left(Errors.single(s"Invalid token format: '$token'."))
+        Left(Errors(s"Invalid token format: '$token'."))
 
   private def hexSignature(message: String): String =
     val mac = Mac.getInstance(algorithm)

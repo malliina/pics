@@ -55,6 +55,7 @@ trait MetaSourceT[F[_]] extends SourceLike[F]:
   def saveMeta(key: Key, owner: PicOwner): F[KeyMeta]
   def putMetaIfNotExists(meta: KeyMeta): F[Int]
   def remove(key: Key, user: PicOwner): F[Boolean]
+  def modify(key: Key, user: PicOwner, access: Access): F[KeyMeta]
 
 trait UserDatabase[F[_]]:
   def userByToken(token: AccessToken): F[Option[Username]]

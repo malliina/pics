@@ -13,10 +13,13 @@ object PicsDatabase:
 
 class PicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with UserDatabase[F]:
   override def meta(key: Key): F[KeyMeta] = db.run {
+    metaQuery(key)
+  }
+
+  private def metaQuery(key: Key) =
     sql"""select p.`key`, u.username, p.access, p.added
           from pics p, users u
           where p.user = u.id and p.`key` = $key""".query[KeyMeta].unique
-  }
 
   def load(offset: Int, limit: Int, user: PicOwner): F[List[KeyMeta]] = db.run {
     sql"""select p.`key`, u.username, p.access, p.added
@@ -51,6 +54,16 @@ class PicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with User
         else log.warn(s"Tried to remove '$key' by '$user' but found no matching rows.")
         wasDeleted
     }
+  }
+
+  override def modify(key: Key, user: PicOwner, access: Access): F[KeyMeta] = db.run {
+    for
+      up <-
+        sql"update pics set access = $access where `key` = $key and user = (select id from users where username = $user)".update.run
+      row <- metaQuery(key)
+    yield
+      log.info(s"User $user changed access of $key to $access.")
+      row
   }
 
   def contains(key: Key): F[Boolean] = db.run {

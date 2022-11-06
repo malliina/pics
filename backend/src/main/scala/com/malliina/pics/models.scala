@@ -46,7 +46,7 @@ object PicSize:
     case Medium.value   => Right(Medium)
     case Large.value    => Right(Large)
     case Original.value => Right(Original)
-    case other          => Left(SingleError(s"Invalid size: '$other'."))
+    case other          => Left(SingleError.input(s"Invalid size: '$other'."))
 
   case object Small extends PicSize("s")
   case object Medium extends PicSize("m")
@@ -86,7 +86,8 @@ object PicMetas:
       host / Reverse.pic(meta.key).renderString,
       picUrl(key, PicSize.Small, host),
       picUrl(key, PicSize.Medium, host),
-      picUrl(key, PicSize.Large, host)
+      picUrl(key, PicSize.Large, host),
+      meta.access
     )
 
   def picUrl(key: Key, size: PicSize, host: FullUrl) =

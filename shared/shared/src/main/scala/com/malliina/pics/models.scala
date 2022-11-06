@@ -13,16 +13,17 @@ enum Access(val name: String):
   case Private extends Access("private")
 
 object Access:
+  val FormKey = "access"
   implicit val json: Codec[Access] = Codec.from(
-    Decoder.decodeString.emap(parse),
+    Decoder.decodeString.emap(s => parse(s).left.map(_.message)),
     Encoder.encodeString.contramap(_.name)
   )
 
-  def parse(in: String): Either[String, Access] =
-    Access.values.find(v => v.name == in).toRight(s"Unknown access value: '$in'.")
+  def parse(in: String): Either[ErrorMessage, Access] =
+    Access.values.find(v => v.name == in).toRight(ErrorMessage(s"Unknown access value: '$in'."))
 
   def parseUnsafe(in: String): Access =
-    parse(in).fold(err => throw new IllegalArgumentException(err), identity)
+    parse(in).fold(err => throw IllegalArgumentException(err.message), identity)
 
 case class PicOwner(name: String) extends AnyVal:
   override def toString: String = name
@@ -68,6 +69,7 @@ trait BaseMeta:
   def small: FullUrl
   def medium: FullUrl
   def large: FullUrl
+  def access: Access
 
 /** Using java.util.Date because Scala.js doesn't fully support java.time.* classes.
   */
@@ -77,10 +79,11 @@ case class PicMeta(
   url: FullUrl,
   small: FullUrl,
   medium: FullUrl,
-  large: FullUrl
+  large: FullUrl,
+  access: Access
 ) extends BaseMeta:
   def withClientKey(clientKey: Key): ClientPicMeta =
-    ClientPicMeta(key, added, url, small, medium, large, clientKey)
+    ClientPicMeta(key, added, url, small, medium, large, clientKey, access)
 
 object PicMeta:
   implicit val dateFormat: Codec[Date] = Codec.from(
@@ -101,7 +104,8 @@ case class ClientPicMeta(
   small: FullUrl,
   medium: FullUrl,
   large: FullUrl,
-  clientKey: Key
+  clientKey: Key,
+  access: Access
 ) extends BaseMeta
 
 object ClientPicMeta:

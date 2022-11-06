@@ -58,7 +58,7 @@ class Http4sAuth(
         m.satisfiedBy(version10) || m.satisfiedBy(MediaType.application.json)
       )
     then jwt(headers)
-    else IO.pure(Left(NotAcceptable(Errors.single("Not acceptable.").asJson, BasicService.noCache)))
+    else IO.pure(Left(NotAcceptable(Errors("Not acceptable.").asJson, BasicService.noCache)))
 
   /** Performs authentication disregarding the Accept header; tries opportunistically cookie-based
     * auth first, falling back to Bearer token auth should cookie auth fail.

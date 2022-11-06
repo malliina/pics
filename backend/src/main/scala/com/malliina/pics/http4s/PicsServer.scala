@@ -42,6 +42,7 @@ object PicsServer extends IOApp:
       .withErrorHandler(ErrorHandler[IO].partial)
       .withIdleTimeout(60.minutes)
       .withRequestHeaderReceiveTimeout(30.minutes)
+      .withShutdownTimeout(1.millis)
       .build
   yield server
 

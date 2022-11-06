@@ -189,6 +189,10 @@ class PicsService(
         }
     case req @ POST -> Root / "pics" / KeyParam(key) / "delete" =>
       removeKey(key, Reverse.list, req)
+    case req @ POST -> Root / "pics" / KeyParam(key) =>
+      jsonOrForm[AccessLevel](req, Forms.access) { (access, user) =>
+        changeAccess(key, access.access, user, req)
+      }
     case req @ DELETE -> Root / "pics" / KeyParam(key) =>
       removeKey(key, Reverse.drop, req)
     case req @ POST -> Root / "sync" =>
@@ -204,7 +208,7 @@ class PicsService(
                 SeeOther(Location(Reverse.drop))
             }
           }
-        else unauthorized(Errors.single("Admin required."), req)
+        else unauthorized(Errors("Admin required."), req)
       }
     case req @ GET -> Root / "sockets" =>
       authedAll(req) { user =>
@@ -312,7 +316,7 @@ class PicsService(
           maybe.fold(
             err =>
               log.warn(s"$err in $req")
-              unauthorized(Errors.single(s"Invalid callback parameters."), req)
+              unauthorized(Errors(s"Invalid callback parameters."), req)
             ,
             identity
           )
@@ -388,15 +392,30 @@ class PicsService(
           if meta.owner == user.name then sendPic
           else
             log.warn(s"User '${user.name}' not authorized to view '$key' owned by '${meta.owner}'.")
-            unauthorized(Errors.single(s"Unauthorized."), req)
+            unauthorized(Errors(s"Unauthorized."), req)
         }
     }
+
+  private def changeAccess(key: Key, to: Access, user: PicRequest, req: Request[IO]) =
+    if user.readOnly then
+      IO(
+        log.warn(s"User '${user.name}' is not authorized to change access of any images.")
+      ).flatMap { _ =>
+        unauthorized(Errors(s"Unauthorized."), req)
+      }
+    else
+      db.modify(key, user.name, to).flatMap { meta =>
+        renderRanged(req)(
+          json = Accepted(Json.obj("message" -> "ok".asJson), noCache),
+          html = SeeOther(Location(Reverse.list))
+        )
+      }
 
   private def removeKey(key: Key, redir: Uri, req: Request[IO]) =
     authed(req) { user =>
       if user.readOnly then
         IO(log.warn(s"User '${user.name}' is not authorized to delete '$key'.")).flatMap { _ =>
-          unauthorized(Errors.single(s"Unauthorized."), req)
+          unauthorized(Errors(s"Unauthorized."), req)
         }
       else
         db.remove(key, user.name).flatMap { wasDeleted =>
@@ -518,7 +537,7 @@ class PicsService(
     decoder
       .decode(req, strict = false)
       .foldF(
-        failure => unauthorized(Errors.single(failure.message), req),
+        failure => unauthorized(Errors(failure.message), req),
         urlForm =>
           AppleResponse(urlForm).map { form =>
             val session =
@@ -540,7 +559,7 @@ class PicsService(
                     s"Got '$actualState' but expected '$expected'."
                 }
               log.error(s"Authentication failed, state mismatch. $detailed $req")
-              unauthorized(Errors.single("State mismatch."), req)
+              unauthorized(Errors("State mismatch."), req)
           }.recover { err =>
             unauthorized(Errors(err), req)
           }
@@ -582,7 +601,7 @@ class PicsService(
     else if rs.exists(_.satisfies(MediaType.text.html)) then html
     else if rs.exists(_.satisfies(version10)) then json
     else if rs.exists(_.satisfies(MediaType.application.json)) then json
-    else NotAcceptable(Errors.single("Not acceptable.").asJson, noCache)
+    else NotAcceptable(Errors("Not acceptable.").asJson, noCache)
 
   private def failResize(error: ImageFailure, by: PicRequest): IO[Response[IO]] = error match
     case UnsupportedFormat(format, supported) =>
@@ -602,8 +621,38 @@ class PicsService(
       log.error(s"Unable to parse image by '${by.name}'.", ipa)
       badRequestWith("Unable to parse image.")
 
+  private def jsonOrForm[T: Decoder](req: Request[IO], readForm: FormReader => Either[Errors, T])(
+    code: (T, PicRequest) => IO[Response[IO]]
+  )(implicit decoder: EntityDecoder[IO, UrlForm]): IO[Response[IO]] =
+    authed(req) { user =>
+      val decoded = req.decodeJson[T].handleErrorWith { t =>
+        decoder
+          .decode(req, strict = false)
+          .foldF(
+            fail =>
+              log.warn(
+                s"Both JSON and form decode failed for ${req.method} '${req.uri.renderString}'. $fail",
+                t
+              )
+              IO.raiseError(fail)
+            ,
+            form =>
+              readForm(FormReader(form)).fold(
+                err => IO.raiseError(ErrorsException(err)),
+                IO.pure
+              )
+          )
+      }
+      decoded.flatMap { t =>
+        code(t, user)
+      }.handleErrorWith { err =>
+        log.error(s"Form failure. $err")
+        badRequest(Errors("Invalid form input."))
+      }
+    }
+
   private def ok[A](a: A)(implicit w: EntityEncoder[IO, A]) = Ok(a, noCache)
-  private def badRequestWith(message: String) = badRequest(Errors.single(message))
+  private def badRequestWith(message: String) = badRequest(Errors(message))
   private def badRequest(errors: Errors): IO[Response[IO]] =
     BadRequest(errors.asJson, noCache)
   private def unauthorized(errors: Errors, req: Request[IO]): IO[Response[IO]] = Unauthorized(
@@ -612,6 +661,6 @@ class PicsService(
   ).map(r => auth.clearSession(req, r.removeCookie(cookieNames.provider)))
   private def keyNotFound(key: Key) = notFoundWith(s"Not found: '$key'.")
   private def notFound(req: Request[IO]) = notFoundWith(s"Not found: '${req.uri}'.")
-  private def notFoundWith(message: String) = NotFound(Errors.single(message).asJson, noCache)
+  private def notFoundWith(message: String) = NotFound(Errors(message).asJson, noCache)
   private def serverError(message: String) =
-    InternalServerError(Errors.single(message).asJson, noCache)
+    InternalServerError(Errors(message).asJson, noCache)
