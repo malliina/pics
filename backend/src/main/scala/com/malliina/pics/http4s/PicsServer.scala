@@ -2,11 +2,13 @@ package com.malliina.pics.http4s
 
 import cats.data.Kleisli
 import cats.effect.kernel.{Resource, Temporal}
-import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.{Async, ExitCode, IO, IOApp}
 import com.malliina.pics.db.{DoobieDatabase, PicsDatabase}
 import com.malliina.pics.{BuildInfo, MultiSizeHandler, PicsConf}
 import com.malliina.util.AppLogger
 import com.malliina.http.io.HttpClientIO
+import com.malliina.http.io.HttpClientF
+import com.malliina.http.HttpClient
 import fs2.concurrent.Topic
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.middleware.{GZip, HSTS}
@@ -32,7 +34,7 @@ object PicsServer extends IOApp:
     port: Port = serverPort
   ): Resource[IO, Server] = for
     handler <- sizeHandler
-    picsApp <- appResource(conf, handler)
+    picsApp <- appResource(conf, handler, HttpClientIO.resource)
     _ = log.info(s"Binding on port $port using app version ${BuildInfo.gitHash}...")
     server <- EmberServerBuilder
       .default[IO]
@@ -46,12 +48,14 @@ object PicsServer extends IOApp:
       .build
   yield server
 
-  def appResource(conf: => PicsConf, handler: MultiSizeHandler[IO])(implicit
-    t: Temporal[IO]
-  ): Resource[IO, PicsService[IO]] = for
-    topic <- Resource.eval(Topic[IO, PicMessage])
-    tx <- DoobieDatabase.migratedResource[IO](conf.db)
-    http <- HttpClientIO.resource
+  def appResource[F[_]: Async](
+    conf: => PicsConf,
+    handler: MultiSizeHandler[F],
+    httpResource: Resource[F, HttpClient[F]]
+  ): Resource[F, PicsService[F]] = for
+    topic <- Resource.eval(Topic[F, PicMessage])
+    tx <- DoobieDatabase.migratedResource[F](conf.db)
+    http <- httpResource
   yield
     val db = PicsDatabase(DoobieDatabase(tx))
 //    val csrf =
@@ -59,7 +63,7 @@ object PicsServer extends IOApp:
 //        CSRF[IO, IO](key, _ => true)
 //          .withOnFailure(Unauthorized(Json.toJson(Errors.single("CSRF failure."))))
 //      }
-    PicsService.default(conf, db, topic, handler, http, t)
+    PicsService.default(conf, db, topic, handler, http)
 
   def app(svc: PicsService[IO], sockets: WebSocketBuilder2[IO])(implicit
     t: Temporal[IO]

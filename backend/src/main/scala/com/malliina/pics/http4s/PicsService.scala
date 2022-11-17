@@ -45,14 +45,13 @@ object PicsService:
   val version10 = mediaType"application/vnd.pics.v10+json"
   val version10String = Show[MediaType].show(version10)
 
-  def default(
+  def default[F[_]: Async](
     conf: => PicsConf,
-    db: PicsDatabase[IO],
-    topic: Topic[IO, PicMessage],
-    handler: MultiSizeHandler[IO],
-    http: HttpClient[IO],
-    t: Temporal[IO]
-  ): PicsService[IO] =
+    db: PicsDatabase[F],
+    topic: Topic[F, PicMessage],
+    handler: MultiSizeHandler[F],
+    http: HttpClient[F]
+  ): PicsService[F] =
     PicsService(
       PicService(db, handler),
       PicsHtml.build(conf.mode.isProd),
