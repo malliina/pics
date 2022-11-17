@@ -3,17 +3,19 @@ package com.malliina.pics
 import java.nio.file.{Files, Path}
 
 import cats.effect.*
+import cats.syntax.all.*
 import com.malliina.util.AppLogger
 import org.apache.commons.io.FilenameUtils
 
 trait PicServiceT[F[_]]:
   def save(tempFile: Path, by: BaseRequest, preferredName: Option[String]): F[KeyMeta]
 
-class PicServiceIO(val db: MetaSourceT[IO], handler: MultiSizeHandler[IO]) extends PicServiceT[IO]:
+class PicService[F[_]: Sync](val db: MetaSourceT[F], handler: MultiSizeHandler[F])
+  extends PicServiceT[F]:
   private val log = AppLogger(getClass)
 
-  override def save(tempFile: Path, by: BaseRequest, preferredName: Option[String]): IO[KeyMeta] =
-    val fileCopy: IO[(Path, Key)] = IO {
+  override def save(tempFile: Path, by: BaseRequest, preferredName: Option[String]): F[KeyMeta] =
+    val fileCopy: F[(Path, Key)] = Sync[F].delay {
       // without dot
       val name = preferredName getOrElse tempFile.getFileName.toString
       val ext = Option(FilenameUtils.getExtension(name)).filter(_.nonEmpty).getOrElse("jpeg")

@@ -48,9 +48,9 @@ object PicsServer extends IOApp:
 
   def appResource(conf: => PicsConf, handler: MultiSizeHandler[IO])(implicit
     t: Temporal[IO]
-  ): Resource[IO, PicsService] = for
+  ): Resource[IO, PicsService[IO]] = for
     topic <- Resource.eval(Topic[IO, PicMessage])
-    tx <- DoobieDatabase.migratedResource(conf.db)
+    tx <- DoobieDatabase.migratedResource[IO](conf.db)
     http <- HttpClientIO.resource
   yield
     val db = PicsDatabase(DoobieDatabase(tx))
@@ -61,7 +61,9 @@ object PicsServer extends IOApp:
 //      }
     PicsService.default(conf, db, topic, handler, http, t)
 
-  def app(svc: PicsService, sockets: WebSocketBuilder2[IO])(implicit t: Temporal[IO]): AppService =
+  def app(svc: PicsService[IO], sockets: WebSocketBuilder2[IO])(implicit
+    t: Temporal[IO]
+  ): AppService =
     GZip {
       HSTS {
         orNotFound {

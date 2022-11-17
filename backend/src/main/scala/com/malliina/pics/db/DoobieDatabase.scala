@@ -1,8 +1,7 @@
 package com.malliina.pics.db
 
-import cats.effect.IO.*
+import cats.effect.{Async, Sync}
 import cats.effect.kernel.Resource
-import cats.effect.{IO}
 import com.malliina.pics.db.DoobieDatabase.log
 import com.malliina.util.AppLogger
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
@@ -18,19 +17,17 @@ import scala.concurrent.duration.DurationInt
 object DoobieDatabase:
   private val log = AppLogger(getClass)
 
-  def apply(tx: DataSourceTransactor[IO]) = new DoobieDatabase(tx)
+  def runner[F[_]: Async](conf: DatabaseConf): DatabaseRunner[F] =
+    fromSource(dataSource(conf))
 
-  def apply(conf: DatabaseConf): DatabaseRunner[IO] =
-    apply(dataSource(conf))
+  def fromSource[F[_]: Async](ds: HikariDataSource): DatabaseRunner[F] =
+    DoobieDatabaseLegacy(ds)
 
-  def apply(ds: HikariDataSource): DatabaseRunner[IO] =
-    new DoobieDatabaseLegacy(ds)
-
-  def withMigrations(conf: => DatabaseConf): Resource[IO, DatabaseRunner[IO]] =
+  def withMigrations[F[_]: Async](conf: => DatabaseConf): Resource[F, DatabaseRunner[F]] =
     Resource.make {
-      IO {
+      Sync[F].delay {
         migrate(conf)
-        apply(conf)
+        runner(conf)
       }
     }(dr => dr.close)
 
@@ -49,16 +46,16 @@ object DoobieDatabase:
     log.info(s"Connecting to '${conf.url}'...")
     new HikariDataSource(hikari)
 
-  def migratedResource(conf: DatabaseConf): Resource[IO, doobie.DataSourceTransactor[IO]] =
+  def migratedResource[F[_]: Async](conf: DatabaseConf): Resource[F, doobie.DataSourceTransactor[F]] =
     migrate(conf)
     resource(dataSource(conf))
 
-  def resource(ds: HikariDataSource): Resource[IO, DataSourceTransactor[IO]] =
-    for ec <- ExecutionContexts.fixedThreadPool[IO](32) // our connect EC
-    yield Transactor.fromDataSource[IO](ds, ec)
+  def resource[F[_]: Async](ds: HikariDataSource): Resource[F, DataSourceTransactor[F]] =
+    for ec <- ExecutionContexts.fixedThreadPool[F](32) // our connect EC
+    yield Transactor.fromDataSource[F](ds, ec)
 
 // Temporary migration tool
-class DoobieDatabase(tx: DataSourceTransactor[IO]) extends DatabaseRunner[IO]:
+class DoobieDatabase[F[_]: Sync](tx: DataSourceTransactor[F]) extends DatabaseRunner[F]:
   implicit val logHandler: LogHandler = LogHandler {
     case Success(sql, args, exec, processing) =>
       log.info(s"OK '$sql' exec ${exec.toMillis} ms processing ${processing.toMillis} ms.")
@@ -68,17 +65,17 @@ class DoobieDatabase(tx: DataSourceTransactor[IO]) extends DatabaseRunner[IO]:
       log.error(s"Exec failed '$sql' in $exec.'", failure)
   }
 
-  def run[T](io: ConnectionIO[T]): IO[T] = io.transact(tx)
-  def close: IO[Unit] = IO.unit
+  def run[T](io: ConnectionIO[T]): F[T] = io.transact(tx)
+  def close: F[Unit] = Sync[F].unit
 
 trait DatabaseRunner[F[_]]:
   def run[T](io: ConnectionIO[T]): F[T]
   def close: F[Unit]
 
-class DoobieDatabaseLegacy(ds: HikariDataSource) extends DatabaseRunner[IO]:
+class DoobieDatabaseLegacy[F[_]: Async](ds: HikariDataSource) extends DatabaseRunner[F]:
   private val tx = DoobieDatabase.resource(ds)
 
-  def run[T](io: ConnectionIO[T]): IO[T] =
+  def run[T](io: ConnectionIO[T]): F[T] =
     tx.use(r => io.transact(r))
 
-  def close: IO[Unit] = IO(ds.close())
+  def close: F[Unit] = Sync[F].delay(ds.close())
