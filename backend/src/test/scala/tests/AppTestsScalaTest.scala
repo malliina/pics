@@ -66,7 +66,7 @@ trait ServerSuite extends MUnitDatabaseSuite with ClientSuite:
     PicsServer
       .server(
         PicsConf.unsafeLoadWith(PicsConf.picsConf, db()),
-        Resource.eval(IO(MultiSizeHandlerIO.empty())),
+        Resource.eval(IO(MultiSizeHandler.empty())),
         port = port"12345"
       )
       .map(s => ServerTools(s))

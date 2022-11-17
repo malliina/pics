@@ -1,26 +1,29 @@
 package com.malliina.pics
 
 import java.nio.file.{Files, Path}
-
-import cats.effect.IO
+import cats.effect.{IO, Sync}
+import cats.syntax.all.*
 import com.sksamuel.scrimage.ImmutableImage
 
-class ImageHandlerIO(prefix: String, resizer: ImageResizerIO, val storage: DataSourceIO)
-  extends ImageService[IO]:
-  def createTempFile = IO(Files.createTempFile(prefix, null))
+class ImageHandler[F[_]: Sync](
+  prefix: String,
+  resizer: ImageResizer[F],
+  val storage: DataSourceT[F]
+) extends ImageService[F]:
+  def createTempFile = Sync[F].blocking(Files.createTempFile(prefix, null))
 
-  override def handle(original: Path, key: Key): IO[Path] =
-    IO(ImmutableImage.loader().fromPath(original)).flatMap { image =>
+  override def handle(original: Path, key: Key): F[Path] =
+    Sync[F].blocking(ImmutableImage.loader().fromPath(original)).flatMap { image =>
       handleImage(image, key)
     }
 
   override def handleImage(image: ImmutableImage, key: Key) = createTempFile.flatMap { dest =>
     resizer.resize(image, dest).flatMap { e =>
-      e.fold(err => IO.raiseError(err.ioe), _ => storage.saveBody(key, dest).map(_ => dest))
+      e.fold(err => Sync[F].raiseError(err.ioe), _ => storage.saveBody(key, dest).map(_ => dest))
     }
   }
 
-  override def remove(key: Key): IO[PicResult] = storage.remove(key)
+  override def remove(key: Key): F[PicResult] = storage.remove(key)
 
 trait ImageHandlerLike[F[_]]:
   def handleImage(image: ImmutableImage, key: Key): F[Path]

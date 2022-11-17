@@ -1,7 +1,7 @@
 package tests
 
 import cats.effect.IO
-import com.malliina.pics.{ContentType, ImageException, Resizer, ScrimageResizerIO, Util}
+import com.malliina.pics.{ContentType, ImageException, Resizer, ScrimageResizer, Util}
 import com.malliina.storage.{StorageInt, StorageSize}
 
 import java.nio.file.{Files, Paths}
@@ -43,7 +43,7 @@ class ImageTests extends munit.CatsEffectSuite:
   }
 
   test("resize to small".ignore) {
-    val resizer = ScrimageResizerIO.Small
+    val resizer = ScrimageResizer.Small[IO]
     resizeWith(resizer, "demo-scrimage-small.jpeg").map { result =>
       assert(result.isRight)
       val size = result.toOption.get
@@ -52,7 +52,7 @@ class ImageTests extends munit.CatsEffectSuite:
   }
 
   test("resize to medium scrimage".ignore) {
-    val resizer = ScrimageResizerIO.Medium
+    val resizer = ScrimageResizer.Medium[IO]
     resizeWith(resizer, "demo-scrimage-normal.jpeg").map { result =>
       assert(result.isRight)
       val size = result.toOption.get
@@ -61,7 +61,7 @@ class ImageTests extends munit.CatsEffectSuite:
   }
 
   test("resize to large scrimage".ignore) {
-    val resizer = ScrimageResizerIO.Large
+    val resizer = ScrimageResizer.Large[IO]
     resizeWith(resizer, "demo-scrimage-large.jpeg").map { result =>
       assert(result.isRight)
       val size = result.toOption.get
@@ -70,7 +70,7 @@ class ImageTests extends munit.CatsEffectSuite:
   }
 
   def resizeWith(
-    resizer: ScrimageResizerIO,
+    resizer: ScrimageResizer[IO],
     name: String
   ): IO[Either[ImageException, StorageSize]] =
     resizer.resizeFile(origLarge, picDir.resolve(name))

@@ -4,7 +4,7 @@ import cats.data.Kleisli
 import cats.effect.kernel.{Resource, Temporal}
 import cats.effect.{ExitCode, IO, IOApp}
 import com.malliina.pics.db.{DoobieDatabase, PicsDatabase}
-import com.malliina.pics.{BuildInfo, MultiSizeHandlerIO, PicsConf}
+import com.malliina.pics.{BuildInfo, MultiSizeHandler, PicsConf}
 import com.malliina.util.AppLogger
 import com.malliina.http.io.HttpClientIO
 import fs2.concurrent.Topic
@@ -28,7 +28,7 @@ object PicsServer extends IOApp:
 
   def server(
     conf: => PicsConf,
-    sizeHandler: Resource[IO, MultiSizeHandlerIO] = MultiSizeHandlerIO.default,
+    sizeHandler: Resource[IO, MultiSizeHandler[IO]] = MultiSizeHandler.default,
     port: Port = serverPort
   ): Resource[IO, Server] = for
     handler <- sizeHandler
@@ -46,7 +46,7 @@ object PicsServer extends IOApp:
       .build
   yield server
 
-  def appResource(conf: => PicsConf, handler: MultiSizeHandlerIO)(implicit
+  def appResource(conf: => PicsConf, handler: MultiSizeHandler[IO])(implicit
     t: Temporal[IO]
   ): Resource[IO, PicsService] = for
     topic <- Resource.eval(Topic[IO, PicMessage])

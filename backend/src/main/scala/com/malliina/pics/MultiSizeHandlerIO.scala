@@ -1,68 +1,67 @@
 package com.malliina.pics
 
 import java.nio.file.Path
-import cats.effect.Resource
+import cats.effect.{IO, Resource, Sync}
 import cats.implicits.*
 import cats.syntax.*
 import cats.data.NonEmptyList
-import cats.effect.IO
 import com.malliina.pics.s3.S3Source
 import com.sksamuel.scrimage.ImmutableImage
 
-object MultiSizeHandlerIO:
-  def default: Resource[IO, MultiSizeHandlerIO] = for
+object MultiSizeHandler:
+  def default: Resource[IO, MultiSizeHandler[IO]] = for
     sm <- S3Source.Small
     md <- S3Source.Medium
     lg <- S3Source.Large
     orig <- S3Source.Original
-  yield apply(sm, md, lg, orig)
+  yield combined(sm, md, lg, orig)
 
-  def empty(): MultiSizeHandlerIO = apply(
+  def empty[F[_]: Sync](): MultiSizeHandler[F] = combined(
     FilePicsIO.named("small"),
     FilePicsIO.named("medium"),
     FilePicsIO.named("large"),
     FilePicsIO.named("original")
   )
 
-  def apply(
-    small: DataSourceT[IO],
-    medium: DataSourceT[IO],
-    large: DataSourceT[IO],
-    original: DataSourceT[IO]
+  def combined[F[_]: Sync](
+    small: DataSourceT[F],
+    medium: DataSourceT[F],
+    large: DataSourceT[F],
+    original: DataSourceT[F]
   ) =
-    new MultiSizeHandlerIO(
-      ImageHandlerIO("small", ScrimageResizerIO.Small, cached("smalls", small)),
-      ImageHandlerIO("medium", ScrimageResizerIO.Medium, cached("mediums", medium)),
-      ImageHandlerIO("large", ScrimageResizerIO.Large, cached("larges", large)),
-      ImageHandlerIO("original", AsIsResizerIO, cached("originals", original))
+    new MultiSizeHandler(
+      ImageHandler("small", ScrimageResizer.Small, cached("smalls", small)),
+      ImageHandler("medium", ScrimageResizer.Medium, cached("mediums", medium)),
+      ImageHandler("large", ScrimageResizer.Large, cached("larges", large)),
+      ImageHandler("original", AsIsResizer[F], cached("originals", original))
     )
 
-  def cached(name: String, origin: DataSourceT[IO]) =
-    FileCachingPicsIO(FilePicsIO.named(name), origin)
+  def cached[F[_]: Sync](name: String, origin: DataSourceT[F]) =
+    FileCachingPics[F](FilePicsIO.named(name), origin)
 
-class MultiSizeHandlerIO(
-  val smalls: ImageHandlerIO,
-  val mediums: ImageHandlerIO,
-  val larges: ImageHandlerIO,
-  val originals: ImageHandlerIO
-) extends ImageHandlerLike[IO]:
+class MultiSizeHandler[F[_]: Sync](
+  val smalls: ImageHandler[F],
+  val mediums: ImageHandler[F],
+  val larges: ImageHandler[F],
+  val originals: ImageHandler[F]
+) extends ImageHandlerLike[F]:
   val handlers = NonEmptyList.of(smalls, mediums, larges, originals)
 
-  def apply(size: PicSize): ImageHandlerIO = size match
+  def apply(size: PicSize): ImageHandler[F] = size match
     case PicSize.Small    => smalls
     case PicSize.Medium   => mediums
     case PicSize.Large    => larges
     case PicSize.Original => originals
 
-  def handle(original: Path, key: Key): IO[Path] =
-    IO(ImmutableImage.loader().fromPath(original)).flatMap { image =>
+  def handle(original: Path, key: Key): F[Path] =
+    Sync[F].blocking(ImmutableImage.loader().fromPath(original)).flatMap { image =>
       handleImage(image, key)
     }
 
-  override def handleImage(image: ImmutableImage, key: Key): IO[Path] =
+  override def handleImage(image: ImmutableImage, key: Key): F[Path] =
     handlers.traverse(_.handleImage(image, key)).map { paths =>
       paths.head
     }
 
-  override def remove(key: Key): IO[PicResult] =
+  override def remove(key: Key): F[PicResult] =
     handlers.traverse(_.remove(key)).map(_ => PicSuccess)

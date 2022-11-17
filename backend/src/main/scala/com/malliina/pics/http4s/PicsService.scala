@@ -50,7 +50,7 @@ object PicsService:
     conf: => PicsConf,
     db: PicsDatabase[IO],
     topic: Topic[IO, PicMessage],
-    handler: MultiSizeHandlerIO,
+    handler: MultiSizeHandler[IO],
     http: HttpClient[IO],
     t: Temporal[IO]
   ): PicsService =
@@ -76,7 +76,7 @@ class PicsService(
   socials: Socials[IO],
   db: MetaSourceT[IO],
   topic: Topic[IO, PicMessage],
-  handler: MultiSizeHandlerIO
+  handler: MultiSizeHandler[IO]
 )(implicit t: Temporal[IO])
   extends BasicService[IO]:
   val pong = "pong"

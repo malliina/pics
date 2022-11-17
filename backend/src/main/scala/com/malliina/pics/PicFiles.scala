@@ -1,7 +1,10 @@
 package com.malliina.pics
 
+import cats.{FlatMap, Monad}
+
 import java.nio.file.{Files, Path}
-import cats.effect.IO
+import cats.effect.{Async, IO, Sync}
+import cats.syntax.all.*
 import com.malliina.storage.{StorageLong, StorageSize}
 import com.malliina.values.{AccessToken, Username}
 
@@ -38,15 +41,13 @@ trait ImageSourceLike[F[_]] extends SourceLike[F]:
   def remove(key: Key): F[PicResult]
   def saveBody(key: Key, file: Path): F[StorageSize]
 
-trait DataSourceT[F[_]] extends ImageSourceLike[F]:
+trait DataSourceT[F[_]: Monad] extends ImageSourceLike[F]:
   def get(key: Key): F[DataFile]
   def load(from: Int, until: Int): F[Seq[FlatMeta]]
-
-trait DataSourceIO extends DataSourceT[IO]:
-  def find(key: Key): IO[Option[DataFile]] =
+  def find(key: Key): F[Option[DataFile]] =
     contains(key).flatMap { exists =>
       if exists then get(key).map(Option.apply)
-      else IO.pure(None)
+      else Monad[F].pure(None)
     }
 
 trait MetaSourceT[F[_]] extends SourceLike[F]:

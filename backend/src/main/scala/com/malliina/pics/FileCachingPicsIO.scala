@@ -1,20 +1,23 @@
 package com.malliina.pics
 
-import java.nio.file.Path
+import cats.Monad
 
+import java.nio.file.Path
 import cats.effect.IO
+import cats.syntax.all.*
 import com.malliina.storage.StorageSize
 
-class FileCachingPicsIO(cache: FilePicsIO, origin: DataSourceT[IO]) extends DataSourceIO:
-  override def load(from: Int, until: Int) = origin.load(from, until)
+class FileCachingPics[F[_]: Monad](cache: FilePicsIO[F], origin: DataSourceT[F])
+  extends DataSourceT[F]:
+  override def load(from: Int, until: Int): F[Seq[FlatMeta]] = origin.load(from, until)
 
-  override def contains(key: Key): IO[Boolean] =
+  override def contains(key: Key): F[Boolean] =
     cache.contains(key).flatMap { isCached =>
-      if isCached then IO.pure(true)
+      if isCached then Monad[F].pure(true)
       else origin.contains(key)
     }
 
-  override def get(key: Key): IO[DataFile] =
+  override def get(key: Key): F[DataFile] =
     cache.contains(key).flatMap { isCached =>
       if isCached then cache.get(key)
       else
@@ -25,13 +28,13 @@ class FileCachingPicsIO(cache: FilePicsIO, origin: DataSourceT[IO]) extends Data
         }
     }
 
-  override def saveBody(key: Key, file: Path): IO[StorageSize] =
+  override def saveBody(key: Key, file: Path): F[StorageSize] =
     for
       size <- origin.saveBody(key, file)
       _ <- cache.saveBody(key, file)
     yield size
 
-  override def remove(key: Key): IO[PicResult] =
+  override def remove(key: Key): F[PicResult] =
     for
       result <- origin.remove(key)
       _ <- cache.remove(key)
