@@ -1,7 +1,7 @@
 package com.malliina.pics
 
 import java.nio.file.Path
-import cats.effect.{IO, Resource, Sync}
+import cats.effect.{Async, IO, Resource, Sync}
 import cats.implicits.*
 import cats.syntax.*
 import cats.data.NonEmptyList
@@ -9,11 +9,11 @@ import com.malliina.pics.s3.S3Source
 import com.sksamuel.scrimage.ImmutableImage
 
 object MultiSizeHandler:
-  def default: Resource[IO, MultiSizeHandler[IO]] = for
-    sm <- S3Source.Small
-    md <- S3Source.Medium
-    lg <- S3Source.Large
-    orig <- S3Source.Original
+  def default[F[_]: Async]: Resource[F, MultiSizeHandler[F]] = for
+    sm <- S3Source.Small[F]
+    md <- S3Source.Medium[F]
+    lg <- S3Source.Large[F]
+    orig <- S3Source.Original[F]
   yield combined(sm, md, lg, orig)
 
   def empty[F[_]: Sync](): MultiSizeHandler[F] = combined(

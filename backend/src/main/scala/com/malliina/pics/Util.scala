@@ -1,6 +1,7 @@
 package com.malliina.pics
 
-import cats.effect.IO
+import cats.effect.{IO, Sync}
+import cats.syntax.all.*
 import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
 
 import java.text.Normalizer
@@ -20,10 +21,10 @@ object Util:
       Timed(t, (System.currentTimeMillis() - start).millis)
     }
 
-  def timedIO[T](work: IO[T]): IO[Timed[T]] =
-    IO(System.currentTimeMillis()).flatMap { start =>
+  def timedIO[F[_]: Sync, T](work: F[T]): F[Timed[T]] =
+    Sync[F].delay(System.currentTimeMillis()).flatMap { start =>
       work.flatMap { t =>
-        IO(System.currentTimeMillis()).map { end =>
+        Sync[F].delay(System.currentTimeMillis()).map { end =>
           Timed(t, (end - start).millis)
         }
       }

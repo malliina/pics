@@ -1,7 +1,8 @@
 package com.malliina.pics.s3
 
-import cats.effect.IO
+import cats.effect.{Async, IO, Sync}
 import cats.effect.kernel.Resource
+import cats.syntax.all.*
 import com.malliina.pics.s3.S3Source.log
 import com.malliina.pics.{BucketName, DataFile, DataSourceT, FilePicsIO, FlatMeta, Key, PicResult, PicSuccess, Util}
 import com.malliina.storage.{StorageLong, StorageSize}
@@ -18,42 +19,42 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 object S3Source:
   private val log = AppLogger(getClass)
 
-  def forBucket(bucket: BucketName): Resource[IO, S3Source] =
+  def forBucket[F[_]: Async](bucket: BucketName): Resource[F, S3Source[F]] =
     val creds = DefaultCredentialsProvider.builder().profileName("pics").build()
-    val s3Client = IO(
+    val s3Client = Sync[F].delay(
       S3AsyncClient
         .builder()
         .region(Region.EU_WEST_1)
         .credentialsProvider(creds)
         .build()
     )
-    val clientRes = Resource.make(s3Client)(c => IO(c.close()))
+    val clientRes = Resource.make(s3Client)(c => Sync[F].delay(c.close()))
     clientRes.evalMap { c =>
-      val client = S3BucketIO(c)
+      val client = S3Bucket(c)
       client.createIfNotExists(bucket).map { _ =>
         S3Source(bucket, c)
       }
     }
-  val Small = forBucket(BucketName("malliina-pics-small"))
-  val Medium = forBucket(BucketName("malliina-pics-medium"))
-  val Large = forBucket(BucketName("malliina-pics-large"))
-  val Original = forBucket(BucketName("malliina-pics"))
+  def Small[F[_]: Async] = forBucket(BucketName("malliina-pics-small"))
+  def Medium[F[_]: Async] = forBucket(BucketName("malliina-pics-medium"))
+  def Large[F[_]: Async] = forBucket(BucketName("malliina-pics-large"))
+  def Original[F[_]: Async] = forBucket(BucketName("malliina-pics"))
 
-class S3Source(bucket: BucketName, client: S3AsyncClient) extends DataSourceT[IO]:
+class S3Source[F[_]: Async](bucket: BucketName, client: S3AsyncClient) extends DataSourceT[F]:
   val bucketName = bucket.name
   val downloadsDir = FilePicsIO.tmpDir.resolve("downloads")
   Files.createDirectories(downloadsDir)
 
-  override def get(key: Key): IO[DataFile] =
+  override def get(key: Key): F[DataFile] =
     val random = randomString().take(8)
     val dest = downloadsDir.resolve(s"$random-$key")
     val cf =
       client.getObject(GetObjectRequest.builder().bucket(bucketName).key(key.key).build(), dest)
-    cf.io.map(_ => DataFile(dest))
+    cf.io[F].map(_ => DataFile(dest))
 
-  def load(from: Int, until: Int): IO[Seq[FlatMeta]] =
+  def load(from: Int, until: Int): F[Seq[FlatMeta]] =
     val size = until - from
-    if size <= 0 then IO.pure(Nil)
+    if size <= 0 then Async[F].pure(Nil)
     else
       listBatch(identity)
         .flatMap(first => loadAcc(until, first, Nil))
@@ -63,11 +64,12 @@ class S3Source(bucket: BucketName, client: S3AsyncClient) extends DataSourceT[IO
     desiredSize: Int,
     current: ListObjectsV2Response,
     acc: Seq[FlatMeta]
-  ): IO[Seq[FlatMeta]] =
+  ): F[Seq[FlatMeta]] =
     val newAcc = acc ++ current.contents().asScala.map { obj =>
       FlatMeta(Key(obj.key()), obj.lastModified())
     }
-    if !current.isTruncated || newAcc.size >= desiredSize then IO.pure(newAcc.take(desiredSize))
+    if !current.isTruncated || newAcc.size >= desiredSize then
+      Sync[F].pure(newAcc.take(desiredSize))
     else
       listBatch(_.continuationToken(current.nextContinuationToken())).flatMap { next =>
         loadAcc(desiredSize, next, newAcc)
@@ -77,11 +79,11 @@ class S3Source(bucket: BucketName, client: S3AsyncClient) extends DataSourceT[IO
     val builder = ListObjectsV2Request.builder().bucket(bucketName)
     client.listObjectsV2(decorate(builder).build()).io
 
-  def remove(key: Key): IO[PicResult] =
+  def remove(key: Key): F[PicResult] =
     val req = DeleteObjectRequest.builder().bucket(bucketName).key(key.key).build()
     client.deleteObject(req).io.map(_ => PicSuccess)
 
-  def saveBody(key: Key, file: Path): IO[StorageSize] =
+  def saveBody(key: Key, file: Path): F[StorageSize] =
     Util.timedIO {
       client
         .putObject(PutObjectRequest.builder().bucket(bucket.name).key(key.key).build(), file)
@@ -93,9 +95,9 @@ class S3Source(bucket: BucketName, client: S3AsyncClient) extends DataSourceT[IO
       size
     }
 
-  def contains(key: Key): IO[Boolean] =
+  def contains(key: Key): F[Boolean] =
     client
       .headObject(HeadObjectRequest.builder().bucket(bucket.name).key(key.key).build())
       .io
       .map(_ => true)
-      .handleErrorWith(_ => IO.pure(false))
+      .handleErrorWith(_ => Async[F].pure(false))
