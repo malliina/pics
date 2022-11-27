@@ -2,8 +2,8 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossP
 import scala.sys.process.Process
 import scala.util.Try
 
-val webAuthVersion = "6.3.0"
-val primitivesVersion = "3.2.0"
+val webAuthVersion = "6.4.0"
+val primitivesVersion = "3.3.0"
 val munitVersion = "0.7.29"
 
 val isProd = settingKey[Boolean]("isProd")
@@ -109,11 +109,11 @@ val backend = project
       "org.flywaydb" % "flyway-core" % "7.15.0",
       "mysql" % "mysql-connector-java" % "5.1.49",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.31",
-      "com.malliina" %% "logstreams-client" % "2.2.1",
+      "com.malliina" %% "logstreams-client" % "2.3.0",
       "com.malliina" %% "web-auth" % webAuthVersion,
       "org.slf4j" % "slf4j-api" % "1.7.36",
       "org.scalameta" %% "munit" % munitVersion % Test,
-      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.10" % Test,
+      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.11" % Test,
       "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),

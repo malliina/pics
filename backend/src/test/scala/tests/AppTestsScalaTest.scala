@@ -4,9 +4,11 @@ import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.unsafe.IORuntime
 import cats.effect.unsafe.implicits.global
+import cats.effect.IO.asyncForIO
 import cats.syntax.flatMap.*
 import com.comcast.ip4s.port
 import com.dimafeng.testcontainers.MySQLContainer
+import com.malliina.http.io.HttpClientF2
 import com.malliina.pics.*
 import com.malliina.pics.PicsConf.ConfigOps
 import com.malliina.pics.app.LocalConf
@@ -76,7 +78,7 @@ trait ServerSuite extends MUnitDatabaseSuite with ClientSuite:
 
 trait ClientSuite:
   self: munit.CatsEffectSuite =>
-  val client: Fixture[HttpClientIO] = ResourceSuiteLocalFixture("client", HttpClientIO.resource)
+  val client: Fixture[HttpClientF2[IO]] = ResourceSuiteLocalFixture("client", HttpClientIO.resource)
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(client)
 

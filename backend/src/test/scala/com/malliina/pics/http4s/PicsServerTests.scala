@@ -4,7 +4,7 @@ import cats.Show
 import cats.data.NonEmptyList
 import cats.effect.*
 import com.malliina.http.{FullUrl, OkHttpResponse}
-import com.malliina.http.io.HttpClientIO
+import com.malliina.http.io.{HttpClientIO, HttpClientF2}
 import com.malliina.pics.AppMeta
 import com.malliina.pics.http4s.PicsImplicits.*
 import munit.FunSuite
@@ -67,4 +67,4 @@ class PicsServerTests extends munit.CatsEffectSuite with ServerSuite with CirceI
     )
 
   def baseUrl: FullUrl = server().baseHttpUrl
-  def http: HttpClientIO = client()
+  def http: HttpClientF2[IO] = client()
