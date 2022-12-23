@@ -85,7 +85,10 @@ trait ClientSuite:
 trait DoobieSuite extends MUnitDatabaseSuite:
   self: munit.CatsEffectSuite =>
   val doobie: Fixture[DatabaseRunner[IO]] =
-    ResourceSuiteLocalFixture("doobie", DoobieDatabase.default(db()))
+    ResourceSuiteLocalFixture(
+      "doobie",
+      Resource.eval(IO.delay(db())).flatMap(d => DoobieDatabase.default(d))
+    )
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(db, doobie)
 
