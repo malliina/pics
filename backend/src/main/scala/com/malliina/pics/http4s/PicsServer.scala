@@ -2,12 +2,13 @@ package com.malliina.pics.http4s
 
 import cats.data.Kleisli
 import cats.effect.kernel.{Resource, Temporal}
+import cats.effect.std.Dispatcher
 import cats.effect.{Async, ExitCode, IO, IOApp}
+import cats.syntax.all.toFunctorOps
 import com.malliina.pics.db.{DoobieDatabase, PicsDatabase}
 import com.malliina.pics.{BuildInfo, MultiSizeHandler, PicsConf}
 import com.malliina.util.AppLogger
-import com.malliina.http.io.HttpClientIO
-import com.malliina.http.io.HttpClientF
+import com.malliina.http.io.{HttpClientF, HttpClientF2, HttpClientIO}
 import com.malliina.http.HttpClient
 import fs2.concurrent.Topic
 import org.http4s.ember.server.EmberServerBuilder
@@ -16,6 +17,7 @@ import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.server.{Router, Server}
 import org.http4s.{HttpRoutes, Request, Response}
 import com.comcast.ip4s.{Port, host, port}
+import com.malliina.logback.LogstreamsUtils
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationInt
@@ -25,7 +27,7 @@ object PicsServer extends IOApp:
 
   private val log = AppLogger(getClass)
 
-  val serverPort: Port =
+  private val serverPort: Port =
     sys.env.get("SERVER_PORT").flatMap(s => Port.fromString(s)).getOrElse(port"9000")
 
   def server(
@@ -48,14 +50,16 @@ object PicsServer extends IOApp:
       .build
   yield server
 
-  def appResource[F[_]: Async](
+  private def appResource[F[_]: Async](
     conf: => PicsConf,
     handler: MultiSizeHandler[F],
-    httpResource: Resource[F, HttpClient[F]]
+    httpResource: Resource[F, HttpClientF2[F]]
   ): Resource[F, PicsService[F]] = for
     topic <- Resource.eval(Topic[F, PicMessage])
     tx <- DoobieDatabase.migratedResource[F](conf.db)
+    dispatcher <- Dispatcher[F]
     http <- httpResource
+    _ <- Resource.eval(LogstreamsUtils.install(dispatcher, http))
   yield
     val db = PicsDatabase(DoobieDatabase(tx))
 //    val csrf =

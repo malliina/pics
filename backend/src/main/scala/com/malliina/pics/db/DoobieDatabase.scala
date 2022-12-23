@@ -17,25 +17,21 @@ import scala.concurrent.duration.DurationInt
 object DoobieDatabase:
   private val log = AppLogger(getClass)
 
-  def runner[F[_]: Async](conf: DatabaseConf): DatabaseRunner[F] =
-    fromSource(dataSource(conf))
+  def default[F[_]: Async](conf: DatabaseConf) = migratedResource[F](conf).map { tx =>
+    DoobieDatabase(tx)
+  }
 
-  def fromSource[F[_]: Async](ds: HikariDataSource): DatabaseRunner[F] =
-    DoobieDatabaseLegacy(ds)
+  def migratedResource[F[_]: Async](
+    conf: DatabaseConf
+  ): Resource[F, doobie.DataSourceTransactor[F]] =
+    migrate(conf)
+    resource(dataSource(conf))
 
-  def withMigrations[F[_]: Async](conf: => DatabaseConf): Resource[F, DatabaseRunner[F]] =
-    Resource.make {
-      Sync[F].delay {
-        migrate(conf)
-        runner(conf)
-      }
-    }(dr => dr.close)
-
-  def migrate(conf: DatabaseConf): MigrateResult =
+  private def migrate(conf: DatabaseConf): MigrateResult =
     val flyway = Flyway.configure.dataSource(conf.url, conf.user, conf.pass).load()
     flyway.migrate()
 
-  def dataSource(conf: DatabaseConf): HikariDataSource =
+  private def dataSource(conf: DatabaseConf): HikariDataSource =
     val hikari = new HikariConfig()
     hikari.setDriverClassName(DatabaseConf.MySQLDriver)
     hikari.setJdbcUrl(conf.url)
@@ -46,15 +42,10 @@ object DoobieDatabase:
     log.info(s"Connecting to '${conf.url}'...")
     new HikariDataSource(hikari)
 
-  def migratedResource[F[_]: Async](conf: DatabaseConf): Resource[F, doobie.DataSourceTransactor[F]] =
-    migrate(conf)
-    resource(dataSource(conf))
-
-  def resource[F[_]: Async](ds: HikariDataSource): Resource[F, DataSourceTransactor[F]] =
+  private def resource[F[_]: Async](ds: HikariDataSource): Resource[F, DataSourceTransactor[F]] =
     for ec <- ExecutionContexts.fixedThreadPool[F](32) // our connect EC
     yield Transactor.fromDataSource[F](ds, ec)
 
-// Temporary migration tool
 class DoobieDatabase[F[_]: Sync](tx: DataSourceTransactor[F]) extends DatabaseRunner[F]:
   implicit val logHandler: LogHandler = LogHandler {
     case Success(sql, args, exec, processing) =>
@@ -66,16 +57,6 @@ class DoobieDatabase[F[_]: Sync](tx: DataSourceTransactor[F]) extends DatabaseRu
   }
 
   def run[T](io: ConnectionIO[T]): F[T] = io.transact(tx)
-  def close: F[Unit] = Sync[F].unit
 
 trait DatabaseRunner[F[_]]:
   def run[T](io: ConnectionIO[T]): F[T]
-  def close: F[Unit]
-
-class DoobieDatabaseLegacy[F[_]: Async](ds: HikariDataSource) extends DatabaseRunner[F]:
-  private val tx = DoobieDatabase.resource(ds)
-
-  def run[T](io: ConnectionIO[T]): F[T] =
-    tx.use(r => io.transact(r))
-
-  def close: F[Unit] = Sync[F].delay(ds.close())

@@ -26,7 +26,7 @@ inThisBuild(
 
 val commonSettings = Seq(
   libraryDependencies ++=
-    Seq("generic", "parser").map(m => "io.circe" %%% s"circe-$m" % "0.14.2") ++ Seq(
+    Seq("generic", "parser").map(m => "io.circe" %%% s"circe-$m" % "0.14.3") ++ Seq(
       "com.malliina" %%% "primitives" % primitivesVersion,
       "com.malliina" %%% "util-html" % webAuthVersion
     )
@@ -109,7 +109,7 @@ val backend = project
       "org.flywaydb" % "flyway-core" % "7.15.0",
       "mysql" % "mysql-connector-java" % "5.1.49",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.31",
-      "com.malliina" %% "logstreams-client" % "2.3.0",
+      "com.malliina" %% "logstreams-client" % "2.4.1",
       "com.malliina" %% "web-auth" % webAuthVersion,
       "org.slf4j" % "slf4j-api" % "1.7.36",
       "org.scalameta" %% "munit" % munitVersion % Test,
