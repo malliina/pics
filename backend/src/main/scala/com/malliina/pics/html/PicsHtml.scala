@@ -49,7 +49,7 @@ class PicsHtml(
   cssFiles: Seq[String],
   assets: AssetsSource
 ) extends BaseHtml:
-  val authHtml = AuthHtml(assets)
+  private val authHtml = AuthHtml(assets)
 
   def signIn(feedback: Option[UserFeedback] = None) = basePage(authHtml.signIn(feedback))
 

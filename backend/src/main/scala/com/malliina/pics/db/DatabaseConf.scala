@@ -5,7 +5,7 @@ import com.malliina.config.ConfigReadable
 case class DatabaseConf(url: String, user: String, pass: String)
 
 object DatabaseConf:
-  val MySQLDriver = "com.mysql.jdbc.Driver"
+  val MySQLDriver = "com.mysql.cj.jdbc.Driver"
   val DefaultDriver = MySQLDriver
 
   import com.malliina.pics.PicsConf.ConfigOps

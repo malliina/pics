@@ -2,8 +2,8 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossP
 import scala.sys.process.Process
 import scala.util.Try
 
-val webAuthVersion = "6.4.0"
-val primitivesVersion = "3.3.0"
+val webAuthVersion = "6.5.0"
+val primitivesVersion = "3.4.0"
 val munitVersion = "0.7.29"
 
 val isProd = settingKey[Boolean]("isProd")
@@ -12,7 +12,7 @@ inThisBuild(
   Seq(
     organization := "com.malliina",
     version := "0.0.1",
-    scalaVersion := "3.1.1",
+    scalaVersion := "3.2.1",
     assemblyMergeStrategy := {
       case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.rename
       case PathList("META-INF", "versions", xs @ _*) => MergeStrategy.rename
@@ -97,33 +97,23 @@ val backend = project
       "isProd" -> (frontend / isProd).value
     ),
     libraryDependencies ++= Seq("ember-server", "dsl", "circe").map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.23.16"
+      "org.http4s" %% s"http4s-$m" % "0.23.17"
     } ++ Seq("core", "hikari").map { d =>
       "org.tpolecat" %% s"doobie-$d" % "1.0.0-RC2"
-    } ++ Seq("classic", "core").map { m =>
-      "ch.qos.logback" % s"logback-$m" % "1.2.11"
     } ++ Seq(
       "com.typesafe" % "config" % "1.4.2",
-      "org.apache.commons" % "commons-text" % "1.9",
-      "software.amazon.awssdk" % "s3" % "2.17.243",
+      "org.apache.commons" % "commons-text" % "1.10.0",
+      "software.amazon.awssdk" % "s3" % "2.19.12",
       "org.flywaydb" % "flyway-core" % "7.15.0",
-      "mysql" % "mysql-connector-java" % "5.1.49",
-      "com.sksamuel.scrimage" % "scrimage-core" % "4.0.31",
-      "com.malliina" %% "logstreams-client" % "2.4.1",
+      "mysql" % "mysql-connector-java" % "8.0.30",
+      "com.sksamuel.scrimage" % "scrimage-core" % "4.0.32",
+      "com.malliina" %% "logstreams-client" % "2.5.0",
       "com.malliina" %% "web-auth" % webAuthVersion,
-      "org.slf4j" % "slf4j-api" % "1.7.36",
       "org.scalameta" %% "munit" % munitVersion % Test,
-      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.11" % Test,
+      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.12" % Test,
       "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
-    Compile / start := Def.taskIf {
-      if (start.inputFileChanges.hasChanges) {
-        refreshBrowsers.value
-      } else {
-        Def.task(streams.value.log.info("No backend changes."))
-      }
-    }.dependsOn(start).value,
     (frontend / Compile / start) := Def.taskIf {
       if ((frontend / Compile / start).inputFileChanges.hasChanges) {
         refreshBrowsers.value
