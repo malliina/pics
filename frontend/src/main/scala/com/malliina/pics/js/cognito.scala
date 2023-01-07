@@ -204,8 +204,7 @@ object CognitoUser:
 
     def resend(): Future[Unit] =
       val p = Promise[Unit]()
-      self.resendConfirmationCode(
-      (err, success) =>
+      self.resendConfirmationCode((err, success) =>
         Option(err).foreach { err =>
           // The API returns an error object on success with message "200"...
           if err.message == "200" then p.trySuccess(())
@@ -213,7 +212,8 @@ object CognitoUser:
         }
         Option(success).foreach { _ =>
           p.success(())
-        })
+        }
+      )
       p.future
 
     def forgot(): Future[Unit] =

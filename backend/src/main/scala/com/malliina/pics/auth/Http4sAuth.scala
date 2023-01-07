@@ -56,9 +56,7 @@ class Http4sAuth[F[_]: Sync](
   def authenticate(headers: Headers): F[Either[F[Response[F]], PicRequest]] =
     val rs = PicsService.ranges(headers)
     if rs.exists(r => r.satisfiedBy(MediaType.text.html)) then F.pure(web(headers))
-    else if rs.exists(m =>
-        m.satisfiedBy(version10) || m.satisfiedBy(MediaType.application.json)
-      )
+    else if rs.exists(m => m.satisfiedBy(version10) || m.satisfiedBy(MediaType.application.json))
     then jwt(headers)
     else F.pure(Left(NotAcceptable(Errors("Not acceptable.").asJson, noCache)))
 
