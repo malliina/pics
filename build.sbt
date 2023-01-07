@@ -17,6 +17,7 @@ inThisBuild(
       case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.rename
       case PathList("META-INF", "versions", xs @ _*) => MergeStrategy.rename
       case PathList("com", "malliina", xs @ _*)         => MergeStrategy.first
+      case PathList("module-info.class")         => MergeStrategy.first
       case x =>
         val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
         oldStrategy(x)
