@@ -102,7 +102,6 @@ val backend = project
     } ++ Seq("core", "hikari").map { d =>
       "org.tpolecat" %% s"doobie-$d" % "1.0.0-RC2"
     } ++ Seq(
-      "com.typesafe" % "config" % "1.4.2",
       "org.apache.commons" % "commons-text" % "1.10.0",
       "software.amazon.awssdk" % "s3" % "2.19.17",
       "org.flywaydb" % "flyway-core" % "7.15.0",
