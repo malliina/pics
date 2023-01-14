@@ -37,4 +37,4 @@ GitHub Pages hosts the documentation.
 To back up pics from S3 to a local zip file, execute PowerShell script [PicsBackup.ps1](backups/PicsBackup.ps1):
 
     cd backups
-    .\PicsBackup.ps1
+    pwsh PicsBackup.ps1

@@ -104,12 +104,13 @@ val backend = project
     } ++ Seq(
       "com.typesafe" % "config" % "1.4.2",
       "org.apache.commons" % "commons-text" % "1.10.0",
-      "software.amazon.awssdk" % "s3" % "2.19.12",
+      "software.amazon.awssdk" % "s3" % "2.19.17",
       "org.flywaydb" % "flyway-core" % "7.15.0",
-      "mysql" % "mysql-connector-java" % "8.0.30",
+      "mysql" % "mysql-connector-java" % "8.0.31",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.32",
       "com.malliina" %% "logstreams-client" % "2.5.0",
       "com.malliina" %% "web-auth" % webAuthVersion,
+      "com.malliina" %% "config" % primitivesVersion,
       "org.scalameta" %% "munit" % munitVersion % Test,
       "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.12" % Test,
       "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
