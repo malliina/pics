@@ -3,7 +3,8 @@ const { merge } = require('webpack-merge');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const path = require('path');
 const rootDir = path.resolve(__dirname, '../../../..');
-const cssDir = path.resolve(rootDir, 'src/main/resources/css');
+const resourcesDir = path.resolve(rootDir, 'src/main/resources');
+const cssDir = path.resolve(resourcesDir, 'css');
 
 const WebApp = merge(ScalaJS, {
   entry: {
@@ -30,7 +31,14 @@ const WebApp = merge(ScalaJS, {
         ]
       },
       {
-        test: /\.(woff|woff2|eot|ttf|svg)$/,
+        test: /\.(woff|woff2)$/,
+        type: 'asset/inline', // exports a data URI of the asset
+        include: [
+          path.resolve(resourcesDir, 'fonts')
+        ]
+      },
+      {
+        test: /\.(eot|ttf|svg)$/,
         type: 'asset',
         generator: {
           filename: 'static/fonts/[name]-[hash][ext]'
@@ -38,9 +46,9 @@ const WebApp = merge(ScalaJS, {
       },
       {
         test: /\.(png|svg)$/,
-        type: 'asset',
+        type: 'asset/resource',
         include: [
-          path.resolve(rootDir, 'src/main/resources')
+          resourcesDir
         ],
         generator: {
           filename: 'static/img/[name]-[hash][ext]'

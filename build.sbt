@@ -93,6 +93,7 @@ val backend = project
       scalaVersion,
       "gitHash" -> gitHash,
       "assetsDir" -> (frontend / assetsRoot).value,
+      "publicDir" -> (Compile / resourceDirectory).value.toPath.resolve("public"),
       "publicFolder" -> (frontend / assetsPrefix).value,
       "mode" -> (if ((frontend / isProd).value) "prod" else "dev"),
       "isProd" -> (frontend / isProd).value

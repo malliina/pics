@@ -19,7 +19,7 @@ object PicsHtml:
   val False = "false"
   val True = "true"
 
-  val KeyKey = "key"
+  private val KeyKey = "key"
   val dataIdAttr = attr("data-id")
   val dataContentAttr = attr("data-content")
   val async = attr("async").empty
@@ -192,10 +192,10 @@ class PicsHtml(
     }
     basePage(conf.copy(inner = modifier(withNavbar(navContent), conf.inner)))
 
-  def fa(faName: String) =
+  private def fa(faName: String) =
     i(`class` := s"nav-icon $faName", title := faName, aria.hidden := tags.True)
 
-  def withNavbar(navLinks: Modifier*) =
+  private def withNavbar(navLinks: Modifier*) =
     navbar.basic(
       reverse.list,
       "Pics",
@@ -203,7 +203,7 @@ class PicsHtml(
       navClass = s"${navbars.Navbar} navbar-expand-sm ${navbars.Light} ${navbars.BgLight}"
     )
 
-  def basePage(conf: PageConf) =
+  private def basePage(conf: PageConf) =
     html(lang := En)(
       head(
         meta(charset := "utf-8"),
@@ -224,7 +224,7 @@ class PicsHtml(
       )
     )
 
-  def deferredJsPath(path: String) =
+  private def deferredJsPath(path: String) =
     script(`type` := "application/javascript", src := at(path), defer)
 
   def at(path: String) = assets.at(path)
