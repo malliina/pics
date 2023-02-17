@@ -16,7 +16,7 @@ jobs:
     name: Build and Deploy
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v3
       - name: Login via Azure CLI
         uses: azure/login@v1
         with:

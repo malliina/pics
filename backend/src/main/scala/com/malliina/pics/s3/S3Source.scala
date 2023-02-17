@@ -19,7 +19,7 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 object S3Source:
   private val log = AppLogger(getClass)
 
-  def forBucket[F[_]: Async](bucket: BucketName): Resource[F, S3Source[F]] =
+  private def forBucket[F[_]: Async](bucket: BucketName): Resource[F, S3Source[F]] =
     val creds = DefaultCredentialsProvider.builder().profileName("pics").build()
     val s3Client = Sync[F].delay(
       S3AsyncClient
@@ -41,8 +41,9 @@ object S3Source:
   def Original[F[_]: Async] = forBucket(BucketName("malliina-pics"))
 
 class S3Source[F[_]: Async](bucket: BucketName, client: S3AsyncClient) extends DataSourceT[F]:
+  val F = Async[F]
   val bucketName = bucket.name
-  val downloadsDir = FilePicsIO.tmpDir.resolve("downloads")
+  private val downloadsDir = FilePicsIO.tmpDir.resolve("downloads")
   Files.createDirectories(downloadsDir)
 
   override def get(key: Key): F[DataFile] =
@@ -54,7 +55,7 @@ class S3Source[F[_]: Async](bucket: BucketName, client: S3AsyncClient) extends D
 
   def load(from: Int, until: Int): F[Seq[FlatMeta]] =
     val size = until - from
-    if size <= 0 then Async[F].pure(Nil)
+    if size <= 0 then F.pure(Nil)
     else
       listBatch(identity)
         .flatMap(first => loadAcc(until, first, Nil))
@@ -68,8 +69,7 @@ class S3Source[F[_]: Async](bucket: BucketName, client: S3AsyncClient) extends D
     val newAcc = acc ++ current.contents().asScala.map { obj =>
       FlatMeta(Key(obj.key()), obj.lastModified())
     }
-    if !current.isTruncated || newAcc.size >= desiredSize then
-      Sync[F].pure(newAcc.take(desiredSize))
+    if !current.isTruncated || newAcc.size >= desiredSize then F.pure(newAcc.take(desiredSize))
     else
       listBatch(_.continuationToken(current.nextContinuationToken())).flatMap { next =>
         loadAcc(desiredSize, next, newAcc)
@@ -100,4 +100,4 @@ class S3Source[F[_]: Async](bucket: BucketName, client: S3AsyncClient) extends D
       .headObject(HeadObjectRequest.builder().bucket(bucket.name).key(key.key).build())
       .io
       .map(_ => true)
-      .handleErrorWith(_ => Async[F].pure(false))
+      .handleErrorWith(_ => F.pure(false))
