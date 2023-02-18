@@ -24,8 +24,9 @@ object DoobieDatabase:
   def migratedResource[F[_]: Async](
     conf: DatabaseConf
   ): Resource[F, doobie.DataSourceTransactor[F]] =
-    migrate(conf)
-    resource(dataSource(conf))
+    val maybeMigration: F[Unit] =
+      if conf.migrateOnStart then Async[F].delay(migrate(conf)) else Async[F].unit
+    Resource.eval(maybeMigration).flatMap { _ => resource(dataSource(conf)) }
 
   private def migrate(conf: DatabaseConf): MigrateResult =
     val flyway = Flyway.configure.dataSource(conf.url, conf.user, conf.pass).load()

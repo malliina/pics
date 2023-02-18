@@ -1,19 +1,19 @@
 package com.malliina.pics.db
 
 import com.malliina.config.ConfigReadable
+import com.malliina.pics.PicsConf.ConfigOps
 
-case class DatabaseConf(url: String, user: String, pass: String)
+case class DatabaseConf(url: String, user: String, pass: String, migrateOnStart: Boolean)
 
 object DatabaseConf:
   val MySQLDriver = "com.mysql.cj.jdbc.Driver"
   val DefaultDriver = MySQLDriver
-
-  import com.malliina.pics.PicsConf.ConfigOps
 
   implicit val config: ConfigReadable[DatabaseConf] = ConfigReadable.config.emap { obj =>
     for
       url <- obj.read[String]("url")
       user <- obj.read[String]("user")
       pass <- obj.read[String]("pass")
-    yield DatabaseConf(url, user, pass)
+      migrateOnStart <- obj.read[Boolean]("migrateOnStart")
+    yield DatabaseConf(url, user, pass, migrateOnStart)
   }

@@ -12,7 +12,7 @@ env:
   AZURE_SLOT: staging
 
 jobs:
-  build-and-deploy:
+  deploy:
     name: Build and Deploy
     runs-on: ubuntu-22.04
     steps:

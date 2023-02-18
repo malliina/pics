@@ -30,7 +30,7 @@ class StaticService[F[_]: Async] extends BasicService[F]:
     case req @ GET -> rest if supportedStaticExtensions.exists(rest.toString.endsWith) =>
       val file = UnixPath(rest.segments.mkString("/"))
       val isCacheable = file.value.count(_ == '.') == 2 || file.value.startsWith("static/")
-      log.info(s"Search '$file'...")
+      log.debug(s"Search '$file'...")
       val cacheHeaders =
         if isCacheable then NonEmptyList.of(`max-age`(365.days), `public`)
         else NonEmptyList.of(`no-cache`(), `no-store`, `must-revalidate`)

@@ -96,5 +96,6 @@ object TestConf:
   def apply(container: MySQLContainer): DatabaseConf = DatabaseConf(
     s"${container.jdbcUrl}?useSSL=false",
     container.username,
-    container.password
+    container.password,
+    true
   )
