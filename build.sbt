@@ -104,7 +104,7 @@ val backend = project
       "org.tpolecat" %% s"doobie-$d" % "1.0.0-RC2"
     } ++ Seq(
       "org.apache.commons" % "commons-text" % "1.10.0",
-      "software.amazon.awssdk" % "s3" % "2.20.6",
+      "software.amazon.awssdk" % "s3" % "2.20.17",
       "org.flywaydb" % "flyway-core" % "7.15.0",
       "mysql" % "mysql-connector-java" % "8.0.32",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.33",
@@ -124,11 +124,6 @@ val backend = project
 //      }
 //    }.dependsOn(frontend / Compile / start).value,
     copyFolders += ((Compile / resourceDirectory).value / "public").toPath,
-    Compile / unmanagedResources ++= {
-//      if ((frontend / isProd).value)
-//        List((frontend / Compile / assetsRoot).value.toPath.getParent.toFile)
-      Nil
-    },
     Compile / unmanagedResourceDirectories ++= {
       if ((frontend / isProd).value)
         List((frontend / Compile / assetsRoot).value.getParent.toFile)
