@@ -1,15 +1,18 @@
-@item-margin: 10px;
+:root {
+  --item-margin: 10px;
+  --item-margin-neg: -10px;
+}
 
 .pics-container {
-  padding-right: @item-margin;
-  padding-left: @item-margin;
+  padding-right: var(--item-margin);
+  padding-left: var(--item-margin);
 }
 
 .gallery {
   display: flex;
   flex-wrap: wrap;
-  margin-left: -@item-margin;
-  margin-right: -@item-margin;
+  margin-left: var(--item-margin-neg);
+  margin-right: var(--item-margin-neg);
 
   justify-content: center;
 }

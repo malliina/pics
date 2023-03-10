@@ -27,16 +27,12 @@ object PicsHtml:
   val reverse = Reverse
 
   def build(isProd: Boolean): PicsHtml =
-    val opt = if isProd then "opt" else "fastopt"
-    val assetPrefix = s"frontend-$opt"
-    val appScripts =
-      if isProd then Seq(s"$assetPrefix-bundle.js")
-      else Seq(s"$assetPrefix-library.js", s"$assetPrefix-loader.js", s"$assetPrefix.js")
+    val appScripts = Seq("frontend.js")
     val externalScripts = if isProd then Nil else FullUrl.build(LiveReload.script).toSeq
-    new PicsHtml(
+    PicsHtml(
       appScripts,
       externalScripts,
-      Seq(s"$assetPrefix.css", "fonts.css", "styles.css"),
+      Seq("frontend.css", "fonts.css", "styles.css"),
       AssetsSource(isProd)
     )
 
