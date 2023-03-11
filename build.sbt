@@ -52,24 +52,6 @@ val frontend = project
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
-//    Compile / npmDependencies ++= Seq(
-//      "@popperjs/core" -> "2.11.6",
-//      "bootstrap" -> "5.2.3"
-//    ),
-//    Compile / npmDevDependencies ++= Seq(
-//      "autoprefixer" -> "10.4.13",
-//      "cssnano" -> "5.1.15",
-//      "css-loader" -> "6.7.3",
-//      "less" -> "4.1.3",
-//      "less-loader" -> "11.1.0",
-//      "mini-css-extract-plugin" -> "2.7.2",
-//      "postcss" -> "8.4.21",
-//      "postcss-import" -> "15.1.0",
-//      "postcss-loader" -> "7.0.2",
-//      "postcss-preset-env" -> "8.0.1",
-//      "style-loader" -> "3.3.1",
-//      "webpack-merge" -> "5.8.0"
-//    ),
     isProd := (Global / scalaJSStage).value == FullOptStage
   )
 
@@ -78,7 +60,7 @@ val backend = project
   .enablePlugins(
     FileTreePlugin,
     BuildInfoPlugin,
-    ServerPlugin2
+    ServerPlugin
   )
   .dependsOn(crossJvm)
   .settings(commonSettings)

@@ -1,10 +1,10 @@
 scalaVersion := "2.12.17"
 
-val utilsVersion = "1.4.0"
+val utilsVersion = "1.6.4"
 
 Seq(
   "com.malliina" % "sbt-nodejs" % utilsVersion,
-//  "com.malliina" % "sbt-bundler" % utilsVersion,
+  "com.malliina" % "sbt-revolver-rollup" % utilsVersion,
   "com.malliina" % "sbt-filetree" % "0.4.1",
   "com.malliina" % "live-reload" % "0.5.0",
   "com.github.sbt" % "sbt-native-packager" % "1.9.11",
