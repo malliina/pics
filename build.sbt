@@ -13,6 +13,10 @@ inThisBuild(
     organization := "com.malliina",
     version := "0.0.1",
     scalaVersion := "3.2.2",
+    libraryDependencies ++= Seq(
+      "org.scalameta" %% "munit" % munitVersion % Test
+    ),
+    testFrameworks += new TestFramework("munit.Framework"),
     assemblyMergeStrategy := {
       case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.rename
       case PathList("META-INF", "versions", xs @ _*)            => MergeStrategy.rename
@@ -25,18 +29,18 @@ inThisBuild(
   )
 )
 
-val commonSettings = Seq(
-  libraryDependencies ++=
-    Seq("generic", "parser").map(m => "io.circe" %%% s"circe-$m" % "0.14.5") ++ Seq(
-      "com.malliina" %%% "primitives" % primitivesVersion,
-      "com.malliina" %%% "util-html" % webAuthVersion
-    )
-)
-
 val cross = portableProject(JSPlatform, JVMPlatform)
   .crossType(PortableType.Full)
   .in(file("shared"))
-  .settings(commonSettings: _*)
+  .settings(
+    libraryDependencies ++=
+      Seq("generic", "parser").map { m =>
+        "io.circe" %%% s"circe-$m" % "0.14.5"
+      } ++ Seq(
+        "com.malliina" %%% "primitives" % primitivesVersion,
+        "com.malliina" %%% "util-html" % webAuthVersion
+      )
+  )
 
 val crossJvm = cross.jvm
 val crossJs = cross.js
@@ -46,7 +50,6 @@ val frontend = project
   .enablePlugins(NodeJsPlugin, RollupPlugin)
   .disablePlugins(RevolverPlugin)
   .dependsOn(crossJs)
-  .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
       "org.scalameta" %%% "munit" % munitVersion % Test
@@ -63,7 +66,6 @@ val backend = project
     ServerPlugin
   )
   .dependsOn(crossJvm)
-  .settings(commonSettings)
   .settings(
     clientProject := frontend,
     hashPackage := "com.malliina.pics.assets",

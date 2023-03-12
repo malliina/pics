@@ -21,7 +21,7 @@ object PicsJS extends BaseHtml:
     if has(SignUpClass) then SignUp()
     if has(ProfileClass) then Profile()
 
-  def has(feature: String) = dom.document.body.classList.contains(feature)
+  private def has(feature: String) = dom.document.body.classList.contains(feature)
 
 @js.native
 @JSImport("@popperjs/core", JSImport.Namespace)
