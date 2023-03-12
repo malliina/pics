@@ -1,2 +1,2 @@
-import './fonts.css';
+import "./fonts.css"
 console.log("Fonts only.")

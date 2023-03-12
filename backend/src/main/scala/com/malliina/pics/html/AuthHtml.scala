@@ -8,7 +8,7 @@ import scalatags.Text.all.*
 class AuthHtml(assets: AssetsSource) extends BaseHtml:
   val reverseSocial = ReverseSocial
   val reverse = Reverse
-  val formGroupClass = s"$FormGroup pb-4"
+  private val formGroupClass = s"$FormGroup pb-4"
 
   import tags.*
 
