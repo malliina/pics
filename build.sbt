@@ -100,13 +100,14 @@ val backend = project
       "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
     ),
     testFrameworks += new TestFramework("munit.Framework"),
-//    (frontend / Compile / build) := Def.taskIf {
-//      if ((frontend / Compile / build).inputFileChanges.hasChanges) {
-//        refreshBrowsers.value
-//      } else {
-//        Def.task(streams.value.log.info("No frontend changes.")).value
-//      }
-//    }.dependsOn(frontend / Compile / start).value,
+    (frontend / Compile / build) := Def.taskIf {
+      if ((frontend / Compile / build).inputFileChanges.hasChanges) {
+        refreshBrowsers.value
+      } else {
+        Def.task(streams.value.log.info("No frontend changes.")).value
+      }
+    }.dependsOn(frontend / Compile / build).value,
+    start := start.dependsOn(frontend / Compile / build).value,
     copyFolders += ((Compile / resourceDirectory).value / "public").toPath,
     Compile / unmanagedResourceDirectories ++= {
       if ((frontend / isProd).value)
