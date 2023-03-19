@@ -5,6 +5,7 @@ import * as fs from "fs";
 export interface SourcemapOptions {
   include?: string
   exclude?: string
+  enabled?: boolean
 }
 
 export function defaultSourcemapFix(path: string) {
@@ -24,21 +25,27 @@ export function sourcemapFix(path: string, prefix: string, replacement: string):
   return path
 }
 
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    await fs.promises.stat(path)
+    return true
+  } catch (e) {
+    return false
+  }
+}
+
 export function sourcemaps(options: SourcemapOptions): Plugin {
   const filter = createFilter(options.include || "**/main.js", options.exclude)
   return {
     name: "rollup-plugin-sourcemaps",
     async load(id: string) {
-      if (!filter(id)) return
+      if (!filter(id) || options.enabled === false) return
       const mapFile = `${id}.map`
-      try {
-        await fs.promises.stat(mapFile)
-      } catch (e) {
+      if (!(await fileExists(mapFile))) {
         return
       }
       const code = await fs.promises.readFile(id, "utf-8")
       const sourcemap = await fs.promises.readFile(mapFile, "utf-8")
-      console.log(`Sourcemap of ${id}`)
       const existing: ExistingRawSourceMap = JSON.parse(sourcemap)
       return { code: code, map: existing }
     }
@@ -46,4 +53,3 @@ export function sourcemaps(options: SourcemapOptions): Plugin {
 }
 
 export default sourcemaps
-

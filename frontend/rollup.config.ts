@@ -2,7 +2,6 @@ import resolve from "@rollup/plugin-node-resolve"
 import commonjs from "@rollup/plugin-commonjs"
 import replace from "@rollup/plugin-replace"
 import terser from "@rollup/plugin-terser"
-import url from "@rollup/plugin-url"
 import {scalajs, production, outputDir} from "./target/scalajs.rollup.config.js"
 import path from "path"
 import extractcss from "./rollup-extract-css"
@@ -14,7 +13,7 @@ const cssDir = path.resolve(resourcesDir, "css")
 const vendorUrlOption = {
   filter: "**/*",
   url: "inline",
-  maxSize: 16,
+  maxSize: 8,
   fallback: "copy",
   assetsPath: "assets", // this must be defined but can be whatever since it "cancels out" the "../" in the source files
   useHash: true,
@@ -27,11 +26,7 @@ const vendorUrlOptions = [
 ]
 const appUrlOptions = [
   {
-    filter: "**/*.woff2",
-    url: "inline"
-  },
-  {
-    filter: "**/*.svg",
+    filter: "**/*.+(woff2|svg)",
     url: "inline"
   },
   vendorUrlOption
@@ -42,6 +37,7 @@ const entryNames = "[name].js"
 const css = (options) => extractcss({
   outDir: outputDir,
   minimize: production,
+  sourceMap: !production,
   urlOptions: options
 })
 
@@ -64,7 +60,7 @@ const config: RollupOptions[] = [
       format: "iife",
       name: "version",
       entryFileNames: entryNames,
-      sourcemap: true,
+      sourcemap: !production,
       sourcemapPathTransform: (relativeSourcePath, sourcemapPath) =>
           defaultSourcemapFix(relativeSourcePath)
     },
@@ -76,10 +72,6 @@ const config: RollupOptions[] = [
       styles: path.resolve(cssDir, "pics.js")
     },
     plugins: [
-      url({
-        limit: 0,
-        fileName: production ? "[dirname][name].[hash][extname]" : "[dirname][name][extname]"
-      }),
       css(appUrlOptions),
       production && terser()
     ],

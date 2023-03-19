@@ -1,4 +1,3 @@
-import "./pics.css"
 import "./common.css"
 import "./gallery.css"
 import "./footer.css"
