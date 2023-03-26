@@ -7,13 +7,13 @@ This is a pic app. Available at [pics.malliina.com](https://pics.malliina.com).
 
 ## Development
 
-    sbt ~Compile/start
+    sbt ~start
 
 Navigate to http://localhost:9000.
 
 ## Deployment
 
-Push to the `master` branch. Deployments are handled by [Azure DevOps](https://dev.azure.com/). See [azure-pipelines.yml](azure-pipelines.yml) for details.
+Push to the `master` branch. See GitHub Actions for details.
 
 ## Documentation
 
