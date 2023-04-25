@@ -2,7 +2,7 @@ package com.malliina.pics
 
 object LoginStrings extends LoginStrings
 
-trait LoginStrings {
+trait LoginStrings:
   val AuthFailed = "Authentication failed."
   val CodeId = "code"
 
@@ -47,4 +47,3 @@ trait LoginStrings {
   val SignUpFormId = "signup-form"
 
   val TokenKey = "token"
-}

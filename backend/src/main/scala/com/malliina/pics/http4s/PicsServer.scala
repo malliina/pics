@@ -20,9 +20,11 @@ import com.comcast.ip4s.{Port, host, port}
 import com.malliina.logback.LogstreamsUtils
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationInt}
 
 object PicsServer extends IOApp:
+  override def runtimeConfig =
+    super.runtimeConfig.copy(cpuStarvationCheckInitialDelay = Duration.Inf)
   type AppService = Kleisli[IO, Request[IO], Response[IO]]
 
   LogstreamsUtils.prepLogging()

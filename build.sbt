@@ -69,17 +69,19 @@ val backend = project
       "org.tpolecat" %% s"doobie-$d" % "1.0.0-RC2"
     } ++ Seq(
       "org.apache.commons" % "commons-text" % "1.10.0",
-      "software.amazon.awssdk" % "s3" % "2.20.17",
+      "software.amazon.awssdk" % "s3" % "2.20.51",
       "org.flywaydb" % "flyway-core" % "7.15.0",
       "mysql" % "mysql-connector-java" % "8.0.32",
-      "com.sksamuel.scrimage" % "scrimage-core" % "4.0.33",
+      "com.sksamuel.scrimage" % "scrimage-core" % "4.0.34",
       "com.malliina" %% "logstreams-client" % "2.5.0",
       "com.malliina" %% "web-auth" % webAuthVersion,
       "com.malliina" %% "config" % primitivesVersion,
-      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.12" % Test,
+      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.15" % Test,
       "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
     ),
-    assembly / assemblyJarName := "app.jar"
+    assembly / assemblyJarName := "app.jar",
+    dependentModule := crossJvm,
+    Compile / resourceDirectories += io.Path.userHome / ".pics"
   )
 
 val pics = project
