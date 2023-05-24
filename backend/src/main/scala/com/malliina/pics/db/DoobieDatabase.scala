@@ -39,7 +39,7 @@ object DoobieDatabase:
     hikari.setUsername(conf.user)
     hikari.setPassword(conf.pass)
     hikari.setMaxLifetime(60.seconds.toMillis)
-    hikari.setMaximumPoolSize(5)
+    hikari.setMaximumPoolSize(conf.maxPoolSize)
     log.info(s"Connecting to '${conf.url}'...")
     new HikariDataSource(hikari)
 
