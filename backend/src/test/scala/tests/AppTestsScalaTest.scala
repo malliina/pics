@@ -97,5 +97,6 @@ object TestConf:
     s"${container.jdbcUrl}?useSSL=false",
     container.username,
     container.password,
+    2,
     true
   )
