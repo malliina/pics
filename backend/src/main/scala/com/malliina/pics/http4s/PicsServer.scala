@@ -58,11 +58,11 @@ object PicsServer extends IOApp:
     handler: MultiSizeHandler[F],
     httpResource: Resource[F, HttpClientF2[F]]
   ): Resource[F, PicsService[F]] = for
-    topic <- Resource.eval(Topic[F, PicMessage])
-    tx <- DoobieDatabase.migratedResource[F](conf.db)
-    dispatcher <- Dispatcher[F]
+    dispatcher <- Dispatcher.parallel[F]
     http <- httpResource
     _ <- Resource.eval(LogstreamsUtils.install(dispatcher, http))
+    topic <- Resource.eval(Topic[F, PicMessage])
+    tx <- DoobieDatabase.migratedResource[F](conf.db)
   yield
     val db = PicsDatabase(DoobieDatabase(tx))
 //    val csrf =
@@ -86,7 +86,7 @@ object PicsServer extends IOApp:
       }
     }
 
-  def orNotFound(rs: HttpRoutes[IO]): Kleisli[IO, Request[IO], Response[IO]] =
+  private def orNotFound(rs: HttpRoutes[IO]): Kleisli[IO, Request[IO], Response[IO]] =
     Kleisli(req => rs.run(req).getOrElseF(BasicService.notFound(req)))
 
   override def run(args: List[String]): IO[ExitCode] =

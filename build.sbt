@@ -64,7 +64,7 @@ val backend = project
       scalaVersion
     ),
     libraryDependencies ++= Seq("ember-server", "dsl", "circe").map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.23.18"
+      "org.http4s" %% s"http4s-$m" % "0.23.19"
     } ++ Seq("core", "hikari").map { d =>
       "org.tpolecat" %% s"doobie-$d" % "1.0.0-RC2"
     } ++ Seq(

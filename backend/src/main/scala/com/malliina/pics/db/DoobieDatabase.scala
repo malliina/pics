@@ -44,7 +44,7 @@ object DoobieDatabase:
     new HikariDataSource(hikari)
 
   private def resource[F[_]: Async](ds: HikariDataSource): Resource[F, DataSourceTransactor[F]] =
-    for ec <- ExecutionContexts.fixedThreadPool[F](32) // our connect EC
+    for ec <- ExecutionContexts.fixedThreadPool[F](16) // our connect EC
     yield Transactor.fromDataSource[F](ds, ec)
 
 class DoobieDatabase[F[_]: Sync](tx: DataSourceTransactor[F]) extends DatabaseRunner[F]:

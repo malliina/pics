@@ -7,7 +7,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 
 object LocalConf:
   val appDir: Path = Paths.get(sys.props("user.home")).resolve(".pics")
-  val localConfFile: Path = appDir.resolve("pics.conf")
+  private val localConfFile: Path = appDir.resolve("pics.conf")
   val isProd: Boolean = BuildInfo.mode == "prod"
   private val localConfig: Config =
     ConfigFactory.parseFile(localConfFile.toFile).withFallback(ConfigFactory.load())

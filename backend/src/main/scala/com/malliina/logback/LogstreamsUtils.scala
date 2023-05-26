@@ -18,18 +18,11 @@ import org.slf4j.LoggerFactory
 
 object LogstreamsUtils:
   def prepLogging(): Unit =
-    val lc = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
-    lc.reset()
-    val ple = PatternLayoutEncoder()
-    ple.setPattern("""%d{HH:mm:ss.SSS} %-5level %logger{72} %msg%n""")
-    ple.setContext(lc)
-    ple.start()
-    val console = new ConsoleAppender[ILoggingEvent]()
-    console.setEncoder(ple)
-    LogbackUtils.installAppender(console)
-    val root = lc.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)
-    root.setLevel(Level.INFO)
-    lc.getLogger("org.http4s.ember.server.EmberServerBuilderCompanionPlatform").setLevel(Level.OFF)
+    LogbackUtils.init(
+      levelsByLogger = Map(
+        "org.http4s.ember.server.EmberServerBuilderCompanionPlatform" -> Level.OFF
+      )
+    )
 
   def install[F[_]: Async](d: Dispatcher[F], http: HttpClientF2[F]): F[Unit] =
     val enabled = sys.env.get("LOGSTREAMS_ENABLED").contains("true")
