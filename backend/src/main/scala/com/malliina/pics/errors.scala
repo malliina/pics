@@ -5,7 +5,6 @@ import java.nio.file.Path
 
 import cats.data.NonEmptyList
 import com.malliina.values.ErrorMessage
-import com.malliina.web.JWTError
 import com.sksamuel.scrimage.ImageParseException
 import io.circe.Codec
 import io.circe.generic.semiauto.deriveCodec

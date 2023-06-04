@@ -1,9 +1,8 @@
 package com.malliina.pics
 
-import cats.{FlatMap, Monad}
+import cats.Monad
 
 import java.nio.file.{Files, Path}
-import cats.effect.{Async, IO, Sync}
 import cats.syntax.all.*
 import com.malliina.storage.{StorageLong, StorageSize}
 import com.malliina.values.{AccessToken, Username}

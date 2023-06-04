@@ -2,7 +2,7 @@ package com.malliina.pics
 
 import java.io.{IOException, InputStream}
 import java.nio.file.{Files, Path}
-import cats.effect.{IO, Sync}
+import cats.effect.Sync
 import cats.syntax.all.*
 import com.malliina.storage.{StorageLong, StorageSize}
 import com.malliina.util.AppLogger

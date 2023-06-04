@@ -1,7 +1,7 @@
 package tests
 
 import cats.effect.IO
-import com.malliina.pics.{ContentType, ImageException, Resizer, ScrimageResizer, Util}
+import com.malliina.pics.{ContentType, ImageException, Resizer, ScrimageResizer}
 import com.malliina.storage.{StorageInt, StorageSize}
 
 import java.nio.file.{Files, Paths}

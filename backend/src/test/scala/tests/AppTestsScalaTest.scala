@@ -2,8 +2,6 @@ package tests
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
-import cats.effect.unsafe.IORuntime
-import cats.effect.unsafe.implicits.global
 import cats.effect.IO.asyncForIO
 import cats.syntax.flatMap.*
 import com.comcast.ip4s.port
@@ -11,23 +9,15 @@ import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.http.io.HttpClientF2
 import com.malliina.pics.*
 import com.malliina.pics.PicsConf.ConfigOps
-import com.malliina.pics.app.LocalConf
 import com.malliina.pics.db.{DatabaseConf, DatabaseRunner, DoobieDatabase}
 import com.malliina.pics.http4s.PicsServer
-import com.malliina.pics.http4s.PicsServer.AppService
-import munit.FunSuite
 import com.malliina.http.io.HttpClientIO
 import com.malliina.values.ErrorMessage
 import org.slf4j.LoggerFactory
 import org.testcontainers.utility.DockerImageName
 import tests.MUnitDatabaseSuite.log
 import org.http4s.server.Server
-import org.http4s.Uri
 import com.malliina.http.FullUrl
-
-import java.util.concurrent.atomic.AtomicReference
-import scala.concurrent.Promise
-import scala.util.Try
 
 object MUnitDatabaseSuite:
   private val log = LoggerFactory.getLogger(getClass)

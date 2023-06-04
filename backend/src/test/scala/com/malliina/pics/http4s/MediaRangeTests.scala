@@ -8,5 +8,5 @@ class MediaRangeTests extends FunSuite:
     val in =
       "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
     val ranges = in.split(",")
-    val res = MediaRange.parse(ranges.head)
+    val _ = MediaRange.parse(ranges.head)
   }

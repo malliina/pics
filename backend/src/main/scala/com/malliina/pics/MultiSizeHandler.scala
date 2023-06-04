@@ -1,9 +1,8 @@
 package com.malliina.pics
 
 import java.nio.file.Path
-import cats.effect.{Async, IO, Resource, Sync}
+import cats.effect.{Async, Resource, Sync}
 import cats.implicits.*
-import cats.syntax.*
 import cats.data.NonEmptyList
 import com.malliina.pics.s3.S3Source
 import com.sksamuel.scrimage.ImmutableImage

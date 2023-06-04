@@ -2,8 +2,7 @@ package com.malliina.pics
 
 import java.util.concurrent.CompletableFuture
 
-import cats.effect.{Async, IO}
-import cats.syntax.all.*
+import cats.effect.Async
 
 import scala.concurrent.{Future, Promise}
 

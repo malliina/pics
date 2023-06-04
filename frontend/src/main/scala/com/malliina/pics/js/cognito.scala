@@ -1,5 +1,6 @@
 package com.malliina.pics.js
 
+import scala.annotation.unused
 import scala.concurrent.{Future, Promise}
 import scala.scalajs.js
 import scala.scalajs.js.Dynamic.literal
@@ -18,7 +19,7 @@ object UserAttribute:
 
 @js.native
 @JSGlobal("AmazonCognitoIdentity.CognitoUserAttribute")
-class CognitoUserAttribute(attribute: UserAttribute) extends js.Object {}
+class CognitoUserAttribute(@unused attribute: UserAttribute) extends js.Object {}
 
 object CognitoUserAttribute:
   def apply(attribute: UserAttribute): CognitoUserAttribute =
@@ -45,7 +46,7 @@ trait SignUpResult extends js.Object:
 
 @js.native
 @JSGlobal("AmazonCognitoIdentity.CognitoUserPool")
-class CognitoUserPool(options: PoolData) extends js.Object:
+class CognitoUserPool(@unused options: PoolData) extends js.Object:
   def signUp(
     username: String,
     password: String,
@@ -100,7 +101,7 @@ object AuthenticationData:
 
 @js.native
 @JSGlobal("AmazonCognitoIdentity.AuthenticationDetails")
-class AuthenticationDetails(options: AuthenticationData) extends js.Object {}
+class AuthenticationDetails(@unused options: AuthenticationData) extends js.Object {}
 
 object AuthenticationDetails:
   def apply(options: AuthenticationData): AuthenticationDetails =
@@ -120,7 +121,7 @@ object MfaSettings:
 
 @js.native
 @JSGlobal("AmazonCognitoIdentity.CognitoUser")
-class CognitoUser(options: UserData) extends js.Object:
+class CognitoUser(@unused options: UserData) extends js.Object:
   def username: String = js.native
 
   def authenticateUser(creds: AuthenticationDetails, callback: AuthCallback): Unit = js.native

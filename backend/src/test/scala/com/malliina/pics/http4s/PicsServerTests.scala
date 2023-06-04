@@ -1,17 +1,14 @@
 package com.malliina.pics.http4s
 
 import cats.Show
-import cats.data.NonEmptyList
 import cats.effect.*
 import com.malliina.http.{FullUrl, OkHttpResponse}
 import com.malliina.http.io.{HttpClientIO, HttpClientF2}
 import com.malliina.pics.AppMeta
 import com.malliina.pics.http4s.PicsImplicits.*
-import munit.FunSuite
 import okhttp3.RequestBody
 import org.http4s.circe.CirceInstances
-import org.http4s.headers.{Accept, MediaRangeAndQValue}
-import org.http4s.{EntityDecoder, MediaType, Method, Request, Status, Uri}
+import org.http4s.{MediaType, Status}
 import tests.ServerSuite
 
 class PicsServerTests extends munit.CatsEffectSuite with ServerSuite with CirceInstances:

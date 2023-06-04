@@ -6,15 +6,10 @@ import cats.syntax.all.*
 import com.malliina.http.{FullUrl, HttpClient}
 import com.malliina.oauth.TokenResponse
 import com.malliina.pics.auth.AppleAuthFlow.staticConf
-import com.malliina.values.{Email, ErrorMessage, IdToken}
+import com.malliina.values.{Email, ErrorMessage}
 import com.malliina.web.OAuthKeys.*
 import com.malliina.web.*
-import com.nimbusds.jose.crypto.ECDSASigner
-import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
-import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 import org.http4s.UrlForm
-
-import java.time.temporal.ChronoUnit
 
 case class AppleResponse(code: Code, state: String)
 

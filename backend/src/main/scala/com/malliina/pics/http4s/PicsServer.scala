@@ -4,12 +4,10 @@ import cats.data.Kleisli
 import cats.effect.kernel.{Resource, Temporal}
 import cats.effect.std.Dispatcher
 import cats.effect.{Async, ExitCode, IO, IOApp}
-import cats.syntax.all.toFunctorOps
 import com.malliina.pics.db.{DoobieDatabase, PicsDatabase}
 import com.malliina.pics.{BuildInfo, MultiSizeHandler, PicsConf}
 import com.malliina.util.AppLogger
-import com.malliina.http.io.{HttpClientF, HttpClientF2, HttpClientIO}
-import com.malliina.http.HttpClient
+import com.malliina.http.io.{HttpClientF2, HttpClientIO}
 import fs2.concurrent.Topic
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.middleware.{GZip, HSTS}
@@ -17,9 +15,8 @@ import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.server.{Router, Server}
 import org.http4s.{HttpRoutes, Request, Response}
 import com.comcast.ip4s.{Port, host, port}
-import com.malliina.logback.LogstreamsUtils
+import com.malliina.logback.AppLogging
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Duration, DurationInt}
 
 object PicsServer extends IOApp:
@@ -27,7 +24,7 @@ object PicsServer extends IOApp:
     super.runtimeConfig.copy(cpuStarvationCheckInitialDelay = Duration.Inf)
   type AppService = Kleisli[IO, Request[IO], Response[IO]]
 
-  LogstreamsUtils.prepLogging()
+  AppLogging.init()
   private val log = AppLogger(getClass)
 
   private val serverPort: Port =
@@ -60,7 +57,7 @@ object PicsServer extends IOApp:
   ): Resource[F, PicsService[F]] = for
     dispatcher <- Dispatcher.parallel[F]
     http <- httpResource
-    _ <- Resource.eval(LogstreamsUtils.install(dispatcher, http))
+    _ <- AppLogging.resource(dispatcher, http)
     topic <- Resource.eval(Topic[F, PicMessage])
     tx <- DoobieDatabase.migratedResource[F](conf.db)
   yield

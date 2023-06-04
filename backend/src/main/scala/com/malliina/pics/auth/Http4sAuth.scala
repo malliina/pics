@@ -1,17 +1,14 @@
 package com.malliina.pics.auth
 
-import cats.effect.{IO, Sync}
+import cats.effect.Sync
 import cats.syntax.all.*
 import com.malliina.http.HttpClient
-import com.malliina.http.io.HttpClientIO
 import com.malliina.pics.auth.CredentialsResult.{AccessTokenResult, IdTokenResult, NoCredentials}
 import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.http4s.PicsImplicits.*
 import com.malliina.pics.http4s.PicsService.version10
 import com.malliina.pics.http4s.{BasicService, PicsService, Reverse, Urls}
 import com.malliina.pics.{AppConf, Errors, PicRequest}
-import com.malliina.pics.auth.JWTUsers
-import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, ErrorMessage, IdToken, Username}
 import com.malliina.web.{CognitoAccessValidator, CognitoIdValidator, JWTUser, OAuthError}
 import io.circe.*
@@ -22,11 +19,10 @@ import org.http4s.*
 import org.http4s.headers.{Authorization, Cookie, Location}
 import org.typelevel.ci.CIStringSyntax
 
+import scala.annotation.unused
 import scala.concurrent.duration.DurationInt
 
 object Http4sAuth:
-  private val log = AppLogger(getClass)
-
   def default[F[_]: Sync](conf: AppConf, db: PicsDatabase[F], http: HttpClient[F]): Http4sAuth[F] =
     Http4sAuth(
       JWT(conf.secret),
@@ -222,5 +218,5 @@ class Http4sAuth[F[_]: Sync](
       }
     yield t
 
-  private def onUnauthorized(headers: Headers) =
+  private def onUnauthorized(@unused headers: Headers) =
     SeeOther(Location(Reverse.signIn))

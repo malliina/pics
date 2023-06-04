@@ -1,7 +1,7 @@
 package com.malliina.pics.http4s
 
 import cats.data.NonEmptyList
-import cats.effect.{Async, Sync}
+import cats.effect.Async
 import cats.implicits.*
 import com.malliina.pics.BuildInfo
 import com.malliina.pics.http4s.StaticService.log
@@ -12,7 +12,6 @@ import org.http4s.headers.`Cache-Control`
 import org.http4s.{Header, HttpRoutes, Request, StaticFile}
 import org.typelevel.ci.CIStringSyntax
 
-import java.nio.file.Files
 import scala.concurrent.duration.DurationInt
 
 object StaticService:

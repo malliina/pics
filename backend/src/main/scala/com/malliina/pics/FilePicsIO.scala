@@ -3,7 +3,7 @@ package com.malliina.pics
 import cats.Monad
 
 import java.nio.file.{Files, NoSuchFileException, Path, Paths}
-import cats.effect.{IO, Sync}
+import cats.effect.Sync
 import cats.syntax.all.*
 import com.malliina.storage.{StorageLong, StorageSize}
 import com.malliina.util.AppLogger

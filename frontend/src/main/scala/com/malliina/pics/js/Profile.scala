@@ -3,6 +3,7 @@ package com.malliina.pics.js
 import com.malliina.pics.LoginStrings
 import org.scalajs.dom.*
 
+import scala.annotation.unused
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
 import scala.scalajs.js.Dynamic.literal
@@ -128,7 +129,7 @@ object QRCodeOptions:
 
 @js.native
 @JSGlobal
-class QRCode(elem: HTMLElement, options: QRCodeOptions) extends js.Object:
+class QRCode(@unused elem: HTMLElement, @unused options: QRCodeOptions) extends js.Object:
   def clear(): Unit = js.native
 
   def makeCode(code: String): Unit = js.native

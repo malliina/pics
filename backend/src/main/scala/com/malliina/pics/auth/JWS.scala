@@ -7,7 +7,6 @@ import com.nimbusds.jose.{JWSAlgorithm, JWSHeader, JWSObject, Payload}
 import io.circe.*
 import io.circe.syntax.EncoderOps
 import io.circe.parser.parse
-import scala.util.Try
 
 /** @see
   *   https://connect2id.com/products/nimbus-jose-jwt/examples/jws-with-hmac

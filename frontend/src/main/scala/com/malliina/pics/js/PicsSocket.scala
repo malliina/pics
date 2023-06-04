@@ -7,8 +7,6 @@ import org.scalajs.dom.*
 
 import scala.concurrent.duration.DurationDouble
 import scala.scalajs.js
-import scala.scalajs.js.Dynamic.literal
-import scala.scalajs.js.annotation.JSImport
 import scala.scalajs.js.timers.*
 
 class PicsSocket extends BaseSocket("/sockets"):

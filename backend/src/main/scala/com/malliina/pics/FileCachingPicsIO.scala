@@ -3,7 +3,6 @@ package com.malliina.pics
 import cats.Monad
 
 import java.nio.file.Path
-import cats.effect.IO
 import cats.syntax.all.*
 import com.malliina.storage.StorageSize
 

@@ -4,10 +4,8 @@ import cats.data.NonEmptyList
 import cats.Show
 import cats.syntax.all.*
 import cats.effect.*
-import cats.effect.kernel.Temporal
 import com.malliina.html.UserFeedback
 import com.malliina.http.HttpClient
-import com.malliina.http.io.HttpClientIO
 import com.malliina.pics.*
 import com.malliina.pics.PicsStrings.{XClientPic, XKey, XName}
 import com.malliina.pics.auth.Http4sAuth.TwitterState
@@ -27,7 +25,7 @@ import com.malliina.pics.auth.Social.*
 import fs2.concurrent.Topic
 import fs2.io.file.Path as FS2Path
 import io.circe.syntax.EncoderOps
-import io.circe.{Codec, Decoder, Encoder, Json}
+import io.circe.{Decoder, Encoder, Json}
 import org.http4s.CacheDirective.*
 import org.http4s.headers.{Accept, Location, `Cache-Control`, `WWW-Authenticate`}
 import org.typelevel.ci.{CIString, CIStringSyntax}
@@ -38,6 +36,7 @@ import org.http4s.websocket.WebSocketFrame.*
 import org.http4s.{Callback as _, *}
 
 import java.nio.file.Files
+import scala.annotation.unused
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 object PicsService:
@@ -589,6 +588,7 @@ class PicsService[F[_]: Async](
     else if rs.exists(_.satisfies(MediaType.application.json)) then json
     else NotAcceptable(Errors("Not acceptable.").asJson, noCache)
 
+  @unused
   private def failResize(error: ImageFailure, by: PicRequest): F[Response[F]] = error match
     case UnsupportedFormat(format, supported) =>
       val msg = s"Unsupported format: '$format', must be one of: '${supported.mkString(", ")}'"

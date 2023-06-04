@@ -16,7 +16,6 @@ import io.circe.syntax.EncoderOps
 import io.circe.parser.parse
 
 import scala.concurrent.duration.{DurationLong, FiniteDuration}
-import scala.util.Try
 
 object JWT:
   private val log = AppLogger(getClass)

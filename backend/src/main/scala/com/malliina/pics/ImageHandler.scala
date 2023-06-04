@@ -1,7 +1,7 @@
 package com.malliina.pics
 
 import java.nio.file.{Files, Path}
-import cats.effect.{IO, Sync}
+import cats.effect.Sync
 import cats.syntax.all.*
 import com.sksamuel.scrimage.ImmutableImage
 

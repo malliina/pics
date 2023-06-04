@@ -4,6 +4,7 @@ import com.malliina.pics.PicsStrings
 import org.scalajs.dom
 import org.scalajs.dom.*
 
+import scala.annotation.unused
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSGlobal
 import scala.scalajs.js.Dynamic.literal
@@ -26,8 +27,8 @@ trait IntersectionObserverEntry extends js.Object:
 @JSGlobal
 @js.native
 class IntersectionObserver(
-  init: js.Function2[js.Array[IntersectionObserverEntry], IntersectionObserver, ?],
-  options: IntersectionOptions
+  @unused init: js.Function2[js.Array[IntersectionObserverEntry], IntersectionObserver, ?],
+  @unused options: IntersectionOptions
 ) extends js.Object:
   def observe(elem: Node): Unit = js.native
   def unobserve(elem: Node): Unit = js.native

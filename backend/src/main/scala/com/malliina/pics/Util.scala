@@ -1,6 +1,6 @@
 package com.malliina.pics
 
-import cats.effect.{IO, Sync}
+import cats.effect.Sync
 import cats.syntax.all.*
 import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
 

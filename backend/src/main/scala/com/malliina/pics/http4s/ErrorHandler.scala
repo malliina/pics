@@ -1,14 +1,10 @@
 package com.malliina.pics.http4s
 
-import cats.Monad
 import cats.effect.Async
 import com.malliina.pics.http4s.PicsImplicits.*
 import com.malliina.util.AppLogger
-import org.http4s.headers.{Connection, `Content-Length`}
-import org.http4s.{Headers, Request, Response, Status}
-import org.typelevel.ci.CIStringSyntax
+import org.http4s.Response
 import com.malliina.http.ResponseException
-import org.http4s.Status.InternalServerError
 
 import java.io.IOException
 import scala.util.control.NonFatal

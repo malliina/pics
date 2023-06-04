@@ -1,14 +1,14 @@
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 
-val webAuthVersion = "6.5.0"
-val primitivesVersion = "3.4.0"
+val webAuthVersion = "6.5.1"
+val primitivesVersion = "3.4.2"
 val munitVersion = "0.7.29"
 
 inThisBuild(
   Seq(
     organization := "com.malliina",
     version := "0.0.1",
-    scalaVersion := "3.2.2",
+    scalaVersion := "3.3.0",
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit" % munitVersion % Test
     ),
@@ -21,7 +21,10 @@ inThisBuild(
       case x =>
         val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
         oldStrategy(x)
-    }
+    },
+    scalacOptions ++= Seq(
+      "-Wunused:all"
+    )
   )
 )
 
@@ -69,14 +72,14 @@ val backend = project
       "org.tpolecat" %% s"doobie-$d" % "1.0.0-RC2"
     } ++ Seq(
       "org.apache.commons" % "commons-text" % "1.10.0",
-      "software.amazon.awssdk" % "s3" % "2.20.51",
+      "software.amazon.awssdk" % "s3" % "2.20.68",
       "org.flywaydb" % "flyway-core" % "7.15.0",
       "mysql" % "mysql-connector-java" % "8.0.32",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.0.34",
-      "com.malliina" %% "logstreams-client" % "2.5.0",
+      "com.malliina" %% "logstreams-client" % "2.6.1",
       "com.malliina" %% "web-auth" % webAuthVersion,
       "com.malliina" %% "config" % primitivesVersion,
-      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.15" % Test,
+      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.16" % Test,
       "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
     ),
     assembly / assemblyJarName := "app.jar",

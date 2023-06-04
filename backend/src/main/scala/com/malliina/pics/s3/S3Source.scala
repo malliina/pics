@@ -1,6 +1,6 @@
 package com.malliina.pics.s3
 
-import cats.effect.{Async, IO, Sync}
+import cats.effect.{Async, Sync}
 import cats.effect.kernel.Resource
 import cats.syntax.all.*
 import com.malliina.pics.s3.S3Source.log

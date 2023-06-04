@@ -1,6 +1,5 @@
 package com.malliina.pics.auth
 
-import com.malliina.pics.auth.SignInWithApple
 import com.malliina.web.AuthConf
 
 import scala.concurrent.duration.{Duration, DurationInt}

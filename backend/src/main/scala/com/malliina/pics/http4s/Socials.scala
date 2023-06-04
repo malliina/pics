@@ -1,6 +1,6 @@
 package com.malliina.pics.http4s
 
-import cats.effect.{IO, Sync}
+import cats.effect.Sync
 import com.malliina.http.HttpClient
 import com.malliina.pics.auth.*
 import com.malliina.pics.auth.Social.SocialConf

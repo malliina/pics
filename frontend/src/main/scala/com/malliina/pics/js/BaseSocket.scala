@@ -8,8 +8,6 @@ import io.circe.*
 import io.circe.syntax.EncoderOps
 import io.circe.parser.parse
 
-import scala.util.Try
-
 object BaseSocket:
   val EventKey = "event"
   val Ping = "ping"

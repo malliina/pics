@@ -1,6 +1,6 @@
 package com.malliina.pics.auth
 
-import cats.effect.{IO, Sync}
+import cats.effect.Sync
 import cats.syntax.all.*
 import com.malliina.http.HttpClient
 import com.malliina.values.{Email, ErrorMessage, IdToken}

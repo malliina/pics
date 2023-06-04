@@ -1,7 +1,5 @@
 package com.malliina.pics.http4s
 
-import com.malliina.pics.PicOwner
-
 class PicsTests extends munit.FunSuite:
   test("version endpoint returns ok for acceptable Accept header") {
 //    val result = makeRequest(

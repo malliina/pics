@@ -1,7 +1,6 @@
 package com.malliina.pics.auth
 
 import cats.effect.IO
-import com.malliina.http.OkClient
 import com.malliina.pics.PicsConf
 import com.malliina.web.JWTKeys
 import tests.ClientSuite
