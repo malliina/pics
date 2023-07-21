@@ -1,38 +1,37 @@
 package tests
 
 import cats.effect.IO
-import cats.effect.kernel.Resource
 import cats.effect.IO.asyncForIO
+import cats.effect.kernel.Resource
 import cats.syntax.flatMap.*
 import com.comcast.ip4s.port
 import com.dimafeng.testcontainers.MySQLContainer
-import com.malliina.http.io.HttpClientF2
+import com.malliina.database.{Conf, DoobieDatabase}
+import com.malliina.http.FullUrl
+import com.malliina.http.io.{HttpClientF2, HttpClientIO}
 import com.malliina.pics.*
 import com.malliina.pics.PicsConf.ConfigOps
-import com.malliina.pics.db.{DatabaseConf, DatabaseRunner, DoobieDatabase}
 import com.malliina.pics.http4s.PicsServer
-import com.malliina.http.io.HttpClientIO
 import com.malliina.values.ErrorMessage
+import org.http4s.server.Server
 import org.slf4j.LoggerFactory
 import org.testcontainers.utility.DockerImageName
 import tests.MUnitDatabaseSuite.log
-import org.http4s.server.Server
-import com.malliina.http.FullUrl
 
 object MUnitDatabaseSuite:
   private val log = LoggerFactory.getLogger(getClass)
 
 trait MUnitDatabaseSuite:
   self: munit.CatsEffectSuite =>
-  val db: Fixture[DatabaseConf] = new Fixture[DatabaseConf]("database"):
+  val db: Fixture[Conf] = new Fixture[Conf]("database"):
     var container: Option[MySQLContainer] = None
-    var conf: Option[DatabaseConf] = None
-    def apply(): DatabaseConf = conf.get
+    var conf: Option[Conf] = None
+    def apply(): Conf = conf.get
 
     override def beforeAll(): Unit =
       val testDb = readTestConf.recover { err =>
         log.info(s"No local test database configured, falling back to Docker. $err")
-        val c = MySQLContainer(mysqlImageVersion = DockerImageName.parse("mysql:5.7.29"))
+        val c = MySQLContainer(mysqlImageVersion = DockerImageName.parse("mysql:8.0.33"))
         c.start()
         container = Option(c)
         TestConf(c)
@@ -41,8 +40,8 @@ trait MUnitDatabaseSuite:
     override def afterAll(): Unit =
       container.foreach(_.stop())
 
-    def readTestConf: Either[ErrorMessage, DatabaseConf] =
-      PicsConf.picsConf.read[DatabaseConf]("testdb")
+    def readTestConf: Either[ErrorMessage, Conf] =
+      PicsConf.picsConf.read[Conf]("testdb")
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(db)
 
@@ -74,19 +73,20 @@ trait ClientSuite:
 
 trait DoobieSuite extends MUnitDatabaseSuite:
   self: munit.CatsEffectSuite =>
-  val doobie: Fixture[DatabaseRunner[IO]] =
+  val doobie: Fixture[DoobieDatabase[IO]] =
     ResourceSuiteLocalFixture(
       "doobie",
-      Resource.eval(IO.delay(db())).flatMap(d => DoobieDatabase.default(d))
+      Resource.eval(IO.delay(db())).flatMap(d => DoobieDatabase.init(d))
     )
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(db, doobie)
 
 object TestConf:
-  def apply(container: MySQLContainer): DatabaseConf = DatabaseConf(
-    s"${container.jdbcUrl}?useSSL=false",
+  def apply(container: MySQLContainer): Conf = Conf(
+    container.jdbcUrl,
     container.username,
     container.password,
+    Conf.MySQLDriver,
     2,
     true
   )

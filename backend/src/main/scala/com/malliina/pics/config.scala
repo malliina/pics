@@ -1,10 +1,10 @@
 package com.malliina.pics
 
 import com.malliina.config.ConfigReadable
+import com.malliina.database.Conf
 import com.malliina.pics.PicsConf.ConfigOps
 import com.malliina.pics.app.LocalConf
 import com.malliina.pics.auth.{SecretKey, SignInWithApple, Social}
-import com.malliina.pics.db.DatabaseConf
 import com.malliina.values.ErrorMessage
 import com.malliina.web.{AuthConf, ClientId, ClientSecret}
 import com.typesafe.config.{Config, ConfigFactory}
@@ -49,7 +49,7 @@ object AppMode:
 case class PicsConf(
   mode: AppMode,
   app: AppConf,
-  db: DatabaseConf,
+  db: Conf,
   google: GoogleConf,
   github: SocialClientConf,
   microsoft: SocialClientConf,
@@ -78,9 +78,9 @@ object PicsConf:
       c.read[T](key).fold(err => throw new IllegalArgumentException(err.message), identity)
   def picsConf = ConfigFactory.load(LocalConf.config).resolve().getConfig("pics")
 
-  def unsafeLoad(c: Config = picsConf): PicsConf = unsafeLoadWith(c, c.unsafe[DatabaseConf]("db"))
+  def unsafeLoad(c: Config = picsConf): PicsConf = unsafeLoadWith(c, c.unsafe[Conf]("db"))
 
-  def unsafeLoadWith(c: Config, db: => DatabaseConf): PicsConf =
+  def unsafeLoadWith(c: Config, db: => Conf): PicsConf =
     def client(name: String): SocialClientConf = c.unsafe[SocialClientConf](name)
     PicsConf(
       c.unsafe[AppMode]("mode"),

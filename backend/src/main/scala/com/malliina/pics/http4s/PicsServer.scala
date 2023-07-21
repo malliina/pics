@@ -1,28 +1,28 @@
 package com.malliina.pics.http4s
 
 import cats.data.Kleisli
-import cats.effect.kernel.{Resource, Temporal}
 import cats.effect.std.Dispatcher
-import cats.effect.{Async, ExitCode, IO, IOApp}
-import com.malliina.pics.db.{DoobieDatabase, PicsDatabase}
+import cats.effect.*
+import com.comcast.ip4s.{Port, host, port}
+import com.malliina.database.DoobieDatabase
+import com.malliina.http.io.{HttpClientF2, HttpClientIO}
+import com.malliina.logback.AppLogging
+import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.{BuildInfo, MultiSizeHandler, PicsConf}
 import com.malliina.util.AppLogger
-import com.malliina.http.io.{HttpClientF2, HttpClientIO}
 import fs2.concurrent.Topic
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.middleware.{GZip, HSTS}
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.server.{Router, Server}
 import org.http4s.{HttpRoutes, Request, Response}
-import com.comcast.ip4s.{Port, host, port}
-import com.malliina.logback.AppLogging
 
 import scala.concurrent.duration.{Duration, DurationInt}
 
 object PicsServer extends IOApp:
   override def runtimeConfig =
     super.runtimeConfig.copy(cpuStarvationCheckInitialDelay = Duration.Inf)
-  type AppService = Kleisli[IO, Request[IO], Response[IO]]
+  type AppService[F[_]] = Kleisli[F, Request[F], Response[F]]
 
   AppLogging.init()
   private val log = AppLogger(getClass)
@@ -59,9 +59,9 @@ object PicsServer extends IOApp:
     http <- httpResource
     _ <- AppLogging.resource(dispatcher, http)
     topic <- Resource.eval(Topic[F, PicMessage])
-    tx <- DoobieDatabase.migratedResource[F](conf.db)
+    doobieDatabase <- DoobieDatabase.init[F](conf.db)
   yield
-    val db = PicsDatabase(DoobieDatabase(tx))
+    val db = PicsDatabase(doobieDatabase)
 //    val csrf =
 //      CSRF.generateSigningKey[IO].map { key =>
 //        CSRF[IO, IO](key, _ => true)
@@ -69,22 +69,20 @@ object PicsServer extends IOApp:
 //      }
     PicsService.default(conf, db, topic, handler, http)
 
-  def app(svc: PicsService[IO], sockets: WebSocketBuilder2[IO])(implicit
-    t: Temporal[IO]
-  ): AppService =
+  def app[F[_]: Async](svc: PicsService[F], sockets: WebSocketBuilder2[F]): AppService[F] =
     GZip {
       HSTS {
         orNotFound {
           Router(
             "/" -> svc.routes(sockets),
-            "/assets" -> StaticService[IO].routes
+            "/assets" -> StaticService[F].routes
           )
         }
       }
     }
 
-  private def orNotFound(rs: HttpRoutes[IO]): Kleisli[IO, Request[IO], Response[IO]] =
-    Kleisli(req => rs.run(req).getOrElseF(BasicService.notFound(req)))
+  private def orNotFound[F[_]: Async](rs: HttpRoutes[F]): Kleisli[F, Request[F], Response[F]] =
+    Kleisli(req => rs.run(req).getOrElseF(BasicService[F].notFound(req)))
 
   override def run(args: List[String]): IO[ExitCode] =
     server(PicsConf.unsafeLoad()).use(_ => IO.never).as(ExitCode.Success)

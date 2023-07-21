@@ -5,7 +5,6 @@ import cats.syntax.all.*
 import com.malliina.http.HttpClient
 import com.malliina.pics.auth.CredentialsResult.{AccessTokenResult, IdTokenResult, NoCredentials}
 import com.malliina.pics.db.PicsDatabase
-import com.malliina.pics.http4s.PicsImplicits.*
 import com.malliina.pics.http4s.PicsService.version10
 import com.malliina.pics.http4s.{BasicService, PicsService, Reverse, Urls}
 import com.malliina.pics.{AppConf, Errors, PicRequest}

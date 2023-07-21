@@ -1,6 +1,7 @@
 package com.malliina.pics.db
 
 import cats.implicits.*
+import com.malliina.database.DoobieDatabase
 import com.malliina.pics.db.PicsDatabase.log
 import com.malliina.pics.{Access, Key, KeyMeta, MetaSourceT, PicOwner, UserDatabase}
 import com.malliina.util.AppLogger
@@ -11,7 +12,7 @@ import doobie.implicits.*
 object PicsDatabase:
   private val log = AppLogger(getClass)
 
-class PicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with UserDatabase[F]:
+class PicsDatabase[F[_]](db: DoobieDatabase[F]) extends MetaSourceT[F] with UserDatabase[F]:
   override def meta(key: Key): F[KeyMeta] = db.run {
     metaQuery(key)
   }
@@ -24,7 +25,7 @@ class PicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with User
   def load(offset: Int, limit: Int, user: PicOwner): F[List[KeyMeta]] = db.run {
     sql"""select p.`key`, u.username, p.access, p.added
           from pics p, users u
-          where p.user = u.id and u.username = $user 
+          where p.user = u.id and u.username = $user
           order by p.added desc limit $limit offset $offset"""
       .query[KeyMeta]
       .to[List]
@@ -36,8 +37,8 @@ class PicsDatabase[F[_]](db: DatabaseRunner[F]) extends MetaSourceT[F] with User
       userId <- fetchOrCreateUser(owner)
       _ <- sql"insert into pics(`key`, user, access) values ($key, $userId, $access)".update.run
       row <-
-        sql"""select p.`key`, u.username, p.access, p.added 
-              from pics p, users u 
+        sql"""select p.`key`, u.username, p.access, p.added
+              from pics p, users u
               where p.user = u.id and p.`key` = $key and u.username = $owner"""
           .query[KeyMeta]
           .unique

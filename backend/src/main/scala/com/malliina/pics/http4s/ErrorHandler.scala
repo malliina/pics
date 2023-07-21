@@ -1,10 +1,9 @@
 package com.malliina.pics.http4s
 
 import cats.effect.Async
-import com.malliina.pics.http4s.PicsImplicits.*
+import com.malliina.http.ResponseException
 import com.malliina.util.AppLogger
 import org.http4s.Response
-import com.malliina.http.ResponseException
 
 import java.io.IOException
 import scala.util.control.NonFatal

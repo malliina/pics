@@ -1,6 +1,5 @@
 package com.malliina.pics.http4s
 
-import cats.effect.IO
 import org.http4s.dsl.Http4sDsl
 import org.http4s.headers.`Content-Type`
 import org.http4s.{Charset, EntityEncoder, MediaType, syntax}
@@ -26,5 +25,3 @@ abstract class PicsImplicits[F[_]]
   with Http4sDsl[F]
   with MyScalatagsInstances
   with CirceInstances
-
-object PicsImplicits extends PicsImplicits[IO]

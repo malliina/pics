@@ -3,11 +3,11 @@ package com.malliina.pics.http4s
 import cats.Show
 import cats.effect.*
 import com.malliina.http.{FullUrl, OkHttpResponse}
-import com.malliina.http.io.{HttpClientIO, HttpClientF2}
+import com.malliina.http.io.{HttpClientF2, HttpClientIO}
 import com.malliina.pics.AppMeta
-import com.malliina.pics.http4s.PicsImplicits.*
 import okhttp3.RequestBody
 import org.http4s.circe.CirceInstances
+import org.http4s.implicits.mediaType
 import org.http4s.{MediaType, Status}
 import tests.ServerSuite
 
