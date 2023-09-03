@@ -1,7 +1,7 @@
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 
-val webAuthVersion = "6.5.3"
-val primitivesVersion = "3.4.4"
+val webAuthVersion = "6.5.5"
+val primitivesVersion = "3.4.5"
 val munitVersion = "0.7.29"
 
 inThisBuild(
@@ -17,6 +17,7 @@ inThisBuild(
       case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.rename
       case PathList("META-INF", "versions", xs @ _*)            => MergeStrategy.first
       case PathList("com", "malliina", xs @ _*)                 => MergeStrategy.first
+      case PathList("META-INF", "okio.kotlin_module")           => MergeStrategy.first
       case PathList("module-info.class")                        => MergeStrategy.first
       case x =>
         val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
@@ -70,13 +71,13 @@ val backend = project
       "org.http4s" %% s"http4s-$m" % "0.23.23"
     } ++ Seq(
       "org.apache.commons" % "commons-text" % "1.10.0",
-      "software.amazon.awssdk" % "s3" % "2.20.108",
+      "software.amazon.awssdk" % "s3" % "2.20.140",
       "mysql" % "mysql-connector-java" % "8.0.33",
-      "com.sksamuel.scrimage" % "scrimage-core" % "4.0.34",
+      "com.sksamuel.scrimage" % "scrimage-core" % "4.0.39",
       "com.malliina" %% "logstreams-client" % "2.6.2",
       "com.malliina" %% "web-auth" % webAuthVersion,
       "com.malliina" %% "database" % webAuthVersion,
-      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.40.17" % Test,
+      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.41.0" % Test,
       "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
     ),
     assembly / assemblyJarName := "app.jar",

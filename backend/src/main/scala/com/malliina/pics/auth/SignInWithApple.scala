@@ -31,7 +31,7 @@ object SignInWithApple:
   )
 
   object Conf:
-    implicit val reader: ConfigReadable[Conf] = ConfigReadable.config.emap { obj =>
+    implicit val reader: ConfigReadable[Conf] = ConfigReadable.config.emapParsed { obj =>
       for
         enabled <- obj.read[Boolean]("enabled")
         keyPath <- obj.read[Path]("privateKey")

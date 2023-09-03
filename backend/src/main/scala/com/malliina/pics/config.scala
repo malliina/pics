@@ -13,7 +13,7 @@ case class SocialConf(id: ClientId, secret: ClientSecret):
   def auth = AuthConf(id, secret)
 
 object SocialConf:
-  implicit val config: ConfigReadable[SocialConf] = ConfigReadable.config.emap { obj =>
+  implicit val config: ConfigReadable[SocialConf] = ConfigReadable.config.emapParsed { obj =>
     for
       id <- obj.read[ClientId]("id")
       secret <- obj.read[ClientSecret]("secret")
@@ -24,7 +24,7 @@ case class SocialClientConf(client: SocialConf):
   def conf = client.auth
 
 object SocialClientConf:
-  implicit val config: ConfigReadable[SocialClientConf] = ConfigReadable.config.emap { obj =>
+  implicit val config: ConfigReadable[SocialClientConf] = ConfigReadable.config.emapParsed { obj =>
     obj.read[SocialConf]("client").map(apply)
   }
 
@@ -40,7 +40,7 @@ object AppMode:
   case object Prod extends AppMode
   case object Dev extends AppMode
 
-  implicit val reader: ConfigReadable[AppMode] = ConfigReadable.string.emap {
+  implicit val reader: ConfigReadable[AppMode] = ConfigReadable.string.emapParsed {
     case "prod" => Right(Prod)
     case "dev"  => Right(Dev)
     case other  => Left(ErrorMessage("Must be 'prod' or 'dev'."))
