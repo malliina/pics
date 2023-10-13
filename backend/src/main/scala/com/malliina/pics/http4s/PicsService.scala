@@ -76,6 +76,7 @@ class PicsService[F[_]: Async](
   handler: MultiSizeHandler[F]
 ) extends BasicService[F]:
   val pong = "pong"
+  val F = Async[F]
 
   def cached(duration: FiniteDuration) = `Cache-Control`(
     NonEmptyList.of(`max-age`(duration), `public`)
@@ -563,13 +564,13 @@ class PicsService[F[_]: Async](
       auth.withPicsUser(UserPayload.email(email), provider, req, res)
     }
 
-  def stringify(map: Map[String, String]): String =
+  private def stringify(map: Map[String, String]): String =
     map.map { case (key, value) => s"$key=$value" }.mkString("&")
 
-  def authed(req: Request[F])(code: PicRequest => F[Response[F]]): F[Response[F]] =
+  private def authed(req: Request[F])(code: PicRequest => F[Response[F]]): F[Response[F]] =
     auth.authenticate(req.headers).flatMap(_.fold(identity, code))
 
-  def authedAll(req: Request[F])(code: PicRequest => F[Response[F]]): F[Response[F]] =
+  private def authedAll(req: Request[F])(code: PicRequest => F[Response[F]]): F[Response[F]] =
     auth.authenticateAll(req.headers).flatMap(_.fold(identity, code))
 
   private def render[A: Encoder, B](req: Request[F])(json: A, html: B)(implicit
@@ -611,7 +612,9 @@ class PicsService[F[_]: Async](
     code: (T, PicRequest) => F[Response[F]]
   )(implicit decoder: EntityDecoder[F, UrlForm]): F[Response[F]] =
     authed(req) { user =>
+      log.info(s"Handling JSON or form data for ${req.uri}...")
       val decoded = req.decodeJson[T].handleErrorWith { t =>
+        log.info(s"JSON decoding failed, attempting to parse form...")
         decoder
           .decode(req, strict = false)
           .foldF(
@@ -620,16 +623,21 @@ class PicsService[F[_]: Async](
                 s"Both JSON and form decode failed for ${req.method} '${req.uri.renderString}'. $fail",
                 t
               )
-              Sync[F].raiseError(fail)
+              F.raiseError(fail)
             ,
             form =>
+              log.info(s"Form decode succeeded, reading values...")
               readForm(FormReader(form)).fold(
-                err => Sync[F].raiseError(ErrorsException(err)),
-                Sync[F].pure
+                err =>
+                  log.info(s"Failed to read form. ${err.message}", err.asException)
+                  F.raiseError(ErrorsException(err))
+                ,
+                F.pure
               )
           )
       }
       decoded.flatMap { t =>
+        log.info("Form decoded successfully.")
         code(t, user)
       }.handleErrorWith { err =>
         log.error(s"Form failure. $err")
@@ -649,4 +657,4 @@ class PicsService[F[_]: Async](
   private def notFoundWith(message: String) = NotFound(Errors(message).asJson, noCache)
   private def serverError(message: String) =
     InternalServerError(Errors(message).asJson, noCache)
-  private def delay[A](thunk: => A): F[A] = Sync[F].delay(thunk)
+  private def delay[A](thunk: => A): F[A] = F.delay(thunk)
