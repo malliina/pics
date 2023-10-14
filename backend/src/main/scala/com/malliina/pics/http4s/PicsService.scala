@@ -610,39 +610,31 @@ class PicsService[F[_]: Async](
 
   private def jsonOrForm[T: Decoder](req: Request[F], readForm: FormReader => Either[Errors, T])(
     code: (T, PicRequest) => F[Response[F]]
-  )(implicit decoder: EntityDecoder[F, UrlForm]): F[Response[F]] =
+  ): F[Response[F]] =
     authed(req) { user =>
       log.info(s"Handling JSON or form data for ${req.uri}...")
-      val decoded = req.decodeJson[T].handleErrorWith { t =>
-        log.info(s"JSON decoding failed, attempting to parse form...")
-        decoder
-          .decode(req, strict = false)
-          .foldF(
-            fail =>
-              log.warn(
-                s"Both JSON and form decode failed for ${req.method} '${req.uri.renderString}'. $fail",
-                t
-              )
-              F.raiseError(fail)
-            ,
-            form =>
-              log.info(s"Form decode succeeded, reading values...")
-              readForm(FormReader(form)).fold(
-                err =>
-                  log.info(s"Failed to read form. ${err.message}", err.asException)
-                  F.raiseError(ErrorsException(err))
-                ,
-                F.pure
-              )
-          )
-      }
-      decoded.flatMap { t =>
-        log.info("Form decoded successfully.")
-        code(t, user)
-      }.handleErrorWith { err =>
-        log.error(s"Form failure. $err")
-        badRequest(Errors("Invalid form input."))
-      }
+      val decoder = jsonOf[F, T].orElse(formDecoder[T](readForm))
+      decoder
+        .decode(req, strict = false)
+        .rethrowT
+        .flatMap { t =>
+          log.info("Form decoded successfully.")
+          code(t, user)
+        }
+        .handleErrorWith { err =>
+          log.error(s"Form failure. $err")
+          badRequest(Errors("Invalid form input."))
+        }
+    }
+
+  private def formDecoder[T](readForm: FormReader => Either[Errors, T]) =
+    UrlForm.entityDecoder[F].flatMapR { form =>
+      readForm(FormReader(form)).fold(
+        err =>
+          DecodeResult
+            .failureT(MalformedMessageBodyFailure(err.message.message, Option(err.asException))),
+        t => DecodeResult.successT(t)
+      )
     }
   private def ok[A](a: A)(implicit w: EntityEncoder[F, A]) = Ok(a, noCache)
   private def badRequestWith(message: String) = badRequest(Errors(message))
