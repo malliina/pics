@@ -92,10 +92,29 @@ class PicsHtml(
     val conf = PageConf("Pics - Drop", bodyClass = DropClass, inner = content)
     baseIndex("drop", if user.readOnly then None else Option(user.name), conf)
 
-  def pics(urls: Seq[PicMeta], feedback: Option[UserFeedback], user: BaseRequest) =
-    val content = Seq(divClass("pics")(renderFeedback(feedback)), picsContent(urls, user.readOnly))
+  def pics(urls: Seq[PicMeta], feedback: Option[UserFeedback], user: BaseRequest, limits: Limits) =
+    val content = Seq(
+      divClass("pics")(renderFeedback(feedback)),
+      picsContent(urls, user.readOnly),
+      pageNav(limits)
+    )
     val conf = PageConf("Pics", bodyClass = PicsClass, inner = content)
     baseIndex("pics", if user.readOnly then None else Option(user.name), conf)
+
+  private def pageNav(current: Limits) =
+    val prev = move(current.prev.offset)
+    val next = move(current.next.offset)
+    val hasPrev = current.prev.offset >= 0
+    val prevExtra = if hasPrev then "" else " disabled"
+    nav(aria.label := "Navigation", `class` := "d-flex justify-content-center py-3")(
+      ul(`class` := "pagination")(
+        li(`class` := s"page-item $prevExtra")(a(`class` := "page-link", href := prev)("Previous")),
+        li(`class` := "page-item")(a(`class` := "page-link", href := next)("Next"))
+      )
+    )
+
+  private def move(offset: Int) =
+    Reverse.list.withQueryParams(Map(Limits.Offset -> offset))
 
   def privacyPolicy =
     val privacyContent: Modifier = divContainer(
@@ -142,7 +161,7 @@ class PicsHtml(
       )
     basePage(PageConf("Goodbye!", inner = content))
 
-  def baseIndex(tabName: String, user: Option[PicOwner], conf: PageConf) =
+  private def baseIndex(tabName: String, user: Option[PicOwner], conf: PageConf) =
     def navItem(thisTabName: String, tabId: String, url: Uri, faName: String) =
       val itemClass = if tabId == tabName then "nav-item active" else "nav-item"
       li(`class` := itemClass)(a(href := url, `class` := "nav-link")(fa(faName), s" $thisTabName"))
@@ -223,7 +242,7 @@ class PicsHtml(
   private def deferredJsPath(path: String) =
     script(`type` := "application/javascript", src := at(path), defer)
 
-  def at(path: String) = assets.at(path)
+  private def at(path: String) = assets.at(path)
 
 case class PageConf(
   title: String,

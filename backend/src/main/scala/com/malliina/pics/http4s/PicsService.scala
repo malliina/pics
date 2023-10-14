@@ -117,7 +117,7 @@ class PicsService[F[_]: Async](
                 json = Pics(entries),
                 html =
                   val feedback = None // UserFeedbacks.flashed(req.rh.flash)
-                  html.pics(entries, feedback, listRequest.user)
+                  html.pics(entries, feedback, listRequest.user, listRequest.limits)
               )
             }
           }
@@ -618,7 +618,6 @@ class PicsService[F[_]: Async](
         .decode(req, strict = false)
         .rethrowT
         .flatMap { t =>
-          log.info("Form decoded successfully.")
           code(t, user)
         }
         .handleErrorWith { err =>
