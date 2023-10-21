@@ -7,8 +7,8 @@ import doobie.Meta
 import java.time.Instant
 
 trait DoobieMappings:
-  implicit val instantMapping: Meta[Instant] = doobie.implicits.legacy.instant.JavaTimeInstantMeta
-  implicit val keyMapping: Meta[Key] = Meta[String].timap(Key.apply)(_.key)
-  implicit val picOwnerMapping: Meta[PicOwner] = Meta[String].timap(PicOwner.apply)(_.name)
-  implicit val usernameMapping: Meta[Username] = Meta[String].timap(Username.apply)(_.name)
-  implicit val accessMapping: Meta[Access] = Meta[String].timap(Access.parseUnsafe)(_.name)
+  given Meta[Instant] = doobie.implicits.legacy.instant.JavaTimeInstantMeta
+  given Meta[Key] = Meta[String].timap(Key.apply)(_.key)
+  given Meta[PicOwner] = Meta[String].timap(PicOwner.apply)(_.name)
+  given Meta[Username] = Meta[String].timap(Username.apply)(_.name)
+  given Meta[Access] = Meta[String].timap(Access.parseUnsafe)(_.name)

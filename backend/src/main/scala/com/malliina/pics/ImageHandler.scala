@@ -10,18 +10,19 @@ class ImageHandler[F[_]: Sync](
   resizer: ImageResizer[F],
   val storage: DataSourceT[F]
 ) extends ImageService[F]:
-  def createTempFile = Sync[F].blocking(Files.createTempFile(prefix, null))
+  val F = Sync[F]
+  def createTempFile = F.blocking(Files.createTempFile(prefix, null))
 
   override def handle(original: Path, key: Key): F[Path] =
-    Sync[F].blocking(ImmutableImage.loader().fromPath(original)).flatMap { image =>
-      handleImage(image, key)
-    }
+    F.blocking(ImmutableImage.loader().fromPath(original))
+      .flatMap: image =>
+        handleImage(image, key)
 
-  override def handleImage(image: ImmutableImage, key: Key) = createTempFile.flatMap { dest =>
-    resizer.resize(image, dest).flatMap { e =>
-      e.fold(err => Sync[F].raiseError(err.ioe), _ => storage.saveBody(key, dest).map(_ => dest))
-    }
-  }
+  override def handleImage(image: ImmutableImage, key: Key) = createTempFile.flatMap: dest =>
+    resizer
+      .resize(image, dest)
+      .flatMap: e =>
+        e.fold(err => F.raiseError(err.ioe), _ => storage.saveBody(key, dest).map(_ => dest))
 
   override def remove(key: Key): F[PicResult] = storage.remove(key)
 

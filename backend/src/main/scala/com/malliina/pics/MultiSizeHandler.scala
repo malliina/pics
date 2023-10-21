@@ -53,14 +53,16 @@ class MultiSizeHandler[F[_]: Sync](
     case PicSize.Original => originals
 
   def handle(original: Path, key: Key): F[Path] =
-    Sync[F].blocking(ImmutableImage.loader().fromPath(original)).flatMap { image =>
-      handleImage(image, key)
-    }
+    Sync[F]
+      .blocking(ImmutableImage.loader().fromPath(original))
+      .flatMap: image =>
+        handleImage(image, key)
 
   override def handleImage(image: ImmutableImage, key: Key): F[Path] =
-    handlers.traverse(_.handleImage(image, key)).map { paths =>
-      paths.head
-    }
+    handlers
+      .traverse(_.handleImage(image, key))
+      .map: paths =>
+        paths.head
 
   override def remove(key: Key): F[PicResult] =
     handlers.traverse(_.remove(key)).map(_ => PicSuccess)

@@ -29,12 +29,12 @@ object S3Source:
         .build()
     )
     val clientRes = Resource.make(s3Client)(c => Sync[F].delay(c.close()))
-    clientRes.evalMap { c =>
+    clientRes.evalMap: c =>
       val client = S3Bucket(c)
-      client.createIfNotExists(bucket).map { _ =>
-        S3Source(bucket, c)
-      }
-    }
+      client
+        .createIfNotExists(bucket)
+        .map: _ =>
+          S3Source(bucket, c)
   def Small[F[_]: Async] = forBucket(BucketName("malliina-pics-small"))
   def Medium[F[_]: Async] = forBucket(BucketName("malliina-pics-medium"))
   def Large[F[_]: Async] = forBucket(BucketName("malliina-pics-large"))
@@ -66,14 +66,15 @@ class S3Source[F[_]: Async](bucket: BucketName, client: S3AsyncClient) extends D
     current: ListObjectsV2Response,
     acc: Seq[FlatMeta]
   ): F[Seq[FlatMeta]] =
-    val newAcc = acc ++ current.contents().asScala.map { obj =>
-      FlatMeta(Key(obj.key()), obj.lastModified())
-    }
+    val newAcc = acc ++ current
+      .contents()
+      .asScala
+      .map: obj =>
+        FlatMeta(Key(obj.key()), obj.lastModified())
     if !current.isTruncated || newAcc.size >= desiredSize then F.pure(newAcc.take(desiredSize))
     else
-      listBatch(_.continuationToken(current.nextContinuationToken())).flatMap { next =>
+      listBatch(_.continuationToken(current.nextContinuationToken())).flatMap: next =>
         loadAcc(desiredSize, next, newAcc)
-      }
 
   private def listBatch(decorate: ListObjectsV2Request.Builder => ListObjectsV2Request.Builder) =
     val builder = ListObjectsV2Request.builder().bucket(bucketName)
@@ -84,16 +85,16 @@ class S3Source[F[_]: Async](bucket: BucketName, client: S3AsyncClient) extends D
     client.deleteObject(req).io.map(_ => PicSuccess)
 
   def saveBody(key: Key, file: Path): F[StorageSize] =
-    Util.timedIO {
-      client
-        .putObject(PutObjectRequest.builder().bucket(bucket.name).key(key.key).build(), file)
-        .io
-        .map(_ => Files.size(file).bytes)
-    }.map { result =>
-      val size = result.result
-      log.info(s"Saved '$key' to '$bucketName', size $size in ${result.duration}.")
-      size
-    }
+    Util
+      .timedIO:
+        client
+          .putObject(PutObjectRequest.builder().bucket(bucket.name).key(key.key).build(), file)
+          .io
+          .map(_ => Files.size(file).bytes)
+      .map: result =>
+        val size = result.result
+        log.info(s"Saved '$key' to '$bucketName', size $size in ${result.duration}.")
+        size
 
   def contains(key: Key): F[Boolean] =
     client

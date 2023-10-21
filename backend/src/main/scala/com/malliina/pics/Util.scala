@@ -6,7 +6,6 @@ import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
 
 import java.text.Normalizer
 import scala.concurrent.duration.{DurationLong, FiniteDuration}
-import scala.concurrent.{ExecutionContext, Future}
 
 object Util:
   def timed[T](work: => T): Timed[T] =
@@ -15,20 +14,15 @@ object Util:
     val end = System.currentTimeMillis()
     Timed(t, (end - start).millis)
 
-  def runTimed[T](work: => Future[T])(implicit ec: ExecutionContext): Future[Timed[T]] =
-    val start = System.currentTimeMillis()
-    work.map { t =>
-      Timed(t, (System.currentTimeMillis() - start).millis)
-    }
-
   def timedIO[F[_]: Sync, T](work: F[T]): F[Timed[T]] =
-    Sync[F].delay(System.currentTimeMillis()).flatMap { start =>
-      work.flatMap { t =>
-        Sync[F].delay(System.currentTimeMillis()).map { end =>
-          Timed(t, (end - start).millis)
-        }
-      }
-    }
+    Sync[F]
+      .delay(System.currentTimeMillis())
+      .flatMap: start =>
+        work.flatMap: t =>
+          Sync[F]
+            .delay(System.currentTimeMillis())
+            .map: end =>
+              Timed(t, (end - start).millis)
 
   private val generator = new RandomStringGenerator.Builder()
     .withinRange('a', 'z')

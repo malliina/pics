@@ -1,14 +1,16 @@
 package com.malliina.pics.http4s
 
-import cats.data.NonEmptyList
 import cats.Show
-import cats.syntax.all.*
+import cats.data.NonEmptyList
 import cats.effect.*
+import cats.syntax.all.*
 import com.malliina.html.UserFeedback
 import com.malliina.http.HttpClient
 import com.malliina.pics.*
 import com.malliina.pics.PicsStrings.{XClientPic, XKey, XName}
+import com.malliina.pics.auth.AuthProvider.*
 import com.malliina.pics.auth.Http4sAuth.TwitterState
+import com.malliina.pics.auth.Social.*
 import com.malliina.pics.auth.{AppleResponse, AuthProvider, Http4sAuth, UserPayload}
 import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.html.PicsHtml
@@ -20,20 +22,18 @@ import com.malliina.web.*
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.TwitterAuthFlow.{OauthTokenKey, OauthVerifierKey}
 import com.malliina.web.Utils.randomString
-import com.malliina.pics.auth.AuthProvider.*
-import com.malliina.pics.auth.Social.*
 import fs2.concurrent.Topic
 import fs2.io.file.Path as FS2Path
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Encoder, Json}
 import org.http4s.CacheDirective.*
 import org.http4s.headers.{Accept, Location, `Cache-Control`, `WWW-Authenticate`}
-import org.typelevel.ci.{CIString, CIStringSyntax}
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.syntax.literals.mediaType
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.*
 import org.http4s.{Callback as _, *}
+import org.typelevel.ci.{CIString, CIStringSyntax}
 
 import java.nio.file.Files
 import scala.annotation.unused
@@ -98,35 +98,31 @@ class PicsService[F[_]: Async](
     case req @ GET -> Root / "pics" =>
       auth
         .authenticate(req.headers)
-        .map { e =>
-          e.flatMap { picReq =>
-            Limits(req.uri.query).map { limits =>
-              ListRequest(limits, picReq)
-            }.left.map { errors =>
-              badRequest(errors)
-            }
-          }
-        }
-        .map { e =>
-          e.map { listRequest =>
-            db.load(listRequest.offset, listRequest.limit, listRequest.user.name).flatMap { keys =>
-              val entries = keys.map { key =>
-                PicMetas.from(key, req)
-              }
-              render(req)(
-                json = Pics(entries),
-                html =
-                  val feedback = None // UserFeedbacks.flashed(req.rh.flash)
-                  html.pics(entries, feedback, listRequest.user, listRequest.limits)
-              )
-            }
-          }
-        }
+        .map: e =>
+          e.flatMap: picReq =>
+            Limits(req.uri.query)
+              .map: limits =>
+                ListRequest(limits, picReq)
+              .left
+              .map: errors =>
+                badRequest(errors)
+        .map: e =>
+          e.map: listRequest =>
+            db.load(listRequest.offset, listRequest.limit, listRequest.user.name)
+              .flatMap: keys =>
+                val entries = keys.map: key =>
+                  PicMetas.from(key, req)
+                render(req)(
+                  json = Pics(entries),
+                  html =
+                    val feedback = None // UserFeedbacks.flashed(req.rh.flash)
+                    html.pics(entries, feedback, listRequest.user, listRequest.limits)
+                )
         .flatMap(_.fold(identity, identity))
     case req @ POST -> Root / "pics" =>
       auth
         .authenticate(req.headers)
-        .flatMap { e =>
+        .flatMap: e =>
           e.fold(
             err => delay(log.error(s"Failed to authenticate $req.")).flatMap(_ => err),
             user =>
@@ -136,14 +132,14 @@ class PicsService[F[_]: Async](
                   log.info(s"Saving new pic by '${user.name}' to '${tempFile.toAbsolutePath}'...")
                 )
               val decoder = EntityDecoder.binFile[F](FS2Path.fromNioPath(tempFile))
-              val receive = req.decodeWith(decoder, strict = true) { file =>
+              val receive = req.decodeWith(decoder, strict = true): file =>
                 service
                   .save(
                     file.toNioPath,
                     user,
                     req.headers.get(CIString(XName)).map(_.head.value)
                   )
-                  .flatMap { keyMeta =>
+                  .flatMap: keyMeta =>
                     val clientKey = req.headers
                       .get(CIString(XClientPic))
                       .map(h => Key(h.head.value))
@@ -155,45 +151,38 @@ class PicsService[F[_]: Async](
                         PicMessage
                           .AddedMessage(PicsAdded(Seq(picMeta.withClientKey(clientKey))), user.name)
                       )
-                      .flatMap { _ =>
+                      .flatMap: _ =>
                         log.info(s"Published added message for '${picMeta.key}' by ${user.name}.")
-                        Accepted(PicResponse(picMeta).asJson).map { res =>
+                        Accepted(PicResponse(picMeta).asJson).map: res =>
                           res.putHeaders(
                             Location(Uri.unsafeFromString(picMeta.url.url)),
                             Header.Raw(CIString(XKey), picMeta.key.key),
                             Header.Raw(CIString(XClientPic), clientKey.key)
                           )
-                        }
-                      }
-                  }
-              }
               for
                 _ <- logging
                 r <- receive
               yield r
           )
-        }
     case req @ POST -> Root / "pics" / KeyParam(key) / "delete" =>
       removeKey(key, Reverse.list, req)
     case req @ POST -> Root / "pics" / KeyParam(key) =>
-      jsonOrForm[AccessLevel](req, Forms.access) { (access, user) =>
+      jsonOrForm[AccessLevel](req, Forms.access): (access, user) =>
         changeAccess(key, access.access, user, req)
-      }
     case req @ DELETE -> Root / "pics" / KeyParam(key) =>
       removeKey(key, Reverse.drop, req)
     case req @ POST -> Root / "sync" =>
-      import cats.implicits.*
       val adminUser = PicOwner("malliina123@gmail.com")
       authed(req) { user =>
         if user.name == adminUser then
-          handler.originals.storage.load(0, 1000000).flatMap { keys =>
-            log.info(s"Syncing ${keys.length} keys...")
-            keys.toList.traverse { key => db.putMetaIfNotExists(key.withUser(adminUser)) }.flatMap {
-              changes =>
-                log.info(s"Sync complete. Upserted ${changes.sum} rows.")
-                SeeOther(Location(Reverse.drop))
-            }
-          }
+          handler.originals.storage
+            .load(0, 1000000)
+            .flatMap: keys =>
+              log.info(s"Syncing ${keys.length} keys...")
+              keys.toList.traverse { key => db.putMetaIfNotExists(key.withUser(adminUser)) }
+                .flatMap: changes =>
+                  log.info(s"Sync complete. Upserted ${changes.sum} rows.")
+                  SeeOther(Location(Reverse.drop))
         else unauthorized(Errors("Admin required."), req)
       }
     case req @ GET -> Root / "sockets" =>
@@ -209,31 +198,27 @@ class PicsService[F[_]: Async](
           .subscribe(1000)
           .filter(_.forUser(user.name))
           .evalTap(msg => delay(log.info(s"Sending '${msg.asJson}' to ${user.name}...")))
-        val toClient = (welcomeMessage ++ pings.mergeHaltBoth(updates)).map { message =>
+        val toClient = (welcomeMessage ++ pings.mergeHaltBoth(updates)).map: message =>
           Text(message.asJson.noSpaces)
-        }
-        val fromClient: fs2.Pipe[F, WebSocketFrame, Unit] = _.evalMap {
+        val fromClient: fs2.Pipe[F, WebSocketFrame, Unit] = _.evalMap:
           case Text(message, _) => delay(log.info(message))
           case f                => delay(log.debug(s"Unknown WebSocket frame: $f"))
-        }
         sockets.build(toClient, fromClient)
       }
     case req @ GET -> Root / "drop" =>
-      authed(req) { user =>
+      authed(req): user =>
         val created: Option[PicMeta] = None
         val feedback: Option[UserFeedback] = None
         ok(html.drop(created, feedback, user))
-      }
     case GET -> Root / "sign-up" =>
       ok(html.signUp())
     case req @ GET -> Root / "sign-in" =>
       val reverseSocial = ReverseSocial
       req.cookies
         .find(_.name == cookieNames.provider)
-        .flatMap { cookie =>
+        .flatMap: cookie =>
           AuthProvider.forString(cookie.content).toOption
-        }
-        .map {
+        .map:
           case Google    => reverseSocial.google
           case Microsoft => reverseSocial.microsoft
           case Facebook  => reverseSocial.facebook
@@ -241,7 +226,6 @@ class PicsService[F[_]: Async](
           case Amazon    => reverseSocial.amazon
           case Twitter   => reverseSocial.twitter
           case Apple     => reverseSocial.apple
-        }
         .map(r => TemporaryRedirect(Location(r.start)))
         .getOrElse(ok(html.signIn(None)))
     case req @ GET -> Root / "sign-in" / AuthProvider(id) =>
@@ -250,19 +234,17 @@ class PicsService[F[_]: Async](
           val twitter = socials.twitter
           twitter
             .requestToken(Urls.hostOnly(req) / reverseSocial.twitter.callback.renderString)
-            .flatMap { e =>
+            .flatMap: e =>
               // add requesttoken to session
               e.fold(
                 err => unauthorized(Errors(err.message), req),
                 token =>
-                  SeeOther(Location(Uri.unsafeFromString(twitter.authTokenUrl(token).url))).map {
+                  SeeOther(Location(Uri.unsafeFromString(twitter.authTokenUrl(token).url))).map:
                     res =>
                       auth.withSession(TwitterState(token), req, res)(
                         TwitterState.json
                       )
-                  }
               )
-            }
         case Google =>
           startHinted(id, reverseSocial.google, socials.google, req)
         case Microsoft =>
@@ -295,10 +277,9 @@ class PicsService[F[_]: Async](
               .toRight(OAuthError(s"Missing $OauthVerifierKey query paramater."))
           yield socials.twitter
             .validateTwitterCallback(token, requestToken.requestToken, verifier)
-            .flatMap { e =>
+            .flatMap: e =>
               e.flatMap(_.email.toRight(OAuthError("Email missing.")))
                 .fold(err => unauthorized(Errors(err.message), req), ok => userResult(ok, id, req))
-            }
           maybe.fold(
             err =>
               log.warn(s"$err in $req")
@@ -327,9 +308,8 @@ class PicsService[F[_]: Async](
         case Apple =>
           handleCallbackV(socials.apple, reverseSocial.apple, req, id)
     case req @ GET -> Root / "sign-out" / "leave" =>
-      SeeOther(Location(Reverse.signOutCallback)).map { res =>
+      SeeOther(Location(Reverse.signOutCallback)).map: res =>
         auth.clearSession(req, res)
-      }
     case GET -> Root / "sign-out" =>
       // TODO .flashing("message" -> "You have now logged out.")
       SeeOther(Location(Reverse.list))
@@ -353,86 +333,88 @@ class PicsService[F[_]: Async](
     case req @ GET -> Root / KeyParam(key) / "large" =>
       sendPic(key, PicSize.Large, req)
     case req @ GET -> Root / rest if ContentType.parse(rest).exists(_.isImage) =>
-      PicSize(req).map { size =>
-        sendPic(Key(rest), size, req)
-      }.recover { err =>
-        badRequest(Errors(NonEmptyList.of(err)))
-      }
+      PicSize(req)
+        .map: size =>
+          sendPic(Key(rest), size, req)
+        .recover: err =>
+          badRequest(Errors(NonEmptyList.of(err)))
   }
 
   private def sendPic(key: Key, size: PicSize, req: Request[F]) =
-    val sendPic = handler(size).storage.find(key).flatMap { maybeFile =>
-      maybeFile.map { file =>
-        StaticFile
-          .fromPath(FS2Path.fromNioPath(file.file), Option(req))
-          .map(_.putHeaders(cached(365.days)))
-          .getOrElseF(notFound(req))
-      }.getOrElse {
-        notFoundWith(s"Not found: '$key'.")
-      }
-    }
-    service.db.meta(key).flatMap { meta =>
-      if meta.access == Access.Public then sendPic
-      else
-        authed(req) { user =>
-          if meta.owner == user.name then sendPic
-          else
-            log.warn(s"User '${user.name}' not authorized to view '$key' owned by '${meta.owner}'.")
-            unauthorized(Errors(s"Unauthorized."), req)
-        }
-    }
+    val sendPic = handler(size).storage
+      .find(key)
+      .flatMap: maybeFile =>
+        maybeFile
+          .map: file =>
+            StaticFile
+              .fromPath(FS2Path.fromNioPath(file.file), Option(req))
+              .map(_.putHeaders(cached(365.days)))
+              .getOrElseF(notFound(req))
+          .getOrElse:
+            notFoundWith(s"Not found: '$key'.")
+    service.db
+      .meta(key)
+      .flatMap: meta =>
+        if meta.access == Access.Public then sendPic
+        else
+          authed(req): user =>
+            if meta.owner == user.name then sendPic
+            else
+              log.warn(
+                s"User '${user.name}' not authorized to view '$key' owned by '${meta.owner}'."
+              )
+              unauthorized(Errors(s"Unauthorized."), req)
 
   private def changeAccess(key: Key, to: Access, user: PicRequest, req: Request[F]) =
     if user.readOnly then
       delay(
         log.warn(s"User '${user.name}' is not authorized to change access of any images.")
-      ).flatMap { _ =>
+      ).flatMap: _ =>
         unauthorized(Errors(s"Unauthorized."), req)
-      }
     else
-      db.modify(key, user.name, to).flatMap { meta =>
-        renderRanged(req)(
-          json = Accepted(Json.obj("message" -> "ok".asJson), noCache),
-          html = SeeOther(Location(Reverse.list))
-        )
-      }
+      db.modify(key, user.name, to)
+        .flatMap: meta =>
+          renderRanged(req)(
+            json = Accepted(Json.obj("message" -> "ok".asJson), noCache),
+            html = SeeOther(Location(Reverse.list))
+          )
 
   private def removeKey(key: Key, redir: Uri, req: Request[F]) =
-    authed(req) { user =>
+    authed(req): user =>
       if user.readOnly then
-        delay(log.warn(s"User '${user.name}' is not authorized to delete '$key'.")).flatMap { _ =>
+        delay(log.warn(s"User '${user.name}' is not authorized to delete '$key'.")).flatMap: _ =>
           unauthorized(Errors(s"Unauthorized."), req)
-        }
       else
-        db.remove(key, user.name).flatMap { wasDeleted =>
-          if wasDeleted then
-            log.info(s"Key '$key' removed by '${user.name}' from '$req'.")
-            handler.remove(key).flatMap { _ =>
-              topic.publish1(PicMessage.RemovedMessage(PicsRemoved(Seq(key)), user.name)).flatMap {
-                _ =>
-                  renderRanged(req)(
-                    json = Accepted(Json.obj("message" -> "ok".asJson), noCache),
-                    html = SeeOther(Location(redir))
-                  )
-              }
-            }
-          else
-            log.error(s"Key not found: '$key'.")
-            keyNotFound(key)
-        }
-    }
+        db.remove(key, user.name)
+          .flatMap: wasDeleted =>
+            if wasDeleted then
+              log.info(s"Key '$key' removed by '${user.name}' from '$req'.")
+              handler
+                .remove(key)
+                .flatMap: _ =>
+                  topic
+                    .publish1(PicMessage.RemovedMessage(PicsRemoved(Seq(key)), user.name))
+                    .flatMap: _ =>
+                      renderRanged(req)(
+                        json = Accepted(Json.obj("message" -> "ok".asJson), noCache),
+                        html = SeeOther(Location(redir))
+                      )
+            else
+              log.error(s"Key not found: '$key'.")
+              keyNotFound(key)
 
   private def start(validator: FlowStart[F], reverse: SocialRoute, req: Request[F]) =
-    validator.start(Urls.hostOnly(req) / reverse.callback.renderString, Map.empty).flatMap { s =>
-      startLoginFlow(s, req)
-    }
+    validator
+      .start(Urls.hostOnly(req) / reverse.callback.renderString, Map.empty)
+      .flatMap: s =>
+        startLoginFlow(s, req)
 
   private def startHinted(
     provider: AuthProvider,
     reverse: SocialRoute,
     validator: LoginHint[F],
     req: Request[F]
-  ): F[Response[F]] = delay {
+  ): F[Response[F]] = delay:
     val redirectUrl = Urls.hostOnly(req) / reverse.callback.renderString
     val lastIdCookie = req.cookies.find(_.name == cookieNames.lastId)
     val promptValue = req.cookies
@@ -441,38 +423,33 @@ class PicsService[F[_]: Async](
       .orElse(Option(SelectAccount).filter(_ => lastIdCookie.isEmpty))
     val extra = promptValue.map(c => Map(PromptKey -> c)).getOrElse(Map.empty)
     val maybeEmail = lastIdCookie.map(_.content).filter(_ => extra.isEmpty)
-    maybeEmail.foreach { hint =>
+    maybeEmail.foreach: hint =>
       log.info(s"Starting OAuth flow with $provider using login hint '$hint'...")
-    }
-    promptValue.foreach { prompt =>
+    promptValue.foreach: prompt =>
       log.info(s"Starting OAuth flow with $provider using prompt '$prompt'...")
-    }
     (redirectUrl, maybeEmail, extra)
-  }.flatMap { case (redirectUrl, maybeEmail, extra) =>
-    validator.startHinted(redirectUrl, maybeEmail, extra).flatMap { s =>
-      startLoginFlow(s, req)
-    }
-  }
+  .flatMap: (redirectUrl, maybeEmail, extra) =>
+    validator
+      .startHinted(redirectUrl, maybeEmail, extra)
+      .flatMap: s =>
+        startLoginFlow(s, req)
 
-  private def startLoginFlow(s: Start, req: Request[F]): F[Response[F]] = delay {
+  private def startLoginFlow(s: Start, req: Request[F]): F[Response[F]] = delay:
     val state = randomString()
-    val encodedParams = (s.params ++ Map(OAuthKeys.State -> state)).map { case (k, v) =>
+    val encodedParams = (s.params ++ Map(OAuthKeys.State -> state)).map: (k, v) =>
       k -> Utils.urlEncode(v)
-    }
     val url = s.authorizationEndpoint.append(s"?${stringify(encodedParams)}")
     log.info(s"Redirecting to '$url' with state '$state'...")
     val sessionParams = Seq(State -> state) ++ s.nonce
       .map(n => Seq(Nonce -> n))
       .getOrElse(Nil)
     (url, sessionParams)
-  }.flatMap { case (url, sessionParams) =>
-    SeeOther(Location(Uri.unsafeFromString(url.url))).map { res =>
+  .flatMap: (url, sessionParams) =>
+    SeeOther(Location(Uri.unsafeFromString(url.url))).map: res =>
       val session = sessionParams.toMap.asJson
       auth
         .withSession(session, req, res)
         .putHeaders(noCache)
-    }
-  }
 
   private def handleCallbackD(
     validator: DiscoveringAuthFlow[F, Email],
@@ -510,45 +487,45 @@ class PicsService[F[_]: Async](
       session.get(Nonce),
       Urls.hostOnly(req) / reverse.callback.renderString
     )
-    validate(cb).flatMap { e =>
+    validate(cb).flatMap: e =>
       e.fold(
         err => unauthorized(Errors(err.message), req),
         email => userResult(email, provider, req)
       )
-    }
 
-  private def handleAppleCallback(req: Request[F])(implicit
-    decoder: EntityDecoder[F, UrlForm]
-  ): F[Response[F]] =
+  private def handleAppleCallback(
+    req: Request[F]
+  )(using decoder: EntityDecoder[F, UrlForm]): F[Response[F]] =
     decoder
       .decode(req, strict = false)
       .foldF(
         failure => unauthorized(Errors(failure.message), req),
         urlForm =>
-          AppleResponse(urlForm).map { form =>
-            val session =
-              auth.session[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
-            val actualState = form.state
-            val sessionState = session.get(State)
-            if sessionState.contains(actualState) then
-              val redirectUrl = Urls.hostOnly(req) / reverseSocial.apple.callback.renderString
-              socials.apple.validate(form.code, redirectUrl, session.get(Nonce)).flatMap { e =>
-                e.fold(
-                  err => unauthorized(Errors(err.message), req),
-                  email => userResult(email, Apple, req)
-                )
-              }
-            else
-              val detailed =
-                sessionState.fold(s"Got '$actualState' but found nothing to compare to.") {
-                  expected =>
-                    s"Got '$actualState' but expected '$expected'."
-                }
-              log.error(s"Authentication failed, state mismatch. $detailed $req")
-              unauthorized(Errors("State mismatch."), req)
-          }.recover { err =>
-            unauthorized(Errors(err), req)
-          }
+          AppleResponse(urlForm)
+            .map: form =>
+              val session =
+                auth.session[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
+              val actualState = form.state
+              val sessionState = session.get(State)
+              if sessionState.contains(actualState) then
+                val redirectUrl = Urls.hostOnly(req) / reverseSocial.apple.callback.renderString
+                socials.apple
+                  .validate(form.code, redirectUrl, session.get(Nonce))
+                  .flatMap: e =>
+                    e.fold(
+                      err => unauthorized(Errors(err.message), req),
+                      email => userResult(email, Apple, req)
+                    )
+              else
+                val detailed =
+                  sessionState.fold(s"Got '$actualState' but found nothing to compare to.") {
+                    expected =>
+                      s"Got '$actualState' but expected '$expected'."
+                  }
+                log.error(s"Authentication failed, state mismatch. $detailed $req")
+                unauthorized(Errors("State mismatch."), req)
+            .recover: err =>
+              unauthorized(Errors(err), req)
       )
 
   private def userResult(
@@ -560,12 +537,11 @@ class PicsService[F[_]: Async](
       .find(_.name == cookieNames.returnUri)
       .flatMap(c => Uri.fromString(c.content).toOption)
       .getOrElse(Reverse.list)
-    SeeOther(Location(returnUri)).map { res =>
+    SeeOther(Location(returnUri)).map: res =>
       auth.withPicsUser(UserPayload.email(email), provider, req, res)
-    }
 
   private def stringify(map: Map[String, String]): String =
-    map.map { case (key, value) => s"$key=$value" }.mkString("&")
+    map.map((key, value) => s"$key=$value").mkString("&")
 
   private def authed(req: Request[F])(code: PicRequest => F[Response[F]]): F[Response[F]] =
     auth.authenticate(req.headers).flatMap(_.fold(identity, code))
@@ -611,20 +587,17 @@ class PicsService[F[_]: Async](
   private def jsonOrForm[T: Decoder](req: Request[F], readForm: FormReader => Either[Errors, T])(
     code: (T, PicRequest) => F[Response[F]]
   ): F[Response[F]] =
-    authed(req) { user =>
+    authed(req): user =>
       log.info(s"Handling JSON or form data for ${req.uri}...")
       val decoder = jsonOf[F, T].orElse(formDecoder[T](readForm))
       decoder
         .decode(req, strict = false)
         .rethrowT
-        .flatMap { t =>
+        .flatMap: t =>
           code(t, user)
-        }
-        .handleErrorWith { err =>
+        .handleErrorWith: err =>
           log.error(s"Form failure. $err")
           badRequest(Errors("Invalid form input."))
-        }
-    }
 
   private def formDecoder[T](readForm: FormReader => Either[Errors, T]) =
     UrlForm.entityDecoder[F].flatMapR { form =>
@@ -635,7 +608,7 @@ class PicsService[F[_]: Async](
         t => DecodeResult.successT(t)
       )
     }
-  private def ok[A](a: A)(implicit w: EntityEncoder[F, A]) = Ok(a, noCache)
+  private def ok[A](a: A)(using EntityEncoder[F, A]) = Ok(a, noCache)
   private def badRequestWith(message: String) = badRequest(Errors(message))
   private def badRequest(errors: Errors): F[Response[F]] =
     BadRequest(errors.asJson, noCache)

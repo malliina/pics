@@ -62,13 +62,14 @@ class Http4sAuth[F[_]: Sync](
     *   request headers
     */
   def authenticateAll(headers: Headers): F[Either[F[Response[F]], PicRequest]] =
-    val userAuth: F[Either[IdentityError, Username]] = F.pure(user(headers)).flatMap { e =>
-      e.fold(
-        _ => readJwt(headers).fold(l => F.pure(Left(l)), r => r.map(_.map(_.username))),
-        user => F.pure(Right(user))
-      )
-    }
-    userAuth.map { e =>
+    val userAuth: F[Either[IdentityError, Username]] = F
+      .pure(user(headers))
+      .flatMap: e =>
+        e.fold(
+          _ => readJwt(headers).fold(l => F.pure(Left(l)), r => r.map(_.map(_.username))),
+          user => F.pure(Right(user))
+        )
+    userAuth.map: e =>
       e.fold(
         {
           case MissingCredentials(_, headers)
@@ -78,7 +79,6 @@ class Http4sAuth[F[_]: Sync](
         },
         user => Right(PicRequest.forUser(user, headers))
       )
-    }
 
   private def web(headers: Headers): Either[F[Response[F]], PicRequest] = user(headers).fold(
     {
@@ -92,40 +92,38 @@ class Http4sAuth[F[_]: Sync](
 
   private def jwt(headers: Headers) =
     readJwt(headers).map { io =>
-      io.map { e =>
+      io.map: e =>
         e.fold(
           _ => Left(onUnauthorized(headers)),
           user => Right(PicRequest.forUser(user.username, headers))
         )
-      }
     }
       .fold(_ => F.pure(Right(PicRequest.anon(headers))), identity)
 
   private def readJwt(headers: Headers): Either[IdentityError, F[Either[TokenError, JWTUser]]] =
     token(headers) match
       case AccessTokenResult(token) =>
-        val res = db.userByToken(token).map { opt =>
-          opt.map { u => JWTUsers.user(u) }
-            .toRight(TokenError(OAuthError(ErrorMessage("Invalid access token.")), headers))
-        }
+        val res = db
+          .userByToken(token)
+          .map: opt =>
+            opt.map { u => JWTUsers.user(u) }
+              .toRight(TokenError(OAuthError(ErrorMessage("Invalid access token.")), headers))
         Right(res)
       case IdTokenResult(token) =>
         val res: F[Either[TokenError, JWTUser]] =
           F.delay(ios.validate(AccessToken(token.value)).orElse(android.validate(token)))
-            .flatMap { e =>
+            .flatMap: e =>
               e.fold(
                 err =>
-                  google.validate(token).map { e =>
-                    e.map { email => EmailUser(email) }
-                  },
+                  google
+                    .validate(token)
+                    .map: e =>
+                      e.map { email => EmailUser(email) },
                 user => F.pure(Right(user))
               )
-            }
-            .map { e =>
-              e.left.map { error =>
+            .map: e =>
+              e.left.map: error =>
                 TokenError(error, headers)
-              }
-            }
         Right(res)
       case NoCredentials(headers) => Left(MissingCredentials("Creds required.", headers))
 

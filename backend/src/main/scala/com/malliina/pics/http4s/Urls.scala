@@ -19,7 +19,7 @@ object Urls:
 
   def topDomainFrom(req: Request[?]): String = topDomain(hostOnly(req).host)
 
-  def topDomain(in: String): String =
+  private def topDomain(in: String): String =
     in.split('.').takeRight(2).mkString(".").takeWhile(c => c != ':' && c != '/')
 
   def isSecure[F[_]](req: Request[F]): Boolean =

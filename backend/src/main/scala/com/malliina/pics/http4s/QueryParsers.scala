@@ -13,13 +13,17 @@ trait QueryParsers:
     parseOpt[T](q, key)
       .getOrElse(Left(Errors(s"Query key not found: '$key'.")))
 
-  def parseOpt[T](q: Query, key: String)(implicit
+  private def parseOpt[T](q: Query, key: String)(implicit
     dec: QueryParamDecoder[T]
   ): Option[Either[Errors, T]] =
-    q.params.get(key).map { g =>
-      dec.decode(QueryParameterValue(g)).toEither.left.map { failures =>
-        Errors(failures.map(pf => SingleError(pf.sanitized, "input")))
-      }
-    }
+    q.params
+      .get(key)
+      .map: g =>
+        dec
+          .decode(QueryParameterValue(g))
+          .toEither
+          .left
+          .map: failures =>
+            Errors(failures.map(pf => SingleError(pf.sanitized, "input")))
 
   def parseFailure(message: String) = ParseFailure(message, message)

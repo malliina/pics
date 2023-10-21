@@ -70,16 +70,13 @@ object PicsServer extends IOApp:
     PicsService.default(conf, db, topic, handler, http)
 
   def app[F[_]: Async](svc: PicsService[F], sockets: WebSocketBuilder2[F]): AppService[F] =
-    GZip {
-      HSTS {
-        orNotFound {
+    GZip:
+      HSTS:
+        orNotFound:
           Router(
             "/" -> svc.routes(sockets),
             "/assets" -> StaticService[F].routes
           )
-        }
-      }
-    }
 
   private def orNotFound[F[_]: Async](rs: HttpRoutes[F]): Kleisli[F, Request[F], Response[F]] =
     Kleisli(req => rs.run(req).getOrElseF(BasicService[F].notFound(req)))

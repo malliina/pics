@@ -44,10 +44,9 @@ trait DataSourceT[F[_]: Monad] extends ImageSourceLike[F]:
   def get(key: Key): F[DataFile]
   def load(from: Int, until: Int): F[Seq[FlatMeta]]
   def find(key: Key): F[Option[DataFile]] =
-    contains(key).flatMap { exists =>
+    contains(key).flatMap: exists =>
       if exists then get(key).map(Option.apply)
       else Monad[F].pure(None)
-    }
 
 trait MetaSourceT[F[_]] extends SourceLike[F]:
   def meta(key: Key): F[KeyMeta]

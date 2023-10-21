@@ -11,21 +11,25 @@ class FileCachingPics[F[_]: Monad](cache: FilePicsIO[F], origin: DataSourceT[F])
   override def load(from: Int, until: Int): F[Seq[FlatMeta]] = origin.load(from, until)
 
   override def contains(key: Key): F[Boolean] =
-    cache.contains(key).flatMap { isCached =>
-      if isCached then Monad[F].pure(true)
-      else origin.contains(key)
-    }
+    cache
+      .contains(key)
+      .flatMap: isCached =>
+        if isCached then Monad[F].pure(true)
+        else origin.contains(key)
 
   override def get(key: Key): F[DataFile] =
-    cache.contains(key).flatMap { isCached =>
-      if isCached then cache.get(key)
-      else
-        origin.get(key).flatMap { r =>
-          cache.putData(key, r).map { file =>
-            DataFile(file)
-          }
-        }
-    }
+    cache
+      .contains(key)
+      .flatMap: isCached =>
+        if isCached then cache.get(key)
+        else
+          origin
+            .get(key)
+            .flatMap: r =>
+              cache
+                .putData(key, r)
+                .map: file =>
+                  DataFile(file)
 
   override def saveBody(key: Key, file: Path): F[StorageSize] =
     for

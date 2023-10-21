@@ -15,7 +15,7 @@ class PicService[F[_]: Sync](val db: MetaSourceT[F], handler: MultiSizeHandler[F
   private val log = AppLogger(getClass)
 
   override def save(tempFile: Path, by: BaseRequest, preferredName: Option[String]): F[KeyMeta] =
-    val fileCopy: F[(Path, Key)] = Sync[F].delay {
+    val fileCopy: F[(Path, Key)] = Sync[F].delay:
       // without dot
       val name = preferredName getOrElse tempFile.getFileName.toString
       val ext = Option(FilenameUtils.getExtension(name)).filter(_.nonEmpty).getOrElse("jpeg")
@@ -26,10 +26,8 @@ class PicService[F[_]: Sync](val db: MetaSourceT[F], handler: MultiSizeHandler[F
         s"Copied temp file '$tempFile' to '$renamedFile', size ${Files.size(tempFile)} bytes."
       )
       (renamedFile, key)
-    }
-    fileCopy.flatMap { case (renamedFile, key) =>
+    fileCopy.flatMap: (renamedFile, key) =>
       for
         _ <- handler.handle(renamedFile, key)
         meta <- db.saveMeta(key, by.name)
       yield meta
-    }

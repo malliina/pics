@@ -21,20 +21,20 @@ class Resizer(maxWidth: Int, maxHeight: Int):
   def resizeFromFile(src: Path, dest: Path): Either[ImageFailure, BufferedImage] =
     val format = FilenameUtils.getExtension(src.getFileName.toString)
     try
-      Option(ImageIO.read(src.toFile)).map { bufferedImage =>
-        val resized = resize(bufferedImage)
-        val writerFound = ImageIO.write(resized, format, dest.toFile)
-        if writerFound then Right(resized)
-        else
-          Left(
-            UnsupportedFormat(
-              format,
-              ImageIO.getWriterFormatNames.toList.map(_.toLowerCase).distinct
+      Option(ImageIO.read(src.toFile))
+        .map: bufferedImage =>
+          val resized = resize(bufferedImage)
+          val writerFound = ImageIO.write(resized, format, dest.toFile)
+          if writerFound then Right(resized)
+          else
+            Left(
+              UnsupportedFormat(
+                format,
+                ImageIO.getWriterFormatNames.toList.map(_.toLowerCase).distinct
+              )
             )
-          )
-      }.getOrElse {
-        Left(ImageReaderFailure(src))
-      }
+        .getOrElse:
+          Left(ImageReaderFailure(src))
     catch case ioe: IOException => Left(ImageException(ioe))
 
   def resizeFromStream(src: InputStream): BufferedImage =

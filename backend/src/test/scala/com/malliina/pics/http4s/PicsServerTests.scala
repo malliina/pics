@@ -12,43 +12,36 @@ import org.http4s.{MediaType, Status}
 import tests.ServerSuite
 
 class PicsServerTests extends munit.CatsEffectSuite with ServerSuite with CirceInstances:
-  test("can make request") {
+  test("can make request"):
     val res = http.get(baseUrl / "ping").map(_.code)
     assertIO(res, Status.Ok.code)
     val result = http.getAs[AppMeta](baseUrl / "ping")
     assertIO(result, AppMeta.default)
-  }
 
-  test("root redirects") {
+  test("root redirects"):
     val client = HttpClientIO(http.client.newBuilder().followRedirects(false).build())
     val req = client.get(baseUrl)
     req.map(res => assertEquals(res.code, Status.SeeOther.code))
-  }
 
-  test("version endpoint returns ok for acceptable Accept header") {
+  test("version endpoint returns ok for acceptable Accept header"):
     val req = getUri("version", PicsService.version10)
     req.map(res => assertEquals(res.code, Status.Ok.code))
-  }
 
-  test("version endpoint returns not acceptable for unacceptable Accept header") {
+  test("version endpoint returns not acceptable for unacceptable Accept header"):
     val req = getUri("/version", mediaType"application/vnd.pics.v09+json")
     req.map(res => assertEquals(res.status, Status.NotAcceptable.code))
-  }
 
-  test("anon can list pics") {
+  test("anon can list pics"):
     val req = getUri("/pics")
     req.map(res => assertEquals(res.status, Status.Ok.code))
-  }
 
-  test("anon cannot delete") {
+  test("anon cannot delete"):
     val req = make("/pics/pic123.jpg/delete", PicsService.version10)
     req.map(res => assertEquals(res.status, Status.Unauthorized.code))
-  }
 
-  test("anon cannot sync") {
+  test("anon cannot sync"):
     val req = make("/sync", PicsService.version10)
     req.map(res => assertEquals(res.status, Status.Unauthorized.code))
-  }
 
   private def getUri(
     uri: String,

@@ -11,7 +11,6 @@ import org.apache.commons.io.FilenameUtils
 import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
 import org.http4s.{Headers, Request, Uri}
 import io.circe.Codec
-import io.circe.generic.semiauto.deriveCodec
 
 trait BaseRequest:
   def name: PicOwner
@@ -55,11 +54,9 @@ object PicSize:
 
 case class PicBundle(small: Path, medium: Path, large: Path, original: Path)
 
-case class AppMeta(name: String, version: String, gitHash: String)
+case class AppMeta(name: String, version: String, gitHash: String) derives Codec.AsObject
 
 object AppMeta:
-  implicit val json: Codec[AppMeta] = deriveCodec[AppMeta]
-
   val default = AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash)
 
 object Keys:
@@ -78,7 +75,7 @@ case class KeyMeta(key: Key, owner: PicOwner, access: Access, added: Instant)
 object PicMetas:
   def from[F[_]](meta: KeyMeta, rh: Request[F]): PicMeta = fromHost(meta, Urls.hostOnly(rh))
 
-  def fromHost(meta: KeyMeta, host: FullUrl): PicMeta =
+  private def fromHost(meta: KeyMeta, host: FullUrl): PicMeta =
     val key = meta.key
     PicMeta(
       key,
@@ -90,15 +87,12 @@ object PicMetas:
       meta.access
     )
 
-  def picUrl(key: Key, size: PicSize, host: FullUrl) =
+  private def picUrl(key: Key, size: PicSize, host: FullUrl) =
     host / query(Reverse.pic(key), PicSize.Key, size.value).renderString
 
   def query(call: Uri, key: String, value: String) = call.withQueryParam(key, value)
 
-case class PicResponse(pic: PicMeta)
-
-object PicResponse:
-  implicit val json: Codec[PicResponse] = deriveCodec[PicResponse]
+case class PicResponse(pic: PicMeta) derives Codec.AsObject
 
 case class BucketName(name: String) extends AnyVal:
   override def toString = name
@@ -118,11 +112,10 @@ object ContentType:
   def parseFile(path: Path) = parse(path.getFileName.toString)
 
   def parse(name: String): Option[ContentType] =
-    val attempt: PartialFunction[String, ContentType] = {
+    val attempt: PartialFunction[String, ContentType] =
       case "jpg"  => ImageJpeg
       case "jpeg" => ImageJpeg
       case "png"  => ImagePng
       case "gif"  => ImageGif
       case "bmp"  => ImageBmp
-    }
     attempt.lift(FilenameUtils.getExtension(name))

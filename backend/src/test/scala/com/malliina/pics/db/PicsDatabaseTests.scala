@@ -4,7 +4,7 @@ import com.malliina.pics.{Keys, PicOwner}
 import tests.DoobieSuite
 
 class PicsDatabaseTests extends munit.CatsEffectSuite with DoobieSuite:
-  test("can CRUD pic meta") {
+  test("can CRUD pic meta"):
     val data = doobie()
     val picsDatabase = PicsDatabase(data)
     val user = PicOwner("testuser")
@@ -17,4 +17,3 @@ class PicsDatabaseTests extends munit.CatsEffectSuite with DoobieSuite:
       _ <- picsDatabase.remove(key, user)
       _ <- assertIO(picsDatabase.contains(key), false)
     yield ()
-  }

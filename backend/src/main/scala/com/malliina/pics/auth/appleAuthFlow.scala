@@ -63,18 +63,21 @@ class AppleAuthFlow[F[_]: Sync](
     requestNonce: Option[String]
   ): F[Either[AuthError, Email]] =
     val params = tokenParameters(code, redirectUrl)
-    http.postFormAs[TokenResponse](conf.tokenEndpoint, params).flatMap { tokens =>
-      http.getAs[JWTKeys](AppleAuthFlow.jwksUri).map { keys =>
-        validator.validate(tokens.id_token, keys.keys, Instant.now()).flatMap { v =>
-          v.readString(EmailKey).map(Email.apply)
-        }
-      }
-    }
+    http
+      .postFormAs[TokenResponse](conf.tokenEndpoint, params)
+      .flatMap: tokens =>
+        http
+          .getAs[JWTKeys](AppleAuthFlow.jwksUri)
+          .map: keys =>
+            validator
+              .validate(tokens.id_token, keys.keys, Instant.now())
+              .flatMap: v =>
+                v.readString(EmailKey).map(Email.apply)
 
   override def extraRedirParams(redirectUrl: FullUrl): Map[String, String] =
     Map(ResponseType -> CodeKey, "response_mode" -> "form_post")
 
-  def tokenParameters(code: Code, redirUrl: FullUrl) = Map(
+  private def tokenParameters(code: Code, redirUrl: FullUrl) = Map(
     ClientIdKey -> authConf.clientId.value,
     ClientSecretKey -> authConf.clientSecret.value,
     GrantType -> AuthorizationCode,

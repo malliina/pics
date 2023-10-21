@@ -13,12 +13,11 @@ sealed trait UnicastMessage extends PicMessage:
 
 object PicMessage:
   private val pingJson = Json.obj("event" -> "ping".asJson)
-  implicit val json: Encoder[PicMessage] = (msg: PicMessage) =>
-    msg match
-      case AddedMessage(pics, _)   => pics.asJson
-      case RemovedMessage(pics, _) => pics.asJson
-      case PingBroadcast           => pingJson
-      case Welcome(info)           => info.asJson
+  implicit val json: Encoder[PicMessage] =
+    case AddedMessage(pics, _)   => pics.asJson
+    case RemovedMessage(pics, _) => pics.asJson
+    case PingBroadcast           => pingJson
+    case Welcome(info)           => info.asJson
   case object PingBroadcast extends PicMessage:
     def forUser(user: PicOwner): Boolean = true
   case class AddedMessage(pics: PicsAdded, owner: PicOwner) extends UnicastMessage:

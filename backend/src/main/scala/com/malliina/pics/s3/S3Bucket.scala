@@ -13,10 +13,9 @@ object S3Bucket:
 
 class S3Bucket[F[_]: Async](client: S3AsyncClient):
   def createIfNotExists(bucket: BucketName): F[Boolean] =
-    exists(bucket).flatMap { doesExist =>
+    exists(bucket).flatMap: doesExist =>
       if doesExist then Sync[F].pure(true)
       else create(bucket).map(_ => true)
-    }
 
   def create(bucket: BucketName): F[CreateBucketResponse] =
     client.createBucket(CreateBucketRequest.builder().bucket(bucket.name).build()).io[F]
@@ -26,7 +25,6 @@ class S3Bucket[F[_]: Async](client: S3AsyncClient):
       .headBucket(HeadBucketRequest.builder().bucket(bucket.name).build())
       .io[F]
       .map(_ => true)
-      .handleErrorWith { e =>
+      .handleErrorWith: e =>
         log.warn(s"Unable to make HEAD request to bucket '$bucket'.", e)
         Sync[F].pure(false)
-      }

@@ -3,9 +3,9 @@ package com.malliina.pics.auth
 import cats.effect.IO
 import com.malliina.values.{Email, Username}
 import com.malliina.web.JWTUser
-import org.http4s.Request
 import io.circe.Codec
-import io.circe.generic.semiauto.deriveCodec
+import org.http4s.Request
+
 import scala.concurrent.Future
 
 trait EmailAuth:
@@ -20,9 +20,7 @@ trait EmailAuth:
 case class EmailUser(email: Email) extends JWTUser:
   override val username = Username(email.email)
 
-case class UserPayload(username: Username)
+case class UserPayload(username: Username) derives Codec.AsObject
 
 object UserPayload:
-  implicit val json: Codec[UserPayload] = deriveCodec[UserPayload]
-
   def email(email: Email): UserPayload = apply(Username(email.value))

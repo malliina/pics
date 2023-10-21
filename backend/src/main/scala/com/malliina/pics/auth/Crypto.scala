@@ -16,8 +16,8 @@ object Crypto:
   *   https://github.com/reactormonk/cryptobits/blob/master/cryptobits/src/cryptobits.scala
   */
 class Crypto(key: PrivateKey):
-  val algorithm = "HmacSHA1"
-  val sep = "-"
+  private val algorithm = "HmacSHA1"
+  private val sep = "-"
 
   def randomString() = Utils.randomString()
 

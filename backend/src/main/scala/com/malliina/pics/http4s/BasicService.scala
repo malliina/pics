@@ -10,8 +10,8 @@ import org.http4s.headers.`Cache-Control`
 class BasicService[F[_]] extends PicsImplicits[F]:
   val noCache: `Cache-Control` = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
 
-  def serverError(implicit a: Applicative[F]): F[Response[F]] =
+  def serverError(using Applicative[F]): F[Response[F]] =
     InternalServerError(Errors(s"Server error.").asJson, noCache)
 
-  def notFound(req: Request[F])(implicit a: Applicative[F]): F[Response[F]] =
+  def notFound(req: Request[F])(using Applicative[F]): F[Response[F]] =
     NotFound(Errors(s"Not found: '${req.uri}'.").asJson, noCache)

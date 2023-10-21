@@ -31,12 +31,13 @@ class JsonJWS(jws: JWS):
   def sign[T: Encoder](payload: T): IdToken = jws.sign(payload.asJson.noSpaces)
 
   def verify[T: Decoder](token: IdToken): Either[AuthError, T] =
-    jws.verify(token).flatMap { str =>
-      parse(str).left.map { _ =>
-        JsonError(s"Not JSON: '$str'.")
-      }.flatMap { json =>
-        json.as[T].left.map { errors =>
-          JsonError(errors.message)
-        }
-      }
-    }
+    jws
+      .verify(token)
+      .flatMap: str =>
+        parse(str).left
+          .map: _ =>
+            JsonError(s"Not JSON: '$str'.")
+          .flatMap: json =>
+            json.as[T].left.map { errors =>
+              JsonError(errors.message)
+            }

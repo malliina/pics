@@ -1,13 +1,14 @@
 package com.malliina.pics
 
-import java.io.{IOException, InputStream}
-import java.nio.file.{Files, Path}
 import cats.effect.Sync
 import cats.syntax.all.*
 import com.malliina.storage.{StorageLong, StorageSize}
 import com.malliina.util.AppLogger
 import com.sksamuel.scrimage.ImmutableImage
 import com.sksamuel.scrimage.nio.JpegWriter
+
+import java.io.{IOException, InputStream}
+import java.nio.file.{Files, Path}
 
 object ScrimageResizer:
   private val log = AppLogger(getClass)
@@ -20,16 +21,14 @@ class ScrimageResizer[F[_]: Sync](maxWidth: Int, maxHeight: Int) extends ImageRe
   override def resize(
     image: ImmutableImage,
     dest: Path
-  ): F[Either[ImageException, StorageSize]] = recovered {
-    val timed = Util.timed {
+  ): F[Either[ImageException, StorageSize]] = recovered:
+    val timed = Util.timed:
       image.bound(maxWidth, maxHeight).output(JpegWriter.Default, dest)
-    }
     val resizedSize = Files.size(dest).bytes
     ScrimageResizer.log.info(
       s"Resized image with bounds ${maxWidth}x${maxHeight}px and size $resizedSize to $dest in ${timed.duration}."
     )
     resizedSize
-  }
 
 class AsIsResizer[F[_]: Sync] extends ImageResizer[F]:
   override def resize(image: ImmutableImage, dest: Path): F[Either[ImageException, StorageSize]] =

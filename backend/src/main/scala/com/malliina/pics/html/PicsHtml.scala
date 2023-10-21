@@ -151,14 +151,13 @@ class PicsHtml(
     basePage(PageConf("Pics - Support", inner = content))
 
   def eject(message: Option[String]) =
-    val content =
-      divContainer(
-        rowColumn(s"${col.md.six} top-padding")(
-          message.fold(empty) { msg =>
-            alertSuccess(msg)
-          }
-        )
+    val content = divContainer(
+      rowColumn(s"${col.md.six} top-padding")(
+        message.fold(empty) { msg =>
+          alertSuccess(msg)
+        }
       )
+    )
     basePage(PageConf("Goodbye!", inner = content))
 
   private def baseIndex(tabName: String, user: Option[PicOwner], conf: PageConf) =
@@ -166,45 +165,45 @@ class PicsHtml(
       val itemClass = if tabId == tabName then "nav-item active" else "nav-item"
       li(`class` := itemClass)(a(href := url, `class` := "nav-link")(fa(faName), s" $thisTabName"))
 
-    val navContent = user.map { u =>
-      modifier(
-        ulClass(s"${navbars.Nav} $MrAuto")(
-          navItem("Pics", "pics", reverse.list, "image"),
-          navItem("Drop", "drop", reverse.drop, "upload")
-        ),
-        ulClass(s"${navbars.Nav}")(
-          li(`class` := s"nav-item $Dropdown")(
-            a(
-              href := "#",
-              `class` := s"nav-link $DropdownToggle",
-              data("bs-toggle") := Dropdown,
-              role := Button,
-              aria.haspopup := tags.True,
-              aria.expanded := tags.False
-            )(
-              fa("user"),
-              s" ${u.name} ",
-              spanClass(Caret)
-            ),
-            ulClass(DropdownMenu)(
-              li(
-                a(href := reverse.signOut, `class` := "nav-link")(
-                  fa("arrow-right-from-bracket"),
-                  " Sign Out"
+    val navContent = user
+      .map: u =>
+        modifier(
+          ulClass(s"${navbars.Nav} $MrAuto")(
+            navItem("Pics", "pics", reverse.list, "image"),
+            navItem("Drop", "drop", reverse.drop, "upload")
+          ),
+          ulClass(s"${navbars.Nav}")(
+            li(`class` := s"nav-item $Dropdown")(
+              a(
+                href := "#",
+                `class` := s"nav-link $DropdownToggle",
+                data("bs-toggle") := Dropdown,
+                role := Button,
+                aria.haspopup := tags.True,
+                aria.expanded := tags.False
+              )(
+                fa("user"),
+                s" ${u.name} ",
+                spanClass(Caret)
+              ),
+              ulClass(DropdownMenu)(
+                li(
+                  a(href := reverse.signOut, `class` := "nav-link")(
+                    fa("arrow-right-from-bracket"),
+                    " Sign Out"
+                  )
                 )
               )
             )
           )
         )
-      )
-    }.getOrElse {
-      modifier(
-        ulClass(s"${navbars.Nav} $MrAuto")(),
-        ulClass(navbars.Nav)(
-          navItem("Sign In", "signin", reverse.signIn, "arrow-right-to-bracket")
+      .getOrElse:
+        modifier(
+          ulClass(s"${navbars.Nav} $MrAuto")(),
+          ulClass(navbars.Nav)(
+            navItem("Sign In", "signin", reverse.signIn, "arrow-right-to-bracket")
+          )
         )
-      )
-    }
     basePage(conf.copy(inner = modifier(withNavbar(navContent), conf.inner)))
 
   private def fa(faName: String) =
@@ -225,12 +224,13 @@ class PicsHtml(
         titleTag(conf.title),
         deviceWidthViewport,
         link(rel := "shortcut icon", `type` := "image/png", href := at("img/pics-favicon.png")),
-        cssFiles.map(file => cssLink(at(file))),
+        cssFiles.map: file =>
+          cssLink(at(file)),
         conf.extraHeader,
-        scripts.map(js => deferredJsPath(js)),
-        absoluteScripts.map { url =>
+        scripts.map: js =>
+          deferredJsPath(js),
+        absoluteScripts.map: url =>
           script(src.:=(url)(urlAttr), defer)
-        }
       ),
       body(`class` := conf.bodyClass)(
         section(

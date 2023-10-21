@@ -1,20 +1,21 @@
 package com.malliina.pics.http4s
 
+import org.http4s.circe.CirceInstances
 import org.http4s.dsl.Http4sDsl
 import org.http4s.headers.`Content-Type`
 import org.http4s.{Charset, EntityEncoder, MediaType, syntax}
-import org.http4s.circe.CirceInstances
 import scalatags.generic.Frag
 
 trait MyScalatagsInstances:
-  implicit def scalatagsEncoder[F[_], C <: Frag[?, String]](implicit
+  given scalatagsEncoder[F[_], C <: Frag[?, String]](using
     charset: Charset = Charset.`UTF-8`
   ): EntityEncoder[F, C] =
-    contentEncoder(MediaType.text.html)
+    contentEncoder(MediaType.text.html, charset)
 
   private def contentEncoder[F[_], C <: Frag[?, String]](
-    mediaType: MediaType
-  )(implicit charset: Charset): EntityEncoder[F, C] =
+    mediaType: MediaType,
+    charset: Charset
+  ): EntityEncoder[F, C] =
     EntityEncoder
       .stringEncoder[F]
       .contramap[C](content => content.render)

@@ -13,20 +13,18 @@ case class SocialConf(id: ClientId, secret: ClientSecret):
   def auth = AuthConf(id, secret)
 
 object SocialConf:
-  implicit val config: ConfigReadable[SocialConf] = ConfigReadable.config.emapParsed { obj =>
+  given ConfigReadable[SocialConf] = ConfigReadable.config.emapParsed: obj =>
     for
       id <- obj.read[ClientId]("id")
       secret <- obj.read[ClientSecret]("secret")
     yield SocialConf(id, secret)
-  }
 
 case class SocialClientConf(client: SocialConf):
   def conf = client.auth
 
 object SocialClientConf:
-  implicit val config: ConfigReadable[SocialClientConf] = ConfigReadable.config.emapParsed { obj =>
+  given ConfigReadable[SocialClientConf] = ConfigReadable.config.emapParsed: obj =>
     obj.read[SocialConf]("client").map(apply)
-  }
 
 case class GoogleConf(web: SocialConf):
   def conf = web.auth
@@ -40,11 +38,10 @@ object AppMode:
   case object Prod extends AppMode
   case object Dev extends AppMode
 
-  implicit val reader: ConfigReadable[AppMode] = ConfigReadable.string.emapParsed {
+  given ConfigReadable[AppMode] = ConfigReadable.string.emapParsed:
     case "prod" => Right(Prod)
     case "dev"  => Right(Dev)
     case other  => Left(ErrorMessage("Must be 'prod' or 'dev'."))
-  }
 
 case class PicsConf(
   mode: AppMode,
@@ -69,10 +66,10 @@ case class PicsConf(
   )
 
 object PicsConf:
-  implicit val secret: ConfigReadable[SecretKey] = ConfigReadable.string.map(s => SecretKey(s))
+  given ConfigReadable[SecretKey] = ConfigReadable.string.map(s => SecretKey(s))
 
   implicit class ConfigOps(c: Config) extends AnyVal:
-    def read[T](key: String)(implicit r: ConfigReadable[T]): Either[ErrorMessage, T] =
+    def read[T](key: String)(using r: ConfigReadable[T]): Either[ErrorMessage, T] =
       r.read(key, c)
     def unsafe[T: ConfigReadable](key: String): T =
       c.read[T](key).fold(err => throw new IllegalArgumentException(err.message), identity)

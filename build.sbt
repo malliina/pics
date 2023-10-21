@@ -71,7 +71,7 @@ val backend = project
       "org.http4s" %% s"http4s-$m" % "0.23.23"
     } ++ Seq(
       "org.apache.commons" % "commons-text" % "1.10.0",
-      "software.amazon.awssdk" % "s3" % "2.21.0",
+      "software.amazon.awssdk" % "s3" % "2.21.5",
       "mysql" % "mysql-connector-java" % "8.0.33",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.1.1",
       "com.malliina" %% "logstreams-client" % "2.6.2",

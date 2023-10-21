@@ -30,13 +30,13 @@ class GoogleTokenAuth[F[_]: Sync](validator: KeyClient[F]):
   val EmailVerified = "email_verified"
 
   def validate(token: IdToken): F[Either[AuthError, Email]] =
-    validator.validate(token).map { outcome =>
-      outcome.flatMap { v =>
-        val parsed = v.parsed
-        parsed.read(parsed.claims.getBooleanClaim(EmailVerified), EmailVerified).flatMap {
-          isVerified =>
-            if isVerified then parsed.readString(EmailKey).map(Email.apply)
-            else Left(InvalidClaims(token, ErrorMessage("Email not verified.")))
-        }
-      }
-    }
+    validator
+      .validate(token)
+      .map: outcome =>
+        outcome.flatMap: v =>
+          val parsed = v.parsed
+          parsed
+            .read(parsed.claims.getBooleanClaim(EmailVerified), EmailVerified)
+            .flatMap: isVerified =>
+              if isVerified then parsed.readString(EmailKey).map(Email.apply)
+              else Left(InvalidClaims(token, ErrorMessage("Email not verified.")))

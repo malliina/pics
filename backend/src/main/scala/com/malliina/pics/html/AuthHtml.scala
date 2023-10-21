@@ -79,12 +79,12 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
     extraHeader = modifier(cognitoHeaders, jsScript(""))
   )
 
-  def cognitoHeaders: Modifier =
+  private def cognitoHeaders: Modifier =
     Seq("aws-cognito-sdk.min.js", "amazon-cognito-identity.min.js").map { file =>
       jsScript(assets.at(s"js/$file"))
     }
 
-  def loginForm(feedback: Option[UserFeedback] = None) =
+  private def loginForm(feedback: Option[UserFeedback] = None) =
     form(id := LoginFormId, `class` := col.md.twelve, method := Post, novalidate)(
       input(`type` := "hidden", name := TokenKey, id := LoginTokenId),
       divClass(formGroupClass)(
@@ -107,7 +107,7 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
       )
     )
 
-  def forgotForm =
+  private def forgotForm =
     form(id := ForgotFormId, `class` := col.md.twelve, method := Post, novalidate, hidden)(
       divClass(formGroupClass)(
         labeledInput("Email address", ForgotEmailId, "email", Option("me@example.com"))
@@ -118,7 +118,7 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
       divClass(formGroupClass, id := ForgotFeedbackId)
     )
 
-  def resetForm =
+  private def resetForm =
     form(
       id := ResetFormId,
       `class` := col.md.twelve,
@@ -143,7 +143,7 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
       divClass(formGroupClass, id := ResetFeedbackId)
     )
 
-  def signUpForm(feedback: Option[UserFeedback] = None) =
+  private def signUpForm(feedback: Option[UserFeedback] = None) =
     form(
       id := SignUpFormId,
       `class` := col.md.twelve,
@@ -166,7 +166,7 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
       )
     )
 
-  def confirmForm =
+  private def confirmForm =
     form(id := ConfirmFormId, `class` := col.md.twelve, method := Post, novalidate, hidden)(
       input(`type` := "hidden", name := TokenKey, id := ConfirmTokenId),
       divClass(formGroupClass)(
@@ -179,7 +179,7 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
       divClass(formGroupClass, id := ConfirmFeedbackId)
     )
 
-  def mfaForm =
+  private def mfaForm =
     form(id := MfaFormId, `class` := col.md.twelve, method := Post, novalidate, hidden)(
       input(`type` := "hidden", name := TokenKey, id := MfaTokenId),
       divClass(formGroupClass)(
@@ -191,13 +191,13 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
       divClass(formGroupClass, id := MfaFeedbackId)
     )
 
-  def socialButton(provider: String, linkTo: SocialRoute, linkText: String) =
+  private def socialButton(provider: String, linkTo: SocialRoute, linkText: String) =
     a(`class` := s"social-button $provider", href := linkTo.start)(
       span(`class` := s"social-logo $provider"),
       span(`class` := "social-text", linkText)
     )
 
-  def labeledInput(
+  private def labeledInput(
     labelText: String,
     inId: String,
     inType: String,
@@ -214,7 +214,7 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
     )
   )
 
-  def emptyNavbar =
+  private def emptyNavbar =
     nav(`class` := s"${navbars.Navbar} ${navbars.Light} ${navbars.BgLight}")(
       divClass(Container)(
         a(`class` := navbars.Brand, href := reverse.list)("Pics")
