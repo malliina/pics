@@ -2,8 +2,8 @@ package com.malliina.pics.http4s
 
 import cats.Show
 import cats.data.NonEmptyList
-import cats.effect.*
-import cats.syntax.all.*
+import cats.effect.Async
+import cats.syntax.all.{catsSyntaxApplicativeError, catsSyntaxApplicativeId, toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.html.UserFeedback
 import com.malliina.http.HttpClient
 import com.malliina.pics.*
@@ -31,7 +31,7 @@ import org.http4s.headers.{Accept, Location, `Cache-Control`, `WWW-Authenticate`
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.syntax.literals.mediaType
 import org.http4s.websocket.WebSocketFrame
-import org.http4s.websocket.WebSocketFrame.*
+import org.http4s.websocket.WebSocketFrame.Text
 import org.http4s.{Callback as _, *}
 import org.typelevel.ci.{CIString, CIStringSyntax}
 
