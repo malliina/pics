@@ -5,7 +5,7 @@ import cats.effect.std.Dispatcher
 import cats.effect.*
 import com.comcast.ip4s.{Port, host, port}
 import com.malliina.database.DoobieDatabase
-import com.malliina.http.io.{HttpClientF2, HttpClientIO}
+import com.malliina.http.io.HttpClientIO
 import com.malliina.logback.AppLogging
 import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.{BuildInfo, MultiSizeHandler, PicsConf}
@@ -36,7 +36,7 @@ object PicsServer extends IOApp:
     port: Port = serverPort
   ): Resource[IO, Server] = for
     handler <- sizeHandler
-    picsApp <- appResource(conf, handler, HttpClientIO.resource)
+    picsApp <- appResource(conf, handler)
     _ = log.info(s"Binding on port $port using app version ${BuildInfo.gitHash}...")
     server <- EmberServerBuilder
       .default[IO]
@@ -52,11 +52,10 @@ object PicsServer extends IOApp:
 
   private def appResource[F[_]: Async](
     conf: => PicsConf,
-    handler: MultiSizeHandler[F],
-    httpResource: Resource[F, HttpClientF2[F]]
+    handler: MultiSizeHandler[F]
   ): Resource[F, PicsService[F]] = for
     dispatcher <- Dispatcher.parallel[F]
-    http <- httpResource
+    http <- HttpClientIO.resource
     _ <- AppLogging.resource(dispatcher, http)
     topic <- Resource.eval(Topic[F, PicMessage])
     doobieDatabase <- DoobieDatabase.init[F](conf.db)
