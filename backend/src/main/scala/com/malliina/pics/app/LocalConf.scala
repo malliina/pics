@@ -1,16 +1,15 @@
 package com.malliina.pics.app
 
+import com.malliina.config.ConfigNode
 import com.malliina.pics.BuildInfo
 
 import java.nio.file.{Path, Paths}
-import com.typesafe.config.{Config, ConfigFactory}
 
 object LocalConf:
   val appDir: Path = Paths.get(sys.props("user.home")).resolve(".pics")
   private val localConfFile: Path = appDir.resolve("pics.conf")
   val isProd: Boolean = BuildInfo.mode == "prod"
-  private val localConfig: Config =
-    ConfigFactory.parseFile(localConfFile.toFile).withFallback(ConfigFactory.load())
-  val config: Config =
-    if isProd then ConfigFactory.load("application-prod.conf")
+  private val localConfig: ConfigNode = ConfigNode.default(localConfFile)
+  val config: ConfigNode =
+    if isProd then ConfigNode.load("application-prod.conf")
     else localConfig

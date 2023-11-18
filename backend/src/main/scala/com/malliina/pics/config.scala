@@ -1,30 +1,28 @@
 package com.malliina.pics
 
-import com.malliina.config.ConfigReadable
+import com.malliina.config.{ConfigError, ConfigNode, ConfigReadable}
 import com.malliina.database.Conf
-import com.malliina.pics.PicsConf.ConfigOps
 import com.malliina.pics.app.LocalConf
 import com.malliina.pics.auth.{SecretKey, SignInWithApple, Social}
 import com.malliina.values.ErrorMessage
 import com.malliina.web.{AuthConf, ClientId, ClientSecret}
-import com.typesafe.config.{Config, ConfigFactory}
 
 case class SocialConf(id: ClientId, secret: ClientSecret):
   def auth = AuthConf(id, secret)
 
 object SocialConf:
-  given ConfigReadable[SocialConf] = ConfigReadable.config.emapParsed: obj =>
+  given ConfigReadable[SocialConf] = ConfigReadable.node.emap: obj =>
     for
-      id <- obj.read[ClientId]("id")
-      secret <- obj.read[ClientSecret]("secret")
+      id <- obj.parse[ClientId]("id")
+      secret <- obj.parse[ClientSecret]("secret")
     yield SocialConf(id, secret)
 
 case class SocialClientConf(client: SocialConf):
   def conf = client.auth
 
 object SocialClientConf:
-  given ConfigReadable[SocialClientConf] = ConfigReadable.config.emapParsed: obj =>
-    obj.read[SocialConf]("client").map(apply)
+  given ConfigReadable[SocialClientConf] = ConfigReadable.node.emap: obj =>
+    obj.parse[SocialConf]("client").map(apply)
 
 case class GoogleConf(web: SocialConf):
   def conf = web.auth
@@ -68,26 +66,37 @@ case class PicsConf(
 object PicsConf:
   given ConfigReadable[SecretKey] = ConfigReadable.string.map(s => SecretKey(s))
 
-  implicit class ConfigOps(c: Config) extends AnyVal:
-    def read[T](key: String)(using r: ConfigReadable[T]): Either[ErrorMessage, T] =
-      r.read(key, c)
-    def unsafe[T: ConfigReadable](key: String): T =
-      c.read[T](key).fold(err => throw new IllegalArgumentException(err.message), identity)
-  def picsConf = ConfigFactory.load(LocalConf.config).resolve().getConfig("pics")
+  // ConfigFactory.load(LocalConf.config).resolve().getConfig("pics")
+  def picsConf = LocalConf.config.parse[ConfigNode]("pics").toOption.get
 
-  def unsafeLoad(c: Config = picsConf): PicsConf = unsafeLoadWith(c, c.unsafe[Conf]("db"))
+  def unsafeLoad(c: ConfigNode = picsConf): PicsConf =
+    unsafeLoadWith(c, c.parse[Conf]("db"))
 
-  def unsafeLoadWith(c: Config, db: => Conf): PicsConf =
-    def client(name: String): SocialClientConf = c.unsafe[SocialClientConf](name)
-    PicsConf(
-      c.unsafe[AppMode]("mode"),
-      AppConf(c.unsafe[Config]("app").unsafe[SecretKey]("secret")),
-      db,
-      GoogleConf(c.unsafe[Config]("google").unsafe[SocialConf]("web")),
-      client("github"),
-      client("microsoft"),
-      client("facebook"),
-      client("twitter"),
-      c.unsafe[Config]("apple").unsafe[SignInWithApple.Conf]("signin"),
-      client("amazon")
+  def unsafeLoadWith(c: ConfigNode, db: Either[ConfigError, Conf]): PicsConf =
+    load(c, db).fold(err => throw new IllegalArgumentException(err.message.message), identity)
+
+  def load(root: ConfigNode, db: Either[ConfigError, Conf]) =
+    def client(name: String) = root.parse[SocialClientConf](name)
+    for
+      mode <- root.parse[AppMode]("mode")
+      secret <- root.parse[SecretKey]("app.secret")
+      database <- db
+      google <- root.parse[SocialConf]("google.web")
+      github <- client("github")
+      microsoft <- client("microsoft")
+      facebook <- client("facebook")
+      twitter <- client("twitter")
+      siwa <- root.parse[SignInWithApple.Conf]("apple.signin")
+      amazon <- client("amazon")
+    yield PicsConf(
+      mode,
+      AppConf(secret),
+      database,
+      GoogleConf(google),
+      github,
+      microsoft,
+      facebook,
+      twitter,
+      siwa,
+      amazon
     )

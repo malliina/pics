@@ -6,13 +6,12 @@ import cats.effect.kernel.Resource
 import cats.syntax.flatMap.*
 import com.comcast.ip4s.port
 import com.dimafeng.testcontainers.MySQLContainer
+import com.malliina.config.ConfigError
 import com.malliina.database.{Conf, DoobieDatabase}
 import com.malliina.http.FullUrl
 import com.malliina.http.io.{HttpClientF2, HttpClientIO}
 import com.malliina.pics.*
-import com.malliina.pics.PicsConf.ConfigOps
 import com.malliina.pics.http4s.PicsServer
-import com.malliina.values.ErrorMessage
 import org.http4s.server.Server
 import org.slf4j.LoggerFactory
 import org.testcontainers.utility.DockerImageName
@@ -40,8 +39,8 @@ trait MUnitDatabaseSuite:
     override def afterAll(): Unit =
       container.foreach(_.stop())
 
-    def readTestConf: Either[ErrorMessage, Conf] =
-      PicsConf.picsConf.read[Conf]("testdb")
+    def readTestConf: Either[ConfigError, Conf] =
+      PicsConf.picsConf.parse[Conf]("testdb")
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(db)
 
@@ -56,7 +55,7 @@ trait ServerSuite extends MUnitDatabaseSuite with ClientSuite:
     "server",
     PicsServer
       .server(
-        PicsConf.unsafeLoadWith(PicsConf.picsConf, db()),
+        PicsConf.unsafeLoadWith(PicsConf.picsConf, Right(db())),
         Resource.eval(IO(MultiSizeHandler.empty())),
         port = port"12345"
       )

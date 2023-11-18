@@ -1,7 +1,6 @@
 package com.malliina.pics.auth
 
 import com.malliina.config.ConfigReadable
-import com.malliina.pics.PicsConf.ConfigOps
 import com.malliina.pics.auth.AppleTokenValidator.appleIssuer
 import com.malliina.pics.auth.SignInWithApple.{Conf, log}
 import com.malliina.util.AppLogger
@@ -31,13 +30,13 @@ object SignInWithApple:
   )
 
   object Conf:
-    implicit val reader: ConfigReadable[Conf] = ConfigReadable.config.emapParsed { obj =>
+    implicit val reader: ConfigReadable[Conf] = ConfigReadable.node.emap { obj =>
       for
-        enabled <- obj.read[Boolean]("enabled")
-        keyPath <- obj.read[Path]("privateKey")
-        keyId <- obj.read[String]("keyId")
-        team <- obj.read[String]("teamId")
-        clientId <- obj.read[ClientId]("clientId")
+        enabled <- obj.parse[Boolean]("enabled")
+        keyPath <- obj.parse[Path]("privateKey")
+        keyId <- obj.parse[String]("keyId")
+        team <- obj.parse[String]("teamId")
+        clientId <- obj.parse[ClientId]("clientId")
       yield Conf(enabled, keyPath, keyId, team, clientId)
     }
 
