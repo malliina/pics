@@ -68,13 +68,13 @@ val backend = project
       scalaVersion
     ),
     libraryDependencies ++= Seq("ember-server", "dsl", "circe").map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.23.23"
+      "org.http4s" %% s"http4s-$m" % "0.23.24"
     } ++ Seq(
       "org.apache.commons" % "commons-text" % "1.10.0",
       "software.amazon.awssdk" % "s3" % "2.21.10",
       "mysql" % "mysql-connector-java" % "8.0.33",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.1.1",
-      "com.malliina" %% "logstreams-client" % "2.6.3",
+      "com.malliina" %% "logstreams-client" % "2.7.0",
       "com.malliina" %% "web-auth" % webAuthVersion,
       "com.malliina" %% "database" % webAuthVersion,
       "com.dimafeng" %% "testcontainers-scala-mysql" % "0.41.0" % Test,
