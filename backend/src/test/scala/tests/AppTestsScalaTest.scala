@@ -4,12 +4,14 @@ import cats.effect.IO
 import cats.effect.IO.asyncForIO
 import cats.effect.kernel.Resource
 import cats.syntax.flatMap.*
+import ch.qos.logback.classic.Level
 import com.comcast.ip4s.port
 import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.config.ConfigError
 import com.malliina.database.{Conf, DoobieDatabase}
 import com.malliina.http.FullUrl
 import com.malliina.http.io.{HttpClientF2, HttpClientIO}
+import com.malliina.logback.LogbackUtils
 import com.malliina.pics.*
 import com.malliina.pics.http4s.PicsServer
 import org.http4s.server.Server
@@ -51,9 +53,12 @@ case class ServerTools(server: Server):
 
 trait ServerSuite extends MUnitDatabaseSuite with ClientSuite:
   self: munit.CatsEffectSuite =>
+  object TestServer extends PicsServer:
+    LogbackUtils.init(rootLevel = Level.OFF)
+
   val server: Fixture[ServerTools] = ResourceSuiteLocalFixture(
     "server",
-    PicsServer
+    TestServer
       .server(
         PicsConf.unsafeLoadWith(PicsConf.picsConf, Right(db())),
         Resource.eval(IO(MultiSizeHandler.empty())),

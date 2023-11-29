@@ -19,12 +19,14 @@ import org.http4s.{HttpRoutes, Request, Response}
 
 import scala.concurrent.duration.{Duration, DurationInt}
 
-object PicsServer extends IOApp:
+object PicsServer extends PicsServer:
+  AppLogging.init()
+
+trait PicsServer extends IOApp:
   override def runtimeConfig =
     super.runtimeConfig.copy(cpuStarvationCheckInitialDelay = Duration.Inf)
   type AppService[F[_]] = Kleisli[F, Request[F], Response[F]]
 
-  AppLogging.init()
   private val log = AppLogger(getClass)
 
   private val serverPort: Port =

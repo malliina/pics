@@ -66,7 +66,6 @@ case class PicsConf(
 object PicsConf:
   given ConfigReadable[SecretKey] = ConfigReadable.string.map(s => SecretKey(s))
 
-  // ConfigFactory.load(LocalConf.config).resolve().getConfig("pics")
   def picsConf = LocalConf.config.parse[ConfigNode]("pics").toOption.get
 
   def unsafeLoad(c: ConfigNode = picsConf): PicsConf =
