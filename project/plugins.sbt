@@ -1,6 +1,6 @@
 scalaVersion := "2.12.18"
 
-val utilsVersion = "1.6.29"
+val utilsVersion = "1.6.30"
 
 Seq(
   "com.malliina" % "sbt-nodejs" % utilsVersion,
@@ -10,10 +10,5 @@ Seq(
   "org.scala-js" % "sbt-scalajs" % "1.14.0",
   "com.eed3si9n" % "sbt-buildinfo" % "0.11.0",
   "org.scalameta" % "sbt-scalafmt" % "2.5.2",
-  "com.eed3si9n" % "sbt-assembly" % "2.1.4"
+  "com.eed3si9n" % "sbt-assembly" % "2.1.5"
 ) map addSbtPlugin
-
-libraryDependencies ++= Seq(
-  "com.malliina" %% "primitives" % "3.4.6",
-  "commons-codec" % "commons-codec" % "1.16.0"
-)

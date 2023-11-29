@@ -1,8 +1,8 @@
 {
   "name": "pics",
   "dependencies": {
-    "@popperjs/core": "2.11.6",
-    "bootstrap": "5.2.3"
+    "@popperjs/core": "2.11.8",
+    "bootstrap": "5.3.2"
   },
   "scripts": {
     "build": "rollup --config rollup.config.ts --bundleConfigAsCjs --configPlugin typescript"
