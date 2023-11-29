@@ -12,7 +12,6 @@ inThisBuild(
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit" % munitVersion % Test
     ),
-    testFrameworks += new TestFramework("munit.Framework"),
     assemblyMergeStrategy := {
       case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.rename
       case PathList("META-INF", "versions", xs @ _*)            => MergeStrategy.first
@@ -47,26 +46,19 @@ val crossJs = cross.js
 
 val frontend = project
   .in(file("frontend"))
-  .enablePlugins(NodeJsPlugin, RollupPlugin)
+  .enablePlugins(RollupPlugin)
   .disablePlugins(RevolverPlugin)
   .dependsOn(crossJs)
 
 val backend = project
   .in(file("backend"))
-  .enablePlugins(
-    FileTreePlugin,
-    ServerPlugin
-  )
+  .enablePlugins(ServerPlugin)
   .dependsOn(crossJvm)
   .settings(
     clientProject := frontend,
+    dependentModule := crossJvm,
     hashPackage := "com.malliina.pics.assets",
     buildInfoPackage := "com.malliina.pics",
-    buildInfoKeys ++= Seq[BuildInfoKey](
-      name,
-      version,
-      scalaVersion
-    ),
     libraryDependencies ++= Seq("ember-server", "dsl", "circe").map { m =>
       "org.http4s" %% s"http4s-$m" % "0.23.24"
     } ++ Seq(
@@ -81,7 +73,6 @@ val backend = project
       "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
     ),
     assembly / assemblyJarName := "app.jar",
-    dependentModule := crossJvm,
     Compile / resourceDirectories += io.Path.userHome / ".pics"
   )
 

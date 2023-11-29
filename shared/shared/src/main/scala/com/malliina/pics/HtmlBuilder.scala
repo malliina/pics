@@ -32,8 +32,8 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
   val galleryId = "pic-gallery"
   val picsId = "pics-container"
 
-  implicit val urlAttr: AttrValue[FullUrl] = genericAttr[FullUrl]
-  implicit val keyAttr: AttrValue[Key] = genericAttr[Key]
+  given AttrValue[FullUrl] = genericAttr[FullUrl]
+  given AttrValue[Key] = genericAttr[Key]
 
   implicit def keyFrag(key: Key): Frag = stringFrag(key.key)
 
@@ -53,10 +53,9 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
     )
 
   def renderFeedback(feedback: Option[UserFeedback]): Modifier =
-    feedback.fold(empty) { fb =>
+    feedback.fold(empty): fb =>
       if fb.isError then alertDanger(fb.message)
       else alertSuccess(fb.message)
-    }
 
   def thumbId(key: Key) = s"pic-$key"
 

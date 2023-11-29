@@ -16,11 +16,11 @@ enum Access(val name: String):
 
 object Access:
   val FormKey = "access"
-  implicit val json: Codec[Access] = Codec.from(
+  given Codec[Access] = Codec.from(
     Decoder.decodeString.emap(s => parse(s).left.map(_.message)),
     Encoder.encodeString.contramap(_.name)
   )
-  implicit val readable: Readable[Access] = Readable.string.emap(parse)
+  given Readable[Access] = Readable.string.emap(parse)
 
   def parse(in: String): Either[ErrorMessage, Access] =
     Access.values.find(v => v.name == in).toRight(ErrorMessage(s"Unknown access value: '$in'."))
@@ -42,7 +42,7 @@ case class ProfileInfo(user: PicOwner, readOnly: Boolean)
 
 object ProfileInfo:
   val Welcome = "welcome"
-  implicit val json: Codec[ProfileInfo] = PicsJson.evented(Welcome, deriveCodec[ProfileInfo])
+  given Codec[ProfileInfo] = PicsJson.evented(Welcome, deriveCodec[ProfileInfo])
 
 case class Key(key: String) extends AnyVal:
   override def toString: String = key
@@ -52,7 +52,7 @@ case class Key(key: String) extends AnyVal:
 object Key:
   val Length = 7
 
-  implicit val json: Codec[Key] =
+  given Codec[Key] =
     Codec.from(Decoder.decodeString.map(s => apply(s)), Encoder.encodeString.contramap(_.key))
 
 object KeyParam:
@@ -63,7 +63,7 @@ case class PicsRemoved(keys: Seq[Key])
 
 object PicsRemoved:
   val Removed = "removed"
-  implicit val json: Codec[PicsRemoved] = PicsJson.evented(Removed, deriveCodec[PicsRemoved])
+  given Codec[PicsRemoved] = PicsJson.evented(Removed, deriveCodec[PicsRemoved])
 
 trait BaseMeta:
   def key: Key
@@ -89,16 +89,13 @@ case class PicMeta(
     ClientPicMeta(key, added, url, small, medium, large, clientKey, access)
 
 object PicMeta:
-  implicit val dateFormat: Codec[Date] = Codec.from(
+  given dateFormat: Codec[Date] = Codec.from(
     Decoder.decodeLong.map(l => new Date(l)),
     Encoder.encodeLong.contramap(_.getTime)
   )
-  implicit val json: Codec[PicMeta] = deriveCodec[PicMeta]
+  given Codec[PicMeta] = deriveCodec[PicMeta]
 
-case class Pics(pics: List[PicMeta])
-
-object Pics:
-  implicit val json: Codec[Pics] = deriveCodec[Pics]
+case class Pics(pics: List[PicMeta]) derives Codec.AsObject
 
 case class ClientPicMeta(
   key: Key,
@@ -112,14 +109,14 @@ case class ClientPicMeta(
 ) extends BaseMeta
 
 object ClientPicMeta:
-  implicit val dateformat: Codec[Date] = PicMeta.dateFormat
-  implicit val json: Codec[ClientPicMeta] = deriveCodec[ClientPicMeta]
+  given Codec[Date] = PicMeta.dateFormat
+  given Codec[ClientPicMeta] = deriveCodec[ClientPicMeta]
 
 case class PicsAdded(pics: Seq[ClientPicMeta])
 
 object PicsAdded:
   val Added = "added"
-  implicit val json: Codec[PicsAdded] = PicsJson.evented(Added, deriveCodec[PicsAdded])
+  given Codec[PicsAdded] = PicsJson.evented(Added, deriveCodec[PicsAdded])
 
 object PicsJson:
   val EventKey = "event"

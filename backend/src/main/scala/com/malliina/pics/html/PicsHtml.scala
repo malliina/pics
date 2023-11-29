@@ -7,7 +7,7 @@ import com.malliina.live.LiveReload
 import com.malliina.pics.html.PicsHtml.*
 import com.malliina.pics.http4s.Reverse
 import com.malliina.pics.AssetsSource
-import com.malliina.pics.assets.FileAssets
+import com.malliina.pics.assets.{FileAssets, HashedAssets}
 import com.malliina.pics.{html as _, *}
 import org.http4s.Uri
 import scalatags.Text.all.*
@@ -224,14 +224,18 @@ class PicsHtml(
         meta(charset := "utf-8"),
         titleTag(conf.title),
         deviceWidthViewport,
-        link(rel := "shortcut icon", `type` := "image/png", href := at("img/pics-favicon.png")),
+        link(
+          rel := "shortcut icon",
+          `type` := "image/png",
+          href := inlineOrAsset(FileAssets.img.pics_favicon_png)
+        ),
         cssFiles.map: file =>
           cssLink(at(file)),
         conf.extraHeader,
         scripts.map: js =>
           deferredJsPath(js),
         absoluteScripts.map: url =>
-          script(src.:=(url)(urlAttr), defer)
+          script(src := url, defer)
       ),
       body(`class` := conf.bodyClass)(
         section(
@@ -243,6 +247,8 @@ class PicsHtml(
   private def deferredJsPath(path: String) =
     script(`type` := "application/javascript", src := at(path), defer)
 
+  private def inlineOrAsset(path: String) =
+    HashedAssets.dataUris.getOrElse(path, at(path).toString)
   private def at(path: String) = assets.at(path)
 
 case class PageConf(
