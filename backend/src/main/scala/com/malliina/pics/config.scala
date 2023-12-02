@@ -67,7 +67,9 @@ object PicsConf:
 
   def load(root: ConfigNode, db: Either[ConfigError, Conf]) =
     for
-      secret <- root.parse[SecretKey]("app.secret")
+      secret <-
+        if BuildInfo.isProd then root.parse[SecretKey]("app.secret")
+        else root.opt[SecretKey]("app.secret").map(_.getOrElse(SecretKey.dev))
       dbConf <- db
       googleWebSecret <- root.parse[ClientSecret]("google.web.secret")
       githubSecret <- root.parse[ClientSecret]("github.client.secret")
