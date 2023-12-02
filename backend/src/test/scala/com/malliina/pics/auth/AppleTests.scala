@@ -14,6 +14,6 @@ class AppleTests extends munit.CatsEffectSuite with ClientSuite:
 
   test("create sign in with apple token".ignore):
     val conf = PicsConf.unsafeLoad()
-    val siwa = SignInWithApple(conf.apple)
+    val siwa = SignInWithApple(conf.apple.get)
     val token = siwa.signInWithAppleToken(Instant.now())
     println(token)

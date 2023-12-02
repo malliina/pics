@@ -14,6 +14,7 @@ import com.malliina.http.io.{HttpClientF2, HttpClientIO}
 import com.malliina.logback.LogbackUtils
 import com.malliina.pics.*
 import com.malliina.pics.http4s.PicsApp
+import com.malliina.values.Password
 import org.http4s.server.Server
 import org.slf4j.LoggerFactory
 import org.testcontainers.utility.DockerImageName
@@ -30,19 +31,27 @@ trait MUnitDatabaseSuite:
     def apply(): Conf = conf.get
 
     override def beforeAll(): Unit =
-      val testDb = readTestConf.recover { err =>
+      val testDb = readTestConf.recover: err =>
         log.info(s"No local test database configured, falling back to Docker. $err")
         val c = MySQLContainer(mysqlImageVersion = DockerImageName.parse("mysql:8.0.33"))
         c.start()
         container = Option(c)
         TestConf(c)
-      }
       conf = Option(testDb)
     override def afterAll(): Unit =
       container.foreach(_.stop())
 
     def readTestConf: Either[ConfigError, Conf] =
-      PicsConf.picsConf.parse[Conf]("testdb")
+      PicsConf.picsConf.parse[Password]("testdb.pass").map(testDatabaseConf)
+
+    private def testDatabaseConf(password: Password) = Conf(
+      "jdbc:mysql://localhost:3306/testpics",
+      "testpics",
+      password.pass,
+      Conf.MySQLDriver,
+      maxPoolSize = 2,
+      autoMigrate = true
+    )
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(db)
 
@@ -80,7 +89,10 @@ trait DoobieSuite extends MUnitDatabaseSuite:
   val doobie: Fixture[DoobieDatabase[IO]] =
     ResourceSuiteLocalFixture(
       "doobie",
-      Resource.eval(IO.delay(db())).flatMap(d => DoobieDatabase.init(d))
+      Resource
+        .eval(IO.delay(db()))
+        .flatMap: d =>
+          DoobieDatabase.init(d)
     )
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(db, doobie)

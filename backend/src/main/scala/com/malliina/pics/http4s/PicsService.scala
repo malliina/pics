@@ -53,7 +53,7 @@ object PicsService:
   ): PicsService[F] =
     PicsService(
       PicService(db, handler),
-      PicsHtml.build(conf.mode.isProd),
+      PicsHtml.build(conf.isProdBuild),
       Http4sAuth.default(conf.app, db, http),
       Socials(conf.social, http),
       db,

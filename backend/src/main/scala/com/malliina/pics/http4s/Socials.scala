@@ -33,10 +33,11 @@ class Socials[F[_]: Sync](conf: SocialConf, http: HttpClient[F]):
   val github = GitHubAuthFlow(conf.githubConf, http)
   val amazon = cognitoValidator(LoginWithAmazon)
   val facebook = FacebookAuthFlow(conf.facebookConf, http)
-  private val appleToken =
-    if conf.apple.enabled then SignInWithApple(conf.apple).signInWithAppleToken(Instant.now())
-    else
+  private val appleConf = conf.apple
+    .map: appleConf =>
+      val token = SignInWithApple(appleConf).signInWithAppleToken(Instant.now())
+      AuthConf(appleConf.clientId, token)
+    .getOrElse:
       log.info("Sign in with Apple is disabled.")
-      ClientSecret("disabled")
-  private val appleAuthConf = AuthConf(conf.apple.clientId, appleToken)
-  val apple = AppleAuthFlow(appleAuthConf, AppleTokenValidator(Seq(conf.apple.clientId)), http)
+      AuthConf(ClientId("unused"), ClientSecret("disabled"))
+  val apple = AppleAuthFlow(appleConf, AppleTokenValidator(Seq(appleConf.clientId)), http)

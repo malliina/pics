@@ -1,31 +1,13 @@
 package com.malliina.pics
 
-import com.malliina.config.{ConfigError, ConfigNode, ConfigReadable}
+import com.malliina.config.{ConfigError, ConfigNode, ConfigReadable, Env}
 import com.malliina.database.Conf
 import com.malliina.pics.app.LocalConf
 import com.malliina.pics.auth.{SecretKey, SignInWithApple, Social}
-import com.malliina.values.ErrorMessage
+import com.malliina.values.{ErrorMessage, Password}
 import com.malliina.web.{AuthConf, ClientId, ClientSecret}
 
-case class SocialConf(id: ClientId, secret: ClientSecret):
-  def auth = AuthConf(id, secret)
-
-object SocialConf:
-  given ConfigReadable[SocialConf] = ConfigReadable.node.emap: obj =>
-    for
-      id <- obj.parse[ClientId]("id")
-      secret <- obj.parse[ClientSecret]("secret")
-    yield SocialConf(id, secret)
-
-case class SocialClientConf(client: SocialConf):
-  def conf = client.auth
-
-object SocialClientConf:
-  given ConfigReadable[SocialClientConf] = ConfigReadable.node.emap: obj =>
-    obj.parse[SocialConf]("client").map(apply)
-
-case class GoogleConf(web: SocialConf):
-  def conf = web.auth
+import java.nio.file.Path
 
 case class AppConf(secret: SecretKey)
 
@@ -42,60 +24,94 @@ object AppMode:
     case other  => Left(ErrorMessage("Must be 'prod' or 'dev'."))
 
 case class PicsConf(
-  mode: AppMode,
+  isProdBuild: Boolean,
   app: AppConf,
   db: Conf,
-  google: GoogleConf,
-  github: SocialClientConf,
-  microsoft: SocialClientConf,
-  facebook: SocialClientConf,
-  twitter: SocialClientConf,
-  apple: SignInWithApple.Conf,
-  amazon: SocialClientConf
+  google: AuthConf,
+  github: AuthConf,
+  microsoft: AuthConf,
+  facebook: AuthConf,
+  twitter: AuthConf,
+  amazon: AuthConf,
+  apple: Option[SignInWithApple.Conf]
 ):
   def social = Social.SocialConf(
-    github.conf,
-    microsoft.conf,
-    google.conf,
-    facebook.conf,
-    twitter.conf,
-    amazon.conf,
+    github,
+    microsoft,
+    google,
+    facebook,
+    twitter,
+    amazon,
     apple
   )
 
 object PicsConf:
+  private val envName = Env.read[String]("ENV_NAME")
+  private val isStaging = envName.contains("staging")
+
   given ConfigReadable[SecretKey] = ConfigReadable.string.map(s => SecretKey(s))
 
   def picsConf = LocalConf.config.parse[ConfigNode]("pics").toOption.get
 
   def unsafeLoad(c: ConfigNode = picsConf): PicsConf =
-    unsafeLoadWith(c, c.parse[Conf]("db"))
+    unsafeLoadWith(
+      c,
+      c.parse[Password]("db.pass")
+        .map: pass =>
+          if BuildInfo.isProd then prodDatabaseConf(pass, if isStaging then 2 else 5)
+          else devDatabaseConf(pass)
+    )
 
   def unsafeLoadWith(c: ConfigNode, db: Either[ConfigError, Conf]): PicsConf =
     load(c, db).fold(err => throw new IllegalArgumentException(err.message.message), identity)
 
   def load(root: ConfigNode, db: Either[ConfigError, Conf]) =
-    def client(name: String) = root.parse[SocialClientConf](name)
     for
-      mode <- root.parse[AppMode]("mode")
       secret <- root.parse[SecretKey]("app.secret")
-      database <- db
-      google <- root.parse[SocialConf]("google.web")
-      github <- client("github")
-      microsoft <- client("microsoft")
-      facebook <- client("facebook")
-      twitter <- client("twitter")
-      siwa <- root.parse[SignInWithApple.Conf]("apple.signin")
-      amazon <- client("amazon")
-    yield PicsConf(
-      mode,
-      AppConf(secret),
-      database,
-      GoogleConf(google),
-      github,
-      microsoft,
-      facebook,
-      twitter,
-      siwa,
-      amazon
-    )
+      dbConf <- db
+      googleWebSecret <- root.parse[ClientSecret]("google.web.secret")
+      githubSecret <- root.parse[ClientSecret]("github.client.secret")
+      microsoftSecret <- root.parse[ClientSecret]("microsoft.client.secret")
+      facebookSecret <- root.parse[ClientSecret]("facebook.client.secret")
+      twitterSecret <- root.parse[ClientSecret]("twitter.client.secret")
+      amazonSecret <- root.parse[ClientSecret]("amazon.client.secret")
+      siwaPrivateKey <- root.opt[Path]("apple.signin.privateKey")
+    yield
+      val isProdBuild = BuildInfo.isProd
+      PicsConf(
+        isProdBuild,
+        AppConf(secret),
+        dbConf,
+        Social.google(googleWebSecret),
+        Social.github(githubSecret),
+        Social.microsoft(microsoftSecret),
+        Social.facebook(facebookSecret),
+        Social.twitter(twitterSecret),
+        Social.amazon(amazonSecret),
+        siwaPrivateKey.map(key => siwaConf(key))
+      )
+
+  private def prodDatabaseConf(password: Password, maxPoolSize: Int) = Conf(
+    "jdbc:mysql://database8-nuqmhn2cxlhle.mysql.database.azure.com:3306/pics",
+    "pics",
+    password.pass,
+    Conf.MySQLDriver,
+    maxPoolSize,
+    autoMigrate = true
+  )
+
+  private def devDatabaseConf(password: Password) = Conf(
+    "jdbc:mysql://localhost:3307/pics",
+    "pics",
+    password.pass,
+    Conf.MySQLDriver,
+    2,
+    autoMigrate = false
+  )
+
+  private def siwaConf(privateKey: Path) = SignInWithApple.Conf(
+    privateKey,
+    "KYBY5Q5QD3",
+    "D2T2QC36Z9",
+    ClientId("com.malliina.pics.client")
+  )

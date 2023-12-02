@@ -69,6 +69,7 @@ val backend = project
       "com.malliina" %% "logstreams-client" % "2.7.0",
       "com.malliina" %% "web-auth" % webAuthVersion,
       "com.malliina" %% "database" % webAuthVersion,
+      "com.malliina" %% "config" % primitivesVersion,
       "com.dimafeng" %% "testcontainers-scala-mysql" % "0.41.0" % Test,
       "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
     ),

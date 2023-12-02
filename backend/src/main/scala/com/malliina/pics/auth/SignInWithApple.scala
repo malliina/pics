@@ -1,6 +1,5 @@
 package com.malliina.pics.auth
 
-import com.malliina.config.ConfigReadable
 import com.malliina.pics.auth.AppleTokenValidator.appleIssuer
 import com.malliina.pics.auth.SignInWithApple.{Conf, log}
 import com.malliina.util.AppLogger
@@ -22,23 +21,11 @@ object SignInWithApple:
   private val log = AppLogger(getClass)
 
   case class Conf(
-    enabled: Boolean,
     privateKey: Path,
     keyId: String,
     teamId: String,
     clientId: ClientId
   )
-
-  object Conf:
-    implicit val reader: ConfigReadable[Conf] = ConfigReadable.node.emap { obj =>
-      for
-        enabled <- obj.parse[Boolean]("enabled")
-        keyPath <- obj.parse[Path]("privateKey")
-        keyId <- obj.parse[String]("keyId")
-        team <- obj.parse[String]("teamId")
-        clientId <- obj.parse[ClientId]("clientId")
-      yield Conf(enabled, keyPath, keyId, team, clientId)
-    }
 
 /** https://developer.apple.com/documentation/sign_in_with_apple/generate_and_validate_tokens
   */
