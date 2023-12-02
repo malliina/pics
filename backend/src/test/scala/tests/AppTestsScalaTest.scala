@@ -1,6 +1,6 @@
 package tests
 
-import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.IO
 import cats.effect.IO.asyncForIO
 import cats.effect.kernel.Resource
 import cats.syntax.flatMap.*
@@ -13,7 +13,7 @@ import com.malliina.http.FullUrl
 import com.malliina.http.io.{HttpClientF2, HttpClientIO}
 import com.malliina.logback.LogbackUtils
 import com.malliina.pics.*
-import com.malliina.pics.http4s.PicsServer
+import com.malliina.pics.http4s.PicsApp
 import org.http4s.server.Server
 import org.slf4j.LoggerFactory
 import org.testcontainers.utility.DockerImageName
@@ -53,11 +53,8 @@ case class ServerTools(server: Server):
 
 trait ServerSuite extends MUnitDatabaseSuite with ClientSuite:
   self: munit.CatsEffectSuite =>
-  object TestServer extends PicsServer with IOApp:
+  object TestServer extends PicsApp:
     LogbackUtils.init(rootLevel = Level.OFF)
-
-    override def run(args: List[String]): IO[ExitCode] =
-      super.server(PicsConf.unsafeLoad()).use(_ => IO.never).as(ExitCode.Success)
 
   val server: Fixture[ServerTools] = ResourceSuiteLocalFixture(
     "server",
