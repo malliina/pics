@@ -1,6 +1,6 @@
 package tests
 
-import cats.effect.IO
+import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.IO.asyncForIO
 import cats.effect.kernel.Resource
 import cats.syntax.flatMap.*
@@ -53,8 +53,11 @@ case class ServerTools(server: Server):
 
 trait ServerSuite extends MUnitDatabaseSuite with ClientSuite:
   self: munit.CatsEffectSuite =>
-  object TestServer extends PicsServer:
+  object TestServer extends PicsServer with IOApp:
     LogbackUtils.init(rootLevel = Level.OFF)
+
+    override def run(args: List[String]): IO[ExitCode] =
+      super.server(PicsConf.unsafeLoad()).use(_ => IO.never).as(ExitCode.Success)
 
   val server: Fixture[ServerTools] = ResourceSuiteLocalFixture(
     "server",
