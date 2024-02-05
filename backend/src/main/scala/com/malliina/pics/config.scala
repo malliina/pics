@@ -1,5 +1,6 @@
 package com.malliina.pics
 
+import cats.effect.Sync
 import com.malliina.config.{ConfigError, ConfigNode, ConfigReadable, Env}
 import com.malliina.database.Conf
 import com.malliina.pics.app.LocalConf
@@ -24,6 +25,7 @@ object AppMode:
     case other  => Left(ErrorMessage("Must be 'prod' or 'dev'."))
 
 case class PicsConf(
+  isTest: Boolean,
   isProdBuild: Boolean,
   app: AppConf,
   db: Conf,
@@ -44,6 +46,7 @@ case class PicsConf(
     amazon,
     apple
   )
+  def isFull = isTest || isProdBuild
 
 object PicsConf:
   private val envName = Env.read[String]("ENV_NAME")
@@ -51,21 +54,31 @@ object PicsConf:
 
   given ConfigReadable[SecretKey] = ConfigReadable.string.map(s => SecretKey(s))
 
-  def picsConf = LocalConf.config.parse[ConfigNode]("pics").toOption.get
+  def picsNode = LocalConf.config.parse[ConfigNode]("pics")
+  def picsConf = picsNode.toOption.get
 
-  def unsafeLoad(c: ConfigNode = picsConf): PicsConf =
-    unsafeLoadWith(
-      c,
-      c.parse[Password]("db.pass")
-        .map: pass =>
-          if BuildInfo.isProd then prodDatabaseConf(pass, if isStaging then 2 else 5)
-          else devDatabaseConf(pass)
-    )
+  def loadConf(): Either[ConfigError, PicsConf] =
+    for
+      node <- picsNode
+      conf <- load(
+        node,
+        node
+          .parse[Password]("db.pass")
+          .map: pass =>
+            if BuildInfo.isProd then prodDatabaseConf(pass, if isStaging then 2 else 5)
+            else devDatabaseConf(pass)
+      )
+    yield conf
 
-  def unsafeLoadWith(c: ConfigNode, db: Either[ConfigError, Conf]): PicsConf =
-    load(c, db).fold(err => throw new IllegalArgumentException(err.message.message), identity)
+  def loadF[F[_]: Sync] = Sync[F].fromEither(loadConf())
 
-  def load(root: ConfigNode, db: Either[ConfigError, Conf]) =
+  def loadWith(db: Either[ConfigError, Conf]) =
+    for
+      node <- picsNode
+      conf <- load(node, db)
+    yield conf
+
+  def load(root: ConfigNode, db: Either[ConfigError, Conf]): Either[ConfigError, PicsConf] =
     for
       secret <-
         if BuildInfo.isProd then root.parse[SecretKey]("app.secret")
@@ -81,6 +94,7 @@ object PicsConf:
     yield
       val isProdBuild = BuildInfo.isProd
       PicsConf(
+        isTest = false,
         isProdBuild,
         AppConf(secret),
         dbConf,

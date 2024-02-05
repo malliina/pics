@@ -1,6 +1,6 @@
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 
-val webAuthVersion = "6.6.1"
+val webAuthVersion = "6.6.3"
 val primitivesVersion = "3.5.2"
 val munitVersion = "0.7.29"
 
@@ -60,7 +60,7 @@ val backend = project
     hashPackage := "com.malliina.pics.assets",
     buildInfoPackage := "com.malliina.pics",
     libraryDependencies ++= Seq("ember-server", "dsl", "circe").map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.23.24"
+      "org.http4s" %% s"http4s-$m" % "0.23.25"
     } ++ Seq(
       "org.apache.commons" % "commons-text" % "1.10.0",
       "software.amazon.awssdk" % "s3" % "2.21.10",
@@ -70,7 +70,7 @@ val backend = project
       "com.malliina" %% "web-auth" % webAuthVersion,
       "com.malliina" %% "database" % webAuthVersion,
       "com.malliina" %% "config" % primitivesVersion,
-      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.41.0" % Test,
+      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.41.2" % Test,
       "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
     ),
     assembly / assemblyJarName := "app.jar",

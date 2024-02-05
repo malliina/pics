@@ -60,7 +60,9 @@ trait PicsApp extends IOApp:
     http <- HttpClientIO.resource
     _ <- AppLogging.resource(dispatcher, http)
     topic <- Resource.eval(Topic[F, PicMessage])
-    doobieDatabase <- DoobieDatabase.init[F](conf.db)
+    doobieDatabase <-
+      if conf.isFull then DoobieDatabase.init[F](conf.db)
+      else Resource.pure(DoobieDatabase.fast(conf.db))
   yield
     val db = PicsDatabase(doobieDatabase)
 //    val csrf =
@@ -83,4 +85,7 @@ trait PicsApp extends IOApp:
     Kleisli(req => rs.run(req).getOrElseF(BasicService[F].notFound(req)))
 
   override def run(args: List[String]): IO[ExitCode] =
-    server(PicsConf.unsafeLoad()).use(_ => IO.never).as(ExitCode.Success)
+    for
+      conf <- PicsConf.loadF[IO]
+      app <- server(conf).use(_ => IO.never).as(ExitCode.Success)
+    yield app

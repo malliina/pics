@@ -1,5 +1,6 @@
 package tests
 
+import cats.effect
 import cats.effect.IO
 import cats.effect.IO.asyncForIO
 import cats.effect.kernel.Resource
@@ -67,13 +68,18 @@ trait ServerSuite extends MUnitDatabaseSuite with ClientSuite:
 
   val server: Fixture[ServerTools] = ResourceSuiteLocalFixture(
     "server",
-    TestServer
-      .server(
-        PicsConf.unsafeLoadWith(PicsConf.picsConf, Right(db())),
-        Resource.eval(IO(MultiSizeHandler.empty())),
-        port = port"12345"
+    for
+      conf <- Resource.eval(
+        IO.delay(PicsConf.loadWith(Right(db())))
+          .flatMap(_.fold(err => IO.raiseError(err), ok => IO.pure(ok)))
       )
-      .map(s => ServerTools(s))
+      s <- TestServer
+        .server(
+          conf,
+          Resource.eval(IO(MultiSizeHandler.empty())),
+          port = port"12345"
+        )
+    yield ServerTools(s)
   )
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(db, server, client)

@@ -8,12 +8,15 @@ import java.time.Instant
 
 class AppleTests extends munit.CatsEffectSuite with ClientSuite:
   test("read apple conf".ignore):
-    client().getAs[JWTKeys](AppleAuthFlow.jwksUri).map { ks =>
-      println(ks)
-    }
+    client()
+      .getAs[JWTKeys](AppleAuthFlow.jwksUri)
+      .map: ks =>
+        println(ks)
 
   test("create sign in with apple token".ignore):
-    val conf = PicsConf.unsafeLoad()
-    val siwa = SignInWithApple(conf.apple.get)
-    val token = siwa.signInWithAppleToken(Instant.now())
-    println(token)
+    PicsConf
+      .loadF[IO]
+      .map: conf =>
+        val siwa = SignInWithApple(conf.apple.get)
+        val token = siwa.signInWithAppleToken(Instant.now())
+        println(token)
