@@ -69,10 +69,12 @@ trait ServerSuite extends MUnitDatabaseSuite with ClientSuite:
   val server: Fixture[ServerTools] = ResourceSuiteLocalFixture(
     "server",
     for
-      conf <- Resource.eval(
-        IO.delay(PicsConf.loadWith(Right(db())))
-          .flatMap(_.fold(err => IO.raiseError(err), ok => IO.pure(ok)))
-      )
+      conf <- Resource
+        .eval(
+          IO.delay(PicsConf.loadWith(Right(db())))
+            .flatMap(_.fold(err => IO.raiseError(err), ok => IO.pure(ok)))
+        )
+        .map(_.copy(isTest = true))
       s <- TestServer
         .server(
           conf,
