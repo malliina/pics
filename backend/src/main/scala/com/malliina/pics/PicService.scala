@@ -1,11 +1,11 @@
 package com.malliina.pics
 
-import java.nio.file.{Files, Path}
-
 import cats.effect.*
 import cats.syntax.all.*
 import com.malliina.util.AppLogger
 import org.apache.commons.io.FilenameUtils
+
+import java.nio.file.{Files, Path}
 
 trait PicServiceT[F[_]]:
   def save(tempFile: Path, by: BaseRequest, preferredName: Option[String]): F[KeyMeta]

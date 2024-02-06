@@ -4,6 +4,7 @@ import cats.Show
 import cats.effect.*
 import com.malliina.http.{FullUrl, OkHttpResponse}
 import com.malliina.http.io.{HttpClientF2, HttpClientIO}
+import com.malliina.logback.AppLogging
 import com.malliina.pics.AppMeta
 import okhttp3.RequestBody
 import org.http4s.circe.CirceInstances
@@ -12,6 +13,8 @@ import org.http4s.{MediaType, Status}
 import tests.ServerSuite
 
 class PicsServerTests extends munit.CatsEffectSuite with ServerSuite with CirceInstances:
+  AppLogging.init()
+
   test("can make request"):
     val res = http.get(baseUrl / "ping").map(_.code)
     assertIO(res, Status.Ok.code)
