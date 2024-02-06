@@ -4,11 +4,10 @@ import com.malliina.html.HtmlTags.{defer as _, *}
 import com.malliina.html.UserFeedback
 import com.malliina.http.FullUrl
 import com.malliina.live.LiveReload
+import com.malliina.pics.assets.{FileAssets, HashedAssets}
 import com.malliina.pics.html.PicsHtml.*
 import com.malliina.pics.http4s.Reverse
-import com.malliina.pics.AssetsSource
-import com.malliina.pics.assets.{FileAssets, HashedAssets}
-import com.malliina.pics.{html as _, *}
+import com.malliina.pics.{AssetsSource, html as _, *}
 import org.http4s.Uri
 import scalatags.Text.all.*
 
@@ -28,7 +27,9 @@ object PicsHtml:
   val reverse = Reverse
 
   def build(isProd: Boolean): PicsHtml =
-    val appScripts = Seq(FileAssets.frontend_js)
+    val appScripts =
+      if isProd then Seq(FileAssets.frontend_js)
+      else Seq(FileAssets.frontend_js, "frontend-loader.js", "main.js")
     val externalScripts = if isProd then Nil else FullUrl.build(LiveReload.script).toSeq
     PicsHtml(
       appScripts,

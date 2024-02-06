@@ -73,7 +73,7 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
     inner = modifier(
       emptyNavbar,
       divClass("container", id := ProfileContainerId),
-      div(id := QrCode, `class` := "qr")
+      div(id := QrCode, cls := "qr")
     ),
 //    extraHeader = modifier(cognitoHeaders, jsScript(AppAssets.js.qrcode_min_js))
     extraHeader = modifier(cognitoHeaders, jsScript(""))
@@ -85,7 +85,7 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
     }
 
   private def loginForm(feedback: Option[UserFeedback] = None) =
-    form(id := LoginFormId, `class` := col.md.twelve, method := Post, novalidate)(
+    form(id := LoginFormId, cls := col.md.twelve, method := Post, novalidate)(
       input(`type` := "hidden", name := TokenKey, id := LoginTokenId),
       divClass(formGroupClass)(
         labeledInput("Email address", EmailId, "email", Option("me@example.com"))
@@ -94,13 +94,13 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
         labeledInput("Password", PasswordId, "password", None)
       ),
       divClass(s"$formGroupClass d-flex")(
-        a(`class` := "btn btn-link me-auto ps-0", href := "#", id := ForgotPasswordLinkId)(
+        a(cls := "btn btn-link me-auto ps-0", href := "#", id := ForgotPasswordLinkId)(
           "Forgot password?"
         ),
-        submitButton(`class` := btn.primary, "Sign in")
+        submitButton(cls := btn.primary, "Sign in")
       ),
       divClass(s"$formGroupClass d-flex")(
-        a(`class` := "btn btn-link ms-auto me-auto", href := reverse.signUp)("Sign up")
+        a(cls := "btn btn-link ms-auto me-auto", href := reverse.signUp)("Sign up")
       ),
       divClass(formGroupClass, id := LoginFeedbackId)(
         renderFeedback(feedback)
@@ -108,12 +108,12 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
     )
 
   private def forgotForm =
-    form(id := ForgotFormId, `class` := col.md.twelve, method := Post, novalidate, hidden)(
+    form(id := ForgotFormId, cls := col.md.twelve, method := Post, novalidate, hidden)(
       divClass(formGroupClass)(
         labeledInput("Email address", ForgotEmailId, "email", Option("me@example.com"))
       ),
       divClass(formGroupClass)(
-        submitButton(`class` := btn.primary, "Send code")
+        submitButton(cls := btn.primary, "Send code")
       ),
       divClass(formGroupClass, id := ForgotFeedbackId)
     )
@@ -121,13 +121,13 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
   private def resetForm =
     form(
       id := ResetFormId,
-      `class` := col.md.twelve,
+      cls := col.md.twelve,
       method := Post,
       action := reverse.signIn,
       novalidate,
       hidden
     )(
-      input(`type` := "hidden", name := TokenKey, id := ResetTokenId),
+      input(tpe := "hidden", name := TokenKey, id := ResetTokenId),
       divClass(formGroupClass)(
         labeledInput("Email address", ResetEmailId, "email", None, disabled)
       ),
@@ -146,12 +146,12 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
   private def signUpForm(feedback: Option[UserFeedback] = None) =
     form(
       id := SignUpFormId,
-      `class` := col.md.twelve,
+      cls := col.md.twelve,
       method := Post,
       action := reverse.signIn,
       novalidate
     )(
-      input(`type` := "hidden", name := TokenKey, id := LoginTokenId),
+      input(tpe := "hidden", name := TokenKey, id := LoginTokenId),
       divClass(formGroupClass)(
         labeledInput("Email address", EmailId, "email", Option("me@example.com"))
       ),
@@ -159,7 +159,7 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
         labeledInput("Password", PasswordId, "password", None)
       ),
       divClass(formGroupClass)(
-        submitButton(`class` := btn.primary, "Sign up")
+        submitButton(cls := btn.primary, "Sign up")
       ),
       divClass(formGroupClass, id := SignUpFeedbackId)(
         renderFeedback(feedback)
@@ -167,34 +167,34 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
     )
 
   private def confirmForm =
-    form(id := ConfirmFormId, `class` := col.md.twelve, method := Post, novalidate, hidden)(
-      input(`type` := "hidden", name := TokenKey, id := ConfirmTokenId),
+    form(id := ConfirmFormId, cls := col.md.twelve, method := Post, novalidate, hidden)(
+      input(tpe := "hidden", name := TokenKey, id := ConfirmTokenId),
       divClass(formGroupClass)(
         labeledInput("Code", CodeId, "number", Option("123456"))
       ),
       divClass(s"$formGroupClass d-flex")(
-        a(id := ResendId, `class` := "btn btn-link me-auto ps-0", href := "#")("Resend code"),
-        submitButton(`class` := btn.primary, "Confirm")
+        a(id := ResendId, cls := "btn btn-link me-auto ps-0", href := "#")("Resend code"),
+        submitButton(cls := btn.primary, "Confirm")
       ),
       divClass(formGroupClass, id := ConfirmFeedbackId)
     )
 
   private def mfaForm =
-    form(id := MfaFormId, `class` := col.md.twelve, method := Post, novalidate, hidden)(
+    form(id := MfaFormId, cls := col.md.twelve, method := Post, novalidate, hidden)(
       input(`type` := "hidden", name := TokenKey, id := MfaTokenId),
       divClass(formGroupClass)(
         labeledInput("Code", MfaCodeId, "number", Option("123456"))
       ),
       divClass(s"$formGroupClass d-flex")(
-        submitButton(`class` := btn.primary, "Submit")
+        submitButton(cls := btn.primary, "Submit")
       ),
       divClass(formGroupClass, id := MfaFeedbackId)
     )
 
   private def socialButton(provider: String, linkTo: SocialRoute, linkText: String) =
-    a(`class` := s"social-button $provider", href := linkTo.start)(
-      span(`class` := s"social-logo $provider"),
-      span(`class` := "social-text", linkText)
+    a(cls := s"social-button $provider", href := linkTo.start)(
+      span(cls := s"social-logo $provider"),
+      span(cls := "social-text", linkText)
     )
 
   private def labeledInput(
@@ -204,10 +204,10 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
     maybePlaceholder: Option[String],
     moreInput: Modifier*
   ) = modifier(
-    label(`for` := inId, `class` := "mb-1")(labelText),
+    label(`for` := inId, cls := "mb-1")(labelText),
     input(
-      `type` := inType,
-      `class` := FormControl,
+      tpe := inType,
+      cls := FormControl,
       id := inId,
       maybePlaceholder.fold(empty)(ph => placeholder := ph),
       moreInput
@@ -215,8 +215,8 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
   )
 
   private def emptyNavbar =
-    nav(`class` := s"${navbars.Navbar} ${navbars.Light} ${navbars.BgLight}")(
+    nav(cls := s"${navbars.Navbar} ${navbars.Light} ${navbars.BgLight}")(
       divClass(Container)(
-        a(`class` := navbars.Brand, href := reverse.list)("Pics")
+        a(cls := navbars.Brand, href := reverse.list)("Pics")
       )
     )
