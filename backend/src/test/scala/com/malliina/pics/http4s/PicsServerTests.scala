@@ -13,8 +13,6 @@ import org.http4s.{MediaType, Status}
 import tests.ServerSuite
 
 class PicsServerTests extends munit.CatsEffectSuite with ServerSuite with CirceInstances:
-  AppLogging.init()
-
   test("can make request"):
     val res = http.get(baseUrl / "ping").map(_.code)
     assertIO(res, Status.Ok.code)
