@@ -29,7 +29,7 @@ object PicsHtml:
   def build(isProd: Boolean): PicsHtml =
     val appScripts =
       if isProd then Seq(FileAssets.frontend_js)
-      else Seq(FileAssets.frontend_js, "frontend-loader.js", "main.js")
+      else Seq(FileAssets.frontend_js, FileAssets.frontend_loader_js, FileAssets.main_js)
     val externalScripts = if isProd then Nil else FullUrl.build(LiveReload.script).toSeq
     PicsHtml(
       appScripts,
