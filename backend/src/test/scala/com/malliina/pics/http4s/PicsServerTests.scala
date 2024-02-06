@@ -2,9 +2,8 @@ package com.malliina.pics.http4s
 
 import cats.Show
 import cats.effect.*
-import com.malliina.http.{FullUrl, OkHttpResponse}
 import com.malliina.http.io.{HttpClientF2, HttpClientIO}
-import com.malliina.logback.AppLogging
+import com.malliina.http.{FullUrl, OkHttpResponse}
 import com.malliina.pics.AppMeta
 import okhttp3.RequestBody
 import org.http4s.circe.CirceInstances
