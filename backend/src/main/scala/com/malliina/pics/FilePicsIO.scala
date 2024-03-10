@@ -1,64 +1,73 @@
 package com.malliina.pics
 
-import cats.Monad
 import cats.effect.Sync
 import cats.syntax.all.*
 import com.malliina.storage.{StorageLong, StorageSize}
 import com.malliina.util.AppLogger
+import fs2.io.file.{Files, Path}
 
-import java.nio.file.{Files, NoSuchFileException, Path, Paths}
-import scala.jdk.CollectionConverters.IteratorHasAsScala
+import java.nio.file.NoSuchFileException
+import java.time.Instant
 
 object FilePicsIO:
   private val log = AppLogger(getClass)
-  val tmpDir = Paths.get(sys.props("java.io.tmpdir"))
+  val tmpDir = Path(sys.props("java.io.tmpdir"))
 
   private val PicsEnvKey = "pics.dir"
   private val picsDir =
-    sys.env.get(PicsEnvKey).map(Paths.get(_)).getOrElse(tmpDir.resolve("pics"))
+    sys.env.get(PicsEnvKey).map(Path(_)).getOrElse(tmpDir.resolve("pics"))
 
-  def default[F[_]: Sync](): FilePicsIO[F] = new FilePicsIO[F](picsDir)
-  def thumbs[F[_]: Sync](): FilePicsIO[F] = named("thumbs")
-  def named[F[_]: Sync](name: String): FilePicsIO[F] = new FilePicsIO[F](picsDir.resolve(name))
+  def default[F[_]: Sync: Files](): F[FilePicsIO[F]] = directory(picsDir)
+  def thumbs[F[_]: Sync: Files](): F[FilePicsIO[F]] = named("thumbs")
+  def named[F[_]: Sync: Files](name: String): F[FilePicsIO[F]] = directory(picsDir.resolve(name))
 
-class FilePicsIO[F[_]: Sync](val dir: Path) extends DataSourceT[F]:
-  val F = Sync[F]
+  private def directory[F[_]: Sync: Files](dir: Path) =
+    Files[F]
+      .createDirectories(dir)
+      .map: _ =>
+        new FilePicsIO[F](dir)
+
+class FilePicsIO[F[_]: Sync: Files](val dir: Path) extends DataSourceT[F]:
+  val S = Sync[F]
+  val F = Files[F]
   import FilePicsIO.log
-  Files.createDirectories(dir)
   log.info(s"Using pics dir '$dir'.")
 
-  override def load(from: Int, until: Int): F[Seq[FlatMeta]] = F.blocking:
-    Files
-      .list(dir)
-      .iterator()
-      .asScala
+  override def load(from: Int, until: Int): F[List[FlatMeta]] =
+    F.list(dir)
+      .drop(from)
+      .take(from + until)
+      .evalMap: p =>
+        F.getLastModifiedTime(p)
+          .map: lastModified =>
+            val lastMod = Instant.ofEpochMilli(lastModified.toMillis)
+            FlatMeta(Key(p.fileName.toString), lastMod)
+      .compile
       .toList
-      .slice(from, from + until)
-      .map: p =>
-        FlatMeta(Key(p.getFileName.toString), Files.getLastModifiedTime(p).toInstant)
 
-  override def contains(key: Key): F[Boolean] = F.blocking(Files.exists(fileAt(key)))
-  override def get(key: Key): F[DataFile] = F.pure(DataFile(fileAt(key)))
+  override def contains(key: Key): F[Boolean] = F.exists(fileAt(key))
+  override def get(key: Key): F[DataFile] = DataFile(fileAt(key))
   override def remove(key: Key): F[PicResult] =
-    F.blocking[PicResult]:
-      Files.delete(fileAt(key))
-      PicSuccess
-    .handleErrorWith:
+    F.delete(fileAt(key))
+      .map(_ => PicSuccess)
+      .handleErrorWith:
         case _: NoSuchFileException =>
-          Monad[F].pure(PicNotFound(key))
+          S.pure(PicNotFound(key))
         case other: Exception =>
           log.error("Pics operation failed.", other)
-          F.raiseError(other)
+          S.raiseError(other)
 
   def putData(key: Key, data: DataFile): F[Path] =
     saveBody(key, data.file).map(_ => fileAt(key))
 
   def saveBody(key: Key, file: Path): F[StorageSize] =
-    F.delay:
-      Files.copy(file, fileAt(key))
-      Files.size(file).bytes
-    .handleErrorWith: t =>
+    val op = for
+      _ <- F.copy(file, fileAt(key))
+      size <- F.size(file)
+    yield size.bytes
+    op
+      .handleErrorWith: t =>
         log.error("Pics operation failed.", t)
-        F.raiseError(t)
+        S.raiseError(t)
 
   private def fileAt(key: Key) = dir.resolve(key.key)

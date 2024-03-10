@@ -1,11 +1,11 @@
 package com.malliina.pics
 
 import cats.Monad
-
-import java.nio.file.{Files, Path}
+import cats.effect.Sync
 import cats.syntax.all.*
 import com.malliina.storage.{StorageLong, StorageSize}
 import com.malliina.values.{AccessToken, Username}
+import fs2.io.file.{Files, Path}
 
 sealed trait DataResponse:
   def contentLength: Option[StorageSize]
@@ -19,11 +19,15 @@ case class DataFile(
 ) extends DataResponse
 
 object DataFile:
-  def apply(file: Path): DataFile = DataFile(
-    file,
-    Option(Files.size(file).bytes),
-    ContentType.parseFile(file)
-  )
+  def apply[F[_]: Sync: Files](file: Path): F[DataFile] =
+    val F = Files[F]
+    F.size(file)
+      .map: bytes =>
+        DataFile(
+          file,
+          Option(bytes.bytes),
+          ContentType.parseFile(file)
+        )
 
 trait SourceLike[F[_]]:
   def contains(key: Key): F[Boolean]
@@ -42,7 +46,7 @@ trait ImageSourceLike[F[_]] extends SourceLike[F]:
 
 trait DataSourceT[F[_]: Monad] extends ImageSourceLike[F]:
   def get(key: Key): F[DataFile]
-  def load(from: Int, until: Int): F[Seq[FlatMeta]]
+  def load(from: Int, until: Int): F[List[FlatMeta]]
   def find(key: Key): F[Option[DataFile]] =
     contains(key).flatMap: exists =>
       if exists then get(key).map(Option.apply)

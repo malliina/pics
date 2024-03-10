@@ -1,14 +1,14 @@
 package com.malliina.pics
 
 import cats.Monad
-
-import java.nio.file.Path
+import cats.effect.Sync
 import cats.syntax.all.*
 import com.malliina.storage.StorageSize
+import fs2.io.file.{Files, Path}
 
-class FileCachingPics[F[_]: Monad](cache: FilePicsIO[F], origin: DataSourceT[F])
+class FileCachingPics[F[_]: Sync: Files](cache: FilePicsIO[F], origin: DataSourceT[F])
   extends DataSourceT[F]:
-  override def load(from: Int, until: Int): F[Seq[FlatMeta]] = origin.load(from, until)
+  override def load(from: Int, until: Int): F[List[FlatMeta]] = origin.load(from, until)
 
   override def contains(key: Key): F[Boolean] =
     cache
@@ -26,10 +26,10 @@ class FileCachingPics[F[_]: Monad](cache: FilePicsIO[F], origin: DataSourceT[F])
           origin
             .get(key)
             .flatMap: r =>
-              cache
-                .putData(key, r)
-                .map: file =>
-                  DataFile(file)
+              for
+                file <- cache.putData(key, r)
+                dataFile <- DataFile(file)
+              yield dataFile
 
   override def saveBody(key: Key, file: Path): F[StorageSize] =
     for

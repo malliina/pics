@@ -8,12 +8,12 @@ import com.malliina.pics.{BucketName, DataFile, DataSourceT, FilePicsIO, FlatMet
 import com.malliina.storage.{StorageLong, StorageSize}
 import com.malliina.util.AppLogger
 import com.malliina.web.Utils.randomString
+import fs2.io.file.{Files, Path}
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.model.*
 
-import java.nio.file.{Files, Path}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 object S3Source:
@@ -33,27 +33,36 @@ object S3Source:
       val client = S3Bucket(c)
       client
         .createIfNotExists(bucket)
-        .map: _ =>
-          S3Source(bucket, c)
+        .flatMap: _ =>
+          default(bucket, c)
   def Small[F[_]: Async] = forBucket(BucketName("malliina-pics-small"))
   def Medium[F[_]: Async] = forBucket(BucketName("malliina-pics-medium"))
   def Large[F[_]: Async] = forBucket(BucketName("malliina-pics-large"))
   def Original[F[_]: Async] = forBucket(BucketName("malliina-pics"))
 
-class S3Source[F[_]: Async](bucket: BucketName, client: S3AsyncClient) extends DataSourceT[F]:
+  def default[F[_]: Async: Files](bucket: BucketName, client: S3AsyncClient): F[S3Source[F]] =
+    val downloadsDir = FilePicsIO.tmpDir.resolve("downloads")
+    Files[F]
+      .createDirectories(downloadsDir)
+      .map: _ =>
+        S3Source(bucket, client, downloadsDir)
+
+class S3Source[F[_]: Async](bucket: BucketName, client: S3AsyncClient, downloadsDir: Path)
+  extends DataSourceT[F]:
   val F = Async[F]
   val bucketName = bucket.name
-  private val downloadsDir = FilePicsIO.tmpDir.resolve("downloads")
-  Files.createDirectories(downloadsDir)
 
   override def get(key: Key): F[DataFile] =
     val random = randomString().take(8)
     val dest = downloadsDir.resolve(s"$random-$key")
     val cf =
-      client.getObject(GetObjectRequest.builder().bucket(bucketName).key(key.key).build(), dest)
-    cf.io[F].map(_ => DataFile(dest))
+      client.getObject(
+        GetObjectRequest.builder().bucket(bucketName).key(key.key).build(),
+        dest.toNioPath
+      )
+    cf.io[F].flatMap(_ => DataFile(dest))
 
-  def load(from: Int, until: Int): F[Seq[FlatMeta]] =
+  def load(from: Int, until: Int): F[List[FlatMeta]] =
     val size = until - from
     if size <= 0 then F.pure(Nil)
     else
@@ -64,8 +73,8 @@ class S3Source[F[_]: Async](bucket: BucketName, client: S3AsyncClient) extends D
   private def loadAcc(
     desiredSize: Int,
     current: ListObjectsV2Response,
-    acc: Seq[FlatMeta]
-  ): F[Seq[FlatMeta]] =
+    acc: List[FlatMeta]
+  ): F[List[FlatMeta]] =
     val newAcc = acc ++ current
       .contents()
       .asScala
@@ -88,9 +97,12 @@ class S3Source[F[_]: Async](bucket: BucketName, client: S3AsyncClient) extends D
     Util
       .timedIO:
         client
-          .putObject(PutObjectRequest.builder().bucket(bucket.name).key(key.key).build(), file)
+          .putObject(
+            PutObjectRequest.builder().bucket(bucket.name).key(key.key).build(),
+            file.toNioPath
+          )
           .io
-          .map(_ => Files.size(file).bytes)
+          .flatMap(_ => Files[F].size(file).map(_.bytes))
       .map: result =>
         val size = result.result
         log.info(s"Saved '$key' to '$bucketName', size $size in ${result.duration}.")

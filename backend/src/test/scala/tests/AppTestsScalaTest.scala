@@ -78,7 +78,7 @@ trait ServerSuite extends MUnitDatabaseSuite with ClientSuite:
       s <- TestServer
         .server(
           conf,
-          Resource.eval(IO(MultiSizeHandler.empty())),
+          Resource.eval(MultiSizeHandler.empty()),
           port = port"12345"
         )
     yield ServerTools(s)

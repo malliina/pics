@@ -3,12 +3,13 @@ package tests
 import cats.effect.IO
 import com.malliina.pics.{ContentType, ImageException, Resizer, ScrimageResizer}
 import com.malliina.storage.{StorageInt, StorageSize}
+import fs2.io.file.Path
 
 import java.nio.file.{Files, Paths}
 import javax.imageio.ImageIO
 
 class ImageTests extends munit.CatsEffectSuite:
-  private val picDir = Paths.get("backend/files")
+  private val picDir = Path("backend/files")
   private val original = picDir.resolve("original.jpg")
   private val origLarge = picDir.resolve("demo-original.jpeg")
 
@@ -17,7 +18,7 @@ class ImageTests extends munit.CatsEffectSuite:
 
   test("Files.probeContentType does not work".ignore):
     // actually this might work, depending on the environment, but not on MacOS
-    assert(Option(Files.probeContentType(original)).isEmpty)
+    assert(Option(Files.probeContentType(original.toNioPath)).isEmpty)
 
   test("image formats"):
     val atLeastSupported = Seq("jpg", "jpeg", "png", "gif")
@@ -26,15 +27,15 @@ class ImageTests extends munit.CatsEffectSuite:
 
   test("resize an image"):
     val resizer = Resizer(400, 300)
-    assert(Files.exists(original))
+    assert(Files.exists(original.toNioPath))
     val dest = picDir.resolve("resized.jpg")
-    val outcome = resizer.resizeFromFile(original, dest)
+    val outcome = resizer.resizeFromFile(original.toNioPath, dest.toNioPath)
     assert(outcome.isRight)
 
   test("resize to medium".ignore):
     val orig = Paths.get("original.jpeg")
     val resizer = Resizer.Medium1440x1080
-    val result = resizer.resizeFromFile(orig, picDir.resolve("demo.jpeg"))
+    val result = resizer.resizeFromFile(orig, picDir.resolve("demo.jpeg").toNioPath)
     assert(result.isRight)
 
   test("resize to small".ignore):

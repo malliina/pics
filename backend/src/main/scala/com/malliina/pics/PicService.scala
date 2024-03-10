@@ -1,12 +1,11 @@
 package com.malliina.pics
 
-import cats.effect.*
+import cats.effect.Sync
 import cats.syntax.all.*
 import com.malliina.pics.PicService.log
 import com.malliina.util.AppLogger
+import fs2.io.file.{Files, Path}
 import org.apache.commons.io.FilenameUtils
-
-import java.nio.file.{Files, Path}
 
 trait PicServiceT[F[_]]:
   def save(tempFile: Path, by: BaseRequest, preferredName: Option[String]): F[KeyMeta]
@@ -14,23 +13,28 @@ trait PicServiceT[F[_]]:
 object PicService:
   private val log = AppLogger(getClass)
 
-class PicService[F[_]: Sync](val db: MetaSourceT[F], handler: MultiSizeHandler[F])
+class PicService[F[_]: Sync: Files](val db: MetaSourceT[F], handler: MultiSizeHandler[F])
   extends PicServiceT[F]:
+  val F = Files[F]
+  val S = Sync[F]
 
   override def save(tempFile: Path, by: BaseRequest, preferredName: Option[String]): F[KeyMeta] =
-    val fileCopy: F[(Path, Key)] = Sync[F].delay:
+    val computeRenamedFile = S.delay:
       // without dot
-      val name = preferredName getOrElse tempFile.getFileName.toString
+      val name = preferredName.getOrElse(tempFile.fileName.toString)
       val ext = Option(FilenameUtils.getExtension(name)).filter(_.nonEmpty).getOrElse("jpeg")
       val key = Keys.randomish().append(s".${ext.toLowerCase}")
       val renamedFile = tempFile.resolveSibling(s"$key")
-      Files.copy(tempFile, renamedFile)
-      log.trace(
-        s"Copied temp file '$tempFile' to '$renamedFile', size ${Files.size(tempFile)} bytes."
+      (key, renamedFile)
+    for
+      (key, renamedFile) <- computeRenamedFile
+      _ <- F.copy(tempFile, renamedFile)
+      size <- F.size(tempFile)
+      _ <- S.delay(
+        log.trace(
+          s"Copied temp file '$tempFile' to '$renamedFile', size $size bytes."
+        )
       )
-      (renamedFile, key)
-    fileCopy.flatMap: (renamedFile, key) =>
-      for
-        _ <- handler.handle(renamedFile, key)
-        meta <- db.saveMeta(key, by.name)
-      yield meta
+      _ <- handler.handle(renamedFile, key)
+      meta <- db.saveMeta(key, by.name)
+    yield meta

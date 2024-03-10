@@ -1,20 +1,21 @@
 package com.malliina.pics
 
-import java.nio.file.{Files, Path}
 import cats.effect.Sync
 import cats.syntax.all.*
 import com.sksamuel.scrimage.ImmutableImage
+import fs2.io.file.{Files, Path}
 
-class ImageHandler[F[_]: Sync](
+class ImageHandler[F[_]: Sync: Files](
   prefix: String,
   resizer: ImageResizer[F],
   val storage: DataSourceT[F]
 ) extends ImageService[F]:
-  val F = Sync[F]
-  def createTempFile = F.blocking(Files.createTempFile(prefix, null))
+  val S = Sync[F]
+  val F = Files[F]
+  def createTempFile = F.createTempFile(None, prefix, ".tmp", None)
 
   override def handle(original: Path, key: Key): F[Path] =
-    F.blocking(ImmutableImage.loader().fromPath(original))
+    S.blocking(ImmutableImage.loader().fromPath(original.toNioPath))
       .flatMap: image =>
         handleImage(image, key)
 
@@ -22,7 +23,7 @@ class ImageHandler[F[_]: Sync](
     resizer
       .resize(image, dest)
       .flatMap: e =>
-        e.fold(err => F.raiseError(err.ioe), _ => storage.saveBody(key, dest).map(_ => dest))
+        e.fold(err => S.raiseError(err.ioe), _ => storage.saveBody(key, dest).map(_ => dest))
 
   override def remove(key: Key): F[PicResult] = storage.remove(key)
 

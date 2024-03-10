@@ -1,11 +1,11 @@
 package com.malliina.pics
 
-import java.nio.file.Path
 import cats.effect.{Async, Resource, Sync}
 import cats.implicits.*
 import cats.data.NonEmptyList
 import com.malliina.pics.s3.S3Source
 import com.sksamuel.scrimage.ImmutableImage
+import fs2.io.file.{Files, Path}
 
 object MultiSizeHandler:
   def default[F[_]: Async]: Resource[F, MultiSizeHandler[F]] = for
@@ -13,30 +13,41 @@ object MultiSizeHandler:
     md <- S3Source.Medium[F]
     lg <- S3Source.Large[F]
     orig <- S3Source.Original[F]
-  yield combined(sm, md, lg, orig)
+    combo <- Resource.eval(combined(sm, md, lg, orig))
+  yield combo
 
-  def empty[F[_]: Sync](): MultiSizeHandler[F] = combined(
-    FilePicsIO.named("small"),
-    FilePicsIO.named("medium"),
-    FilePicsIO.named("large"),
-    FilePicsIO.named("original")
-  )
+  def empty[F[_]: Sync: Files](): F[MultiSizeHandler[F]] =
+    for
+      sm <- FilePicsIO.named("small")
+      m <- FilePicsIO.named("medium")
+      l <- FilePicsIO.named("large")
+      o <- FilePicsIO.named("original")
+      combo <- combined(sm, m, l, o)
+    yield combo
 
-  def combined[F[_]: Sync](
+  def combined[F[_]: Sync: Files](
     small: DataSourceT[F],
     medium: DataSourceT[F],
     large: DataSourceT[F],
     original: DataSourceT[F]
-  ) =
-    new MultiSizeHandler(
-      ImageHandler("small", ScrimageResizer.Small, cached("smalls", small)),
-      ImageHandler("medium", ScrimageResizer.Medium, cached("mediums", medium)),
-      ImageHandler("large", ScrimageResizer.Large, cached("larges", large)),
-      ImageHandler("original", AsIsResizer[F], cached("originals", original))
+  ): F[MultiSizeHandler[F]] =
+    for
+      cs <- cached("smalls", small)
+      cm <- cached("mediums", medium)
+      cl <- cached("larges", large)
+      co <- cached("originals", original)
+    yield new MultiSizeHandler(
+      ImageHandler("small", ScrimageResizer.Small, cs),
+      ImageHandler("medium", ScrimageResizer.Medium, cm),
+      ImageHandler("large", ScrimageResizer.Large, cl),
+      ImageHandler("original", AsIsResizer[F], co)
     )
 
-  def cached[F[_]: Sync](name: String, origin: DataSourceT[F]) =
-    FileCachingPics[F](FilePicsIO.named(name), origin)
+  def cached[F[_]: Sync: Files](name: String, origin: DataSourceT[F]) =
+    FilePicsIO
+      .named(name)
+      .map: fp =>
+        FileCachingPics[F](fp, origin)
 
 class MultiSizeHandler[F[_]: Sync](
   val smalls: ImageHandler[F],
@@ -54,7 +65,7 @@ class MultiSizeHandler[F[_]: Sync](
 
   def handle(original: Path, key: Key): F[Path] =
     Sync[F]
-      .blocking(ImmutableImage.loader().fromPath(original))
+      .blocking(ImmutableImage.loader().fromPath(original.toNioPath))
       .flatMap: image =>
         handleImage(image, key)
 

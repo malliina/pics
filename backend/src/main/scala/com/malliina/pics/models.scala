@@ -1,12 +1,11 @@
 package com.malliina.pics
 
-import java.nio.file.Path
 import java.time.Instant
 import java.util.Date
-
 import com.malliina.http.FullUrl
 import com.malliina.pics.http4s.{Reverse, Urls}
 import com.malliina.values.Username
+import fs2.io.file.Path
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
 import org.http4s.{Headers, Request, Uri}
@@ -109,7 +108,7 @@ object ContentType:
 
   def image(subName: String) = ContentType(s"image/$subName")
 
-  def parseFile(path: Path) = parse(path.getFileName.toString)
+  def parseFile(path: Path) = parse(path.fileName.toString)
 
   def parse(name: String): Option[ContentType] =
     val attempt: PartialFunction[String, ContentType] =

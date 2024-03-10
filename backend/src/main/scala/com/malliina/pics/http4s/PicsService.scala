@@ -135,7 +135,7 @@ class PicsService[F[_]: Async](
               val receive = req.decodeWith(decoder, strict = true): file =>
                 service
                   .save(
-                    file.toNioPath,
+                    file,
                     user,
                     req.headers.get(XName).map(_.head.value)
                   )
@@ -344,7 +344,7 @@ class PicsService[F[_]: Async](
         maybeFile
           .map: file =>
             StaticFile
-              .fromPath(FS2Path.fromNioPath(file.file), Option(req))
+              .fromPath(file.file, Option(req))
               .map(_.putHeaders(cached(365.days)))
               .getOrElseF(notFound(req))
           .getOrElse:
