@@ -1,6 +1,6 @@
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 
-val webAuthVersion = "6.6.3"
+val webAuthVersion = "6.6.4"
 val primitivesVersion = "3.5.2"
 val munitVersion = "0.7.29"
 
@@ -8,7 +8,7 @@ inThisBuild(
   Seq(
     organization := "com.malliina",
     version := "0.0.1",
-    scalaVersion := "3.3.1",
+    scalaVersion := "3.4.0",
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit" % munitVersion % Test
     ),
@@ -36,6 +36,7 @@ val cross = portableProject(JSPlatform, JVMPlatform)
       Seq("generic", "parser").map { m =>
         "io.circe" %%% s"circe-$m" % "0.14.6"
       } ++ Seq(
+        "org.typelevel" %%% "case-insensitive" % "1.4.0",
         "com.malliina" %%% "primitives" % primitivesVersion,
         "com.malliina" %%% "util-html" % webAuthVersion
       )
@@ -60,17 +61,17 @@ val backend = project
     hashPackage := "com.malliina.pics.assets",
     buildInfoPackage := "com.malliina.pics",
     libraryDependencies ++= Seq("ember-server", "dsl", "circe").map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.23.25"
+      "org.http4s" %% s"http4s-$m" % "0.23.26"
     } ++ Seq(
-      "org.apache.commons" % "commons-text" % "1.10.0",
-      "software.amazon.awssdk" % "s3" % "2.21.10",
+      "org.apache.commons" % "commons-text" % "1.11.0",
+      "software.amazon.awssdk" % "s3" % "2.25.6",
       "mysql" % "mysql-connector-java" % "8.0.33",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.1.1",
       "com.malliina" %% "logstreams-client" % "2.7.0",
       "com.malliina" %% "web-auth" % webAuthVersion,
       "com.malliina" %% "database" % webAuthVersion,
       "com.malliina" %% "config" % primitivesVersion,
-      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.41.2" % Test,
+      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.41.3" % Test,
       "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
     ),
     assembly / assemblyJarName := "app.jar",

@@ -98,7 +98,7 @@ case class BucketName(name: String) extends AnyVal:
   override def toString = name
 
 case class ContentType(contentType: String) extends AnyVal:
-  def isImage = contentType startsWith "image"
+  def isImage = contentType.startsWith("image")
 
 object ContentType:
   val ImageJpeg = image("jpeg")

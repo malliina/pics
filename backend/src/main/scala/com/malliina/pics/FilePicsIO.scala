@@ -61,4 +61,4 @@ class FilePicsIO[F[_]: Sync](val dir: Path) extends DataSourceT[F]:
         log.error("Pics operation failed.", t)
         F.raiseError(t)
 
-  private def fileAt(key: Key) = dir resolve key.key
+  private def fileAt(key: Key) = dir.resolve(key.key)

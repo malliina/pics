@@ -33,7 +33,7 @@ import org.http4s.syntax.literals.mediaType
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.Text
 import org.http4s.{Callback as _, *}
-import org.typelevel.ci.{CIString, CIStringSyntax}
+import org.typelevel.ci.CIStringSyntax
 
 import java.nio.file.Files
 import scala.annotation.unused
@@ -137,11 +137,11 @@ class PicsService[F[_]: Async](
                   .save(
                     file.toNioPath,
                     user,
-                    req.headers.get(CIString(XName)).map(_.head.value)
+                    req.headers.get(XName).map(_.head.value)
                   )
                   .flatMap: keyMeta =>
                     val clientKey = req.headers
-                      .get(CIString(XClientPic))
+                      .get(XClientPic)
                       .map(h => Key(h.head.value))
                       .getOrElse(keyMeta.key)
                     val picMeta = PicMetas.from(keyMeta, req)
@@ -156,8 +156,8 @@ class PicsService[F[_]: Async](
                         Accepted(PicResponse(picMeta).asJson).map: res =>
                           res.putHeaders(
                             Location(Uri.unsafeFromString(picMeta.url.url)),
-                            Header.Raw(CIString(XKey), picMeta.key.key),
-                            Header.Raw(CIString(XClientPic), clientKey.key)
+                            Header.Raw(XKey, picMeta.key.key),
+                            Header.Raw(XClientPic, clientKey.key)
                           )
               for
                 _ <- logging
@@ -240,10 +240,7 @@ class PicsService[F[_]: Async](
                 err => unauthorized(Errors(err.message), req),
                 token =>
                   SeeOther(Location(Uri.unsafeFromString(twitter.authTokenUrl(token).url))).map:
-                    res =>
-                      auth.withSession(TwitterState(token), req, res)(
-                        TwitterState.json
-                      )
+                    res => auth.withSession(TwitterState(token), req, res)
               )
         case Google =>
           startHinted(id, reverseSocial.google, socials.google, req)

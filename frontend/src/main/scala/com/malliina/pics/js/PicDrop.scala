@@ -27,11 +27,11 @@ class PicDrop extends Frontend with PicsStrings:
       val file = files(0)
       val xhr = new XMLHttpRequest
       xhr.open("POST", "/pics")
-      xhr.setRequestHeader(XName, file.name)
+      xhr.setRequestHeader(XName.toString, file.name)
       xhr.setRequestHeader(CsrfHeaderName, CsrfTokenNoCheck)
       xhr.onload = (e: Event) =>
         val loc = xhr.getResponseHeader("Location")
-        val key = xhr.getResponseHeader(XKey)
+        val key = xhr.getResponseHeader(XKey.toString)
         if loc != null && key != null then
           val feedback = div(`class` := "lead alert alert-success", role := "alert")(
             "Saved ",

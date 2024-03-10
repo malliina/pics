@@ -15,14 +15,14 @@ import com.malliina.http.io.{HttpClientF2, HttpClientIO}
 import com.malliina.logback.LogbackUtils
 import com.malliina.pics.*
 import com.malliina.pics.http4s.PicsApp
+import com.malliina.util.AppLogger
 import com.malliina.values.Password
 import org.http4s.server.Server
-import org.slf4j.LoggerFactory
 import org.testcontainers.utility.DockerImageName
 import tests.MUnitDatabaseSuite.log
 
 object MUnitDatabaseSuite:
-  private val log = LoggerFactory.getLogger(getClass)
+  private val log = AppLogger(getClass)
 
 trait MUnitDatabaseSuite:
   self: munit.CatsEffectSuite =>

@@ -3,8 +3,6 @@ package com.malliina.pics
 import com.malliina.html.{Bootstrap, Tags, UserFeedback}
 import com.malliina.http.FullUrl
 
-import scala.language.implicitConversions
-
 class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, FragT])
   extends Bootstrap(ts):
 
@@ -35,7 +33,7 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
   given AttrValue[FullUrl] = genericAttr[FullUrl]
   given AttrValue[Key] = genericAttr[Key]
 
-  implicit def keyFrag(key: Key): Frag = stringFrag(key.key)
+  given Conversion[Key, Frag] = (key) => stringFrag(key.key)
 
   def noPictures = p(`class` := s"$Lead pics-feedback")("No pictures.")
 
@@ -47,9 +45,8 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
 
   def gallery(pics: Seq[BaseMeta], readOnly: Boolean, lazyLoaded: Boolean) =
     divClass("gallery", id := galleryId)(
-      pics map { pic =>
+      pics.map: pic =>
         thumbnail(pic, readOnly, visible = true, lazyLoaded = lazyLoaded)
-      }
     )
 
   def renderFeedback(feedback: Option[UserFeedback]): Modifier =

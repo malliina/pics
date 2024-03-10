@@ -32,7 +32,7 @@ class ImageTests extends munit.CatsEffectSuite:
     assert(outcome.isRight)
 
   test("resize to medium".ignore):
-    val orig = Paths get "original.jpeg"
+    val orig = Paths.get("original.jpeg")
     val resizer = Resizer.Medium1440x1080
     val result = resizer.resizeFromFile(orig, picDir.resolve("demo.jpeg"))
     assert(result.isRight)

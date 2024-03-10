@@ -12,7 +12,6 @@ import com.malliina.values.{AccessToken, ErrorMessage, IdToken, Username}
 import com.malliina.web.{CognitoAccessValidator, CognitoIdValidator, JWTUser, OAuthError}
 import io.circe.*
 import io.circe.syntax.EncoderOps
-import io.circe.generic.semiauto.deriveCodec
 import org.http4s.Credentials.Token
 import org.http4s.*
 import org.http4s.headers.{Authorization, Cookie, Location}
@@ -32,10 +31,7 @@ object Http4sAuth:
       CookieConf.pics
     )
 
-  case class TwitterState(requestToken: AccessToken)
-
-  object TwitterState:
-    implicit val json: Codec[TwitterState] = deriveCodec[TwitterState]
+  case class TwitterState(requestToken: AccessToken) derives Codec.AsObject
 
 class Http4sAuth[F[_]: Sync](
   val webJwt: JWT,
@@ -210,9 +206,11 @@ class Http4sAuth[F[_]: Sync](
         .find(_.name == cookieName)
         .map(c => IdToken(c.content))
         .toRight(MissingCredentials(s"Cookie not found: '$cookieName'.", headers))
-      t <- webJwt.verify[T](cookie).left.map { err =>
-        TokenError(err, headers)
-      }
+      t <- webJwt
+        .verify[T](cookie)
+        .left
+        .map: err =>
+          TokenError(err, headers)
     yield t
 
   private def onUnauthorized(@unused headers: Headers) =

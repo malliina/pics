@@ -18,7 +18,7 @@ object FormReadable:
   val string: FormReadable[String] = (key: String, form: UrlForm) =>
     form.getFirst(key).toRight(ErrorMessage(s"Not found: '$key'."))
 
-  def apply[T](implicit fr: FormReadable[T]): FormReadable[T] = fr
+  def apply[T](using fr: FormReadable[T]): FormReadable[T] = fr
 
   given option[T](using r: Readable[T]): FormReadable[Option[T]] =
     (key: String, form: UrlForm) =>
