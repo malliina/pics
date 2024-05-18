@@ -108,7 +108,7 @@ object PicsConf:
       )
 
   private def prodDatabaseConf(password: Password, maxPoolSize: Int) = Conf(
-    "jdbc:mysql://database8-nuqmhn2cxlhle.mysql.database.azure.com:3306/pics",
+    "jdbc:mysql://localhost:3306/pics",
     "pics",
     password.pass,
     Conf.MySQLDriver,

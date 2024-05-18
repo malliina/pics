@@ -1,7 +1,7 @@
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 
-val webAuthVersion = "6.6.4"
-val primitivesVersion = "3.5.2"
+val webAuthVersion = "6.7.0"
+val primitivesVersion = "3.6.0"
 val munitVersion = "0.7.29"
 
 inThisBuild(
@@ -53,7 +53,7 @@ val frontend = project
 
 val backend = project
   .in(file("backend"))
-  .enablePlugins(ServerPlugin)
+  .enablePlugins(ServerPlugin, JavaServerAppPackaging, SystemdPlugin)
   .dependsOn(crossJvm)
   .settings(
     clientProject := frontend,
@@ -64,9 +64,9 @@ val backend = project
       "org.http4s" %% s"http4s-$m" % "0.23.26"
     } ++ Seq(
       "org.apache.commons" % "commons-text" % "1.11.0",
-      "software.amazon.awssdk" % "s3" % "2.25.6",
+      "software.amazon.awssdk" % "s3" % "2.25.27",
       "mysql" % "mysql-connector-java" % "8.0.33",
-      "com.sksamuel.scrimage" % "scrimage-core" % "4.1.1",
+      "com.sksamuel.scrimage" % "scrimage-core" % "4.1.3",
       "com.malliina" %% "logstreams-client" % "2.7.0",
       "com.malliina" %% "web-auth" % webAuthVersion,
       "com.malliina" %% "database" % webAuthVersion,
@@ -75,7 +75,14 @@ val backend = project
       "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
     ),
     assembly / assemblyJarName := "app.jar",
-    Compile / resourceDirectories += io.Path.userHome / ".pics"
+    Compile / resourceDirectories += io.Path.userHome / ".pics",
+    Compile / packageDoc / mappings := Nil,
+    Compile / packageDoc / publishArtifact := false,
+    maintainer := "Michael Skogberg <malliina123@gmail.com>",
+    packageSummary := "pics backend",
+    packageDescription := "Pics backend.",
+    Linux / daemonUser := "pics",
+    Linux / packageName := "pics"
   )
 
 val pics = project
