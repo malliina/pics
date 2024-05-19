@@ -81,6 +81,8 @@ val backend = project
     maintainer := "Michael Skogberg <malliina123@gmail.com>",
     packageSummary := "pics backend",
     packageDescription := "Pics backend.",
+    executableScriptName := "pics",
+    Linux / name := "pics",
     Linux / daemonUser := "pics",
     Linux / packageName := "pics"
   )

@@ -179,7 +179,7 @@ class PicsService[F[_]: Async](
             .load(0, 1000000)
             .flatMap: keys =>
               log.info(s"Syncing ${keys.length} keys...")
-              keys.toList.traverse { key => db.putMetaIfNotExists(key.withUser(adminUser)) }
+              keys.traverse { key => db.putMetaIfNotExists(key.withUser(adminUser)) }
                 .flatMap: changes =>
                   log.info(s"Sync complete. Upserted ${changes.sum} rows.")
                   SeeOther(Location(Reverse.drop))
