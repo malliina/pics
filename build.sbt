@@ -53,7 +53,7 @@ val frontend = project
 
 val backend = project
   .in(file("backend"))
-  .enablePlugins(ServerPlugin, JavaServerAppPackaging, SystemdPlugin)
+  .enablePlugins(ServerPlugin, DebPlugin)
   .dependsOn(crossJvm)
   .settings(
     clientProject := frontend,
@@ -76,15 +76,7 @@ val backend = project
     ),
     assembly / assemblyJarName := "app.jar",
     Compile / resourceDirectories += io.Path.userHome / ".pics",
-    Compile / packageDoc / mappings := Nil,
-    Compile / packageDoc / publishArtifact := false,
-    maintainer := "Michael Skogberg <malliina123@gmail.com>",
-    packageSummary := "pics backend",
-    packageDescription := "Pics backend.",
-    executableScriptName := "pics",
-    Linux / name := "pics",
-    Linux / daemonUser := "pics",
-    Linux / packageName := "pics"
+    Linux / name := "pics"
   )
 
 val pics = project
