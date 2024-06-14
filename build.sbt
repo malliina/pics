@@ -2,7 +2,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossP
 
 val webAuthVersion = "6.7.0"
 val primitivesVersion = "3.6.0"
-val munitVersion = "0.7.29"
+val munitVersion = "1.0.0"
 
 inThisBuild(
   Seq(

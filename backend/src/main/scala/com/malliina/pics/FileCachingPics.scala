@@ -2,7 +2,7 @@ package com.malliina.pics
 
 import cats.Monad
 import cats.effect.Sync
-import cats.syntax.all.*
+import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import com.malliina.storage.StorageSize
 import fs2.io.file.{Files, Path}
 

@@ -26,6 +26,10 @@ object PicRequest:
   def apply(user: PicOwner, headers: Headers): PicRequest =
     apply(PicOwner(user.name), user == AnonUser, headers)
 
+case class ListRequest(limits: Limits, user: PicRequest) extends LimitsLike:
+  override def limit: Int = limits.limit
+  override def offset: Int = limits.offset
+
 sealed trait PicResult
 
 case class PicNotFound(key: Key) extends PicResult

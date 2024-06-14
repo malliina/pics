@@ -39,7 +39,7 @@ class AsIsResizer[F[_]: Sync: Files] extends ImageResizer[F]:
   override def resize(image: ImmutableImage, dest: Path): F[Either[ImageException, StorageSize]] =
     recovered:
       for
-        _ <- Sync[F].delay(image.output(JpegWriter.Default, dest.toNioPath))
+        _ <- S.delay(image.output(JpegWriter.Default, dest.toNioPath))
         size <- Files[F].size(dest)
       yield size.bytes
 

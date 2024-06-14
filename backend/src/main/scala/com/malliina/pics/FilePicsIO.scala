@@ -1,7 +1,7 @@
 package com.malliina.pics
 
 import cats.effect.Sync
-import cats.syntax.all.*
+import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps}
 import com.malliina.storage.{StorageLong, StorageSize}
 import com.malliina.util.AppLogger
 import fs2.io.file.{Files, Path}

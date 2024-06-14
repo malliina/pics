@@ -1,7 +1,7 @@
 package com.malliina.pics
 
 import cats.effect.Sync
-import cats.syntax.all.*
+import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
 
 import java.text.Normalizer

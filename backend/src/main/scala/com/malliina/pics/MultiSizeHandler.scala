@@ -1,8 +1,8 @@
 package com.malliina.pics
 
-import cats.effect.{Async, Resource, Sync}
-import cats.implicits.*
 import cats.data.NonEmptyList
+import cats.effect.{Async, Resource, Sync}
+import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import com.malliina.pics.s3.S3Source
 import com.sksamuel.scrimage.ImmutableImage
 import fs2.io.file.{Files, Path}
