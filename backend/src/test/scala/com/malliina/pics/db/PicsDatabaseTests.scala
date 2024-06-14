@@ -1,5 +1,6 @@
 package com.malliina.pics.db
 
+import com.malliina.pics.Literals.nonNeg
 import com.malliina.pics.{Keys, PicOwner}
 import tests.DoobieSuite
 
@@ -11,7 +12,7 @@ class PicsDatabaseTests extends munit.CatsEffectSuite with DoobieSuite:
     val key = Keys.randomish()
     for
       _ <- picsDatabase.saveMeta(key, user)
-      pics <- picsDatabase.load(0, 2, user)
+      pics <- picsDatabase.load(0.nonNeg, 2.nonNeg, user)
       _ = assert(pics.exists(_.key == key))
       _ <- assertIOBoolean(picsDatabase.contains(key))
       _ <- picsDatabase.remove(key, user)

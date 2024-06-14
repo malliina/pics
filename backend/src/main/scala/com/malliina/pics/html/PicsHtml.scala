@@ -104,19 +104,20 @@ class PicsHtml(
     baseIndex("pics", if user.readOnly then None else Option(user.name), conf)
 
   private def pageNav(current: Limits) =
-    val prev = move(current.prev.offset)
+    val prev = current.prev.map(l => move(l.offset))
     val next = move(current.next.offset)
-    val hasPrev = current.prev.offset >= 0
-    val prevExtra = if hasPrev then "" else " disabled"
+    val prevExtra = if prev.isRight then "" else " disabled"
     nav(aria.label := "Navigation", `class` := "d-flex justify-content-center py-3")(
       ul(`class` := "pagination")(
-        li(`class` := s"page-item $prevExtra")(a(`class` := "page-link", href := prev)("Previous")),
+        li(`class` := s"page-item $prevExtra")(
+          a(`class` := "page-link", prev.map(p => href := p).getOrElse(href := "#"))("Previous")
+        ),
         li(`class` := "page-item")(a(`class` := "page-link", href := next)("Next"))
       )
     )
 
-  private def move(offset: Int) =
-    Reverse.list.withQueryParams(Map(Limits.Offset -> offset))
+  private def move(offset: NonNeg) =
+    Reverse.list.withQueryParams(Map(Limits.Offset -> offset.value))
 
   def privacyPolicy =
     val privacyContent: Modifier = divContainer(

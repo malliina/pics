@@ -54,7 +54,7 @@ trait DataSourceT[F[_]: Monad] extends ImageSourceLike[F]:
 
 trait MetaSourceT[F[_]] extends SourceLike[F]:
   def meta(key: Key): F[KeyMeta]
-  def load(from: Int, until: Int, user: PicOwner): F[List[KeyMeta]]
+  def load(from: NonNeg, until: NonNeg, user: PicOwner): F[List[KeyMeta]]
   def saveMeta(key: Key, owner: PicOwner): F[KeyMeta]
   def putMetaIfNotExists(meta: KeyMeta): F[Int]
   def remove(key: Key, user: PicOwner): F[Boolean]

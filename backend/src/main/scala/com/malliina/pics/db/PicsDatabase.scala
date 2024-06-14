@@ -3,7 +3,7 @@ package com.malliina.pics.db
 import cats.implicits.*
 import com.malliina.database.DoobieDatabase
 import com.malliina.pics.db.PicsDatabase.log
-import com.malliina.pics.{Access, Key, KeyMeta, MetaSourceT, PicOwner, UserDatabase}
+import com.malliina.pics.{Access, Key, KeyMeta, MetaSourceT, NonNeg, PicOwner, UserDatabase}
 import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, UserId, Username}
 import doobie.ConnectionIO
@@ -21,7 +21,7 @@ class PicsDatabase[F[_]](db: DoobieDatabase[F]) extends MetaSourceT[F] with User
           from pics p, users u
           where p.user = u.id and p.`key` = $key""".query[KeyMeta].unique
 
-  def load(offset: Int, limit: Int, user: PicOwner): F[List[KeyMeta]] = db.run:
+  def load(offset: NonNeg, limit: NonNeg, user: PicOwner): F[List[KeyMeta]] = db.run:
     sql"""select p.`key`, u.username, p.access, p.added
           from pics p, users u
           where p.user = u.id and u.username = $user
