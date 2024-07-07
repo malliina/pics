@@ -1,7 +1,7 @@
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 
-val webAuthVersion = "6.7.0"
-val primitivesVersion = "3.6.0"
+val webAuthVersion = "6.8.0"
+val primitivesVersion = "3.7.1"
 val munitVersion = "1.0.0"
 
 inThisBuild(
@@ -34,7 +34,7 @@ val cross = portableProject(JSPlatform, JVMPlatform)
   .settings(
     libraryDependencies ++=
       Seq("generic", "parser").map { m =>
-        "io.circe" %%% s"circe-$m" % "0.14.6"
+        "io.circe" %%% s"circe-$m" % "0.14.9"
       } ++ Seq(
         "org.typelevel" %%% "case-insensitive" % "1.4.0",
         "com.malliina" %%% "primitives" % primitivesVersion,
@@ -61,18 +61,18 @@ val backend = project
     hashPackage := "com.malliina.pics.assets",
     buildInfoPackage := "com.malliina.pics",
     libraryDependencies ++= Seq("ember-server", "dsl", "circe").map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.23.26"
+      "org.http4s" %% s"http4s-$m" % "0.23.27"
     } ++ Seq(
       "org.apache.commons" % "commons-text" % "1.11.0",
       "software.amazon.awssdk" % "s3" % "2.25.27",
       "mysql" % "mysql-connector-java" % "8.0.33",
       "com.sksamuel.scrimage" % "scrimage-core" % "4.1.3",
-      "com.malliina" %% "logstreams-client" % "2.7.0",
+      "com.malliina" %% "logstreams-client" % "2.8.0",
       "com.malliina" %% "web-auth" % webAuthVersion,
       "com.malliina" %% "database" % webAuthVersion,
       "com.malliina" %% "config" % primitivesVersion,
-      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.41.3" % Test,
-      "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
+      "com.dimafeng" %% "testcontainers-scala-mysql" % "0.41.4" % Test,
+      "org.typelevel" %% "munit-cats-effect" % "2.0.0" % Test
     ),
     assembly / assemblyJarName := "app.jar",
     Compile / resourceDirectories += io.Path.userHome / ".pics",

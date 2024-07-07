@@ -32,9 +32,8 @@ class AppleTokenValidator(clientIds: Seq[ClientId], issuers: Seq[Issuer])
     parsed: ParsedJWT,
     now: Instant
   ): Either[JWTError, ParsedJWT] =
-    checkContains(Aud, clientIds.map(_.value), parsed).map { _ =>
+    checkContains(Aud, clientIds.map(_.value), parsed).map: _ =>
       parsed
-    }
 
 object AppleAuthFlow:
   val emailScope = "email"

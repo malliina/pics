@@ -173,20 +173,21 @@ class PicsService[F[_]: Async](
       removeKey(key, Reverse.drop, req)
     case req @ POST -> Root / "sync" =>
       val adminUser = PicOwner("malliina123@gmail.com")
-      authed(req) { user =>
+      authed(req): user =>
         if user.name == adminUser then
           handler.originals.storage
             .load(0, 1000000)
             .flatMap: keys =>
               log.info(s"Syncing ${keys.length} keys...")
-              keys.traverse { key => db.putMetaIfNotExists(key.withUser(adminUser)) }
+              keys
+                .traverse: key =>
+                  db.putMetaIfNotExists(key.withUser(adminUser))
                 .flatMap: changes =>
                   log.info(s"Sync complete. Upserted ${changes.sum} rows.")
                   SeeOther(Location(Reverse.drop))
         else unauthorized(Errors("Admin required."), req)
-      }
     case req @ GET -> Root / "sockets" =>
-      authedAll(req) { user =>
+      authedAll(req): user =>
         val userAgent = user.rh
           .get(ci"User-Agent")
           .map(ua => s"'${ua.head.value}'")
@@ -204,7 +205,6 @@ class PicsService[F[_]: Async](
           case Text(message, _) => delay(log.info(message))
           case f                => delay(log.debug(s"Unknown WebSocket frame: $f"))
         sockets.build(toClient, fromClient)
-      }
     case req @ GET -> Root / "drop" =>
       authed(req): user =>
         val created: Option[PicMeta] = None
@@ -515,10 +515,8 @@ class PicsService[F[_]: Async](
                     )
               else
                 val detailed =
-                  sessionState.fold(s"Got '$actualState' but found nothing to compare to.") {
-                    expected =>
-                      s"Got '$actualState' but expected '$expected'."
-                  }
+                  sessionState.fold(s"Got '$actualState' but found nothing to compare to."):
+                    expected => s"Got '$actualState' but expected '$expected'."
                 log.error(s"Authentication failed, state mismatch. $detailed $req")
                 unauthorized(Errors("State mismatch."), req)
             .recover: err =>
@@ -597,14 +595,15 @@ class PicsService[F[_]: Async](
           badRequest(Errors("Invalid form input."))
 
   private def formDecoder[T](readForm: FormReader => Either[Errors, T]) =
-    UrlForm.entityDecoder[F].flatMapR { form =>
-      readForm(FormReader(form)).fold(
-        err =>
-          DecodeResult
-            .failureT(MalformedMessageBodyFailure(err.message.message, Option(err.asException))),
-        t => DecodeResult.successT(t)
-      )
-    }
+    UrlForm
+      .entityDecoder[F]
+      .flatMapR: form =>
+        readForm(FormReader(form)).fold(
+          err =>
+            DecodeResult
+              .failureT(MalformedMessageBodyFailure(err.message.message, Option(err.asException))),
+          t => DecodeResult.successT(t)
+        )
   private def ok[A](a: A)(using EntityEncoder[F, A]) = Ok(a, noCache)
   private def badRequestWith(message: String) = badRequest(Errors(message))
   private def badRequest(errors: Errors): F[Response[F]] =

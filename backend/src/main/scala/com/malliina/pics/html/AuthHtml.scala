@@ -80,9 +80,8 @@ class AuthHtml(assets: AssetsSource) extends BaseHtml:
   )
 
   private def cognitoHeaders: Modifier =
-    Seq("aws-cognito-sdk.min.js", "amazon-cognito-identity.min.js").map { file =>
+    Seq("aws-cognito-sdk.min.js", "amazon-cognito-identity.min.js").map: file =>
       jsScript(assets.at(s"js/$file"))
-    }
 
   private def loginForm(feedback: Option[UserFeedback] = None) =
     form(id := LoginFormId, cls := col.md.twelve, method := Post, novalidate)(

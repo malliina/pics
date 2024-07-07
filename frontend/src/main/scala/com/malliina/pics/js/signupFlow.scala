@@ -16,7 +16,7 @@ class SignUp(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log):
     val email = emailIn.value
     userPool
       .signUpEmail(email, passIn.value)
-      .map { res =>
+      .map: res =>
         if res.userConfirmed then
           // Logs in
           log.info(s"User '$email' already confirmed.")
@@ -26,10 +26,8 @@ class SignUp(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log):
           // Shows confirm
           hide()
           confirm.show()
-          confirm.confirmed.map { user =>
+          confirm.confirmed.map: user =>
             login(user)
-          }
-      }
       .feedbackTo(SignUpFeedbackId)
 
   def hide(): Unit = signupForm.setAttribute("hidden", "hidden")
@@ -37,9 +35,8 @@ class SignUp(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log):
   def login(user: CognitoUser): Unit =
     user
       .authenticate(emailIn.value, passIn.value)
-      .map { success =>
+      .map: success =>
         submitToken(success.accessToken, LoginTokenId, signupForm)
-      }
       .feedbackTo(SignUpFeedbackId)
 
 object Confirm:
@@ -63,10 +60,9 @@ class Confirm(log: BaseLogger) extends AuthFrontend(log):
     val code = input(CodeId).value
     user
       .confirm(code)
-      .map { _ =>
+      .map: _ =>
         log.info(s"Confirmed user '$username'.")
         success.trySuccess(user)
-      }
       .feedbackTo(ConfirmFeedbackId)
 
   def resend(): Future[Unit] =
@@ -75,7 +71,6 @@ class Confirm(log: BaseLogger) extends AuthFrontend(log):
     log.info(s"Resending confirmation code...")
     user
       .resend()
-      .map { _ =>
+      .map: _ =>
         log.info(s"Confirmation code resent for '$username'.")
-      }
       .feedbackTo(ConfirmFeedbackId)

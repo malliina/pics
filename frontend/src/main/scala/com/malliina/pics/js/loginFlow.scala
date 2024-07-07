@@ -24,24 +24,21 @@ class Login(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log):
 
     user
       .authenticate(email, pass)
-      .recoverWith {
+      .recoverWith:
         case _: NotConfirmedException =>
           log.info(s"User not confirmed. Awaiting confirmation...")
           hide()
           confirm.show()
-          confirm.confirmed.flatMap { user =>
+          confirm.confirmed.flatMap: user =>
             user.authenticate(email, pass)
-          }
         case _: TotpRequiredException =>
           log.info(s"Requesting MFA for '$email'...")
           hide()
           val mfa = Mfa(user, log)
           mfa.show()
           mfa.session
-      }
-      .map { success =>
+      .map: success =>
         submitToken(success.accessToken, LoginTokenId, loginForm)
-      }
       .feedbackTo(LoginFeedbackId)
 
   def hide(): Unit = loginForm.setAttribute(Hidden, Hidden)
@@ -64,7 +61,7 @@ class ForgotPassword(log: BaseLogger) extends AuthFrontend(log):
     val user = CognitoUser(email, userPool)
     user
       .forgot()
-      .map { _ =>
+      .map: _ =>
         log.info(s"Forgot sent to '$email'.")
         hide()
         resetEmailIn.value = email
@@ -72,7 +69,6 @@ class ForgotPassword(log: BaseLogger) extends AuthFrontend(log):
           alertSuccess(s"Code sent to '$email'.").render
         )
         resetForm.removeAttribute(Hidden)
-      }
       .feedbackTo(ForgotFeedbackId)
 
   private def reset(): Unit =
@@ -82,13 +78,11 @@ class ForgotPassword(log: BaseLogger) extends AuthFrontend(log):
     val newPass = elem[HTMLInputElement](ResetNewPasswordId).value
     user
       .reset(code, newPass)
-      .flatMap { _ =>
+      .flatMap: _ =>
         log.info(s"Password reset for '$email'.")
         user.authenticate(email, newPass)
-      }
-      .map { success =>
+      .map: success =>
         submitToken(success.accessToken, ResetTokenId, resetForm)
-      }
       .feedbackTo(ResetFeedbackId)
 
   private def resetEmailIn = elem[HTMLInputElement](ResetEmailId)
@@ -113,9 +107,8 @@ class Mfa(user: CognitoUser, log: BaseLogger) extends AuthFrontend(log):
     val code = elem[HTMLInputElement](MfaCodeId).value
     user
       .sendMFA(code)
-      .map { session =>
+      .map: session =>
         success.trySuccess(session)
-      }
       .feedbackTo(MfaFeedbackId)
 
   def show(): Unit = mfaForm.removeAttribute(Hidden)

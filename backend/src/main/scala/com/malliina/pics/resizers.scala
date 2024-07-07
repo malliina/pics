@@ -54,10 +54,9 @@ trait ImageResizer[F[_]: Sync] extends ImageResizerT[F]:
       .redeemWith(
         {
           case ioe: IOException =>
-            S.delay {
+            S.delay:
               ImageResizer.log.error("Failed to resize image", ioe)
               Left(ImageException(ioe))
-            }
           case e => S.raiseError(e)
         },
         t => S.pure(Right(t))

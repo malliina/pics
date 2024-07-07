@@ -18,12 +18,11 @@ class AuthFrontend(log: BaseLogger) extends Frontend with LoginStrings:
 
   def alertSuccess(msg: String) = BaseHtml.alertSuccess(msg)
 
-  private def recovered[T](id: String)(code: Future[T]): Future[T] = code.recoverWith {
+  private def recovered[T](id: String)(code: Future[T]): Future[T] = code.recoverWith:
     case e: CognitoException =>
       log.error(e)
       elem[HTMLElement](id).appendChild(alertDanger(e.friendlyMessage).render)
       Future.failed(e)
-  }
 
   def submitToken(token: AccessToken, inputId: String, to: HTMLFormElement): Unit =
     input(inputId).value = token.jwtToken

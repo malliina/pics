@@ -17,6 +17,7 @@ import com.malliina.pics.*
 import com.malliina.pics.http4s.PicsApp
 import com.malliina.util.AppLogger
 import com.malliina.values.Password
+import munit.AnyFixture
 import org.http4s.server.Server
 import org.testcontainers.utility.DockerImageName
 import tests.MUnitDatabaseSuite.log
@@ -54,7 +55,7 @@ trait MUnitDatabaseSuite:
       autoMigrate = true
     )
 
-  override def munitFixtures: Seq[Fixture[?]] = Seq(db)
+  override def munitFixtures: Seq[AnyFixture[?]] = Seq(db)
 
 case class ServerTools(server: Server):
   def port = server.address.getPort
@@ -66,7 +67,7 @@ trait ServerSuite extends MUnitDatabaseSuite with ClientSuite:
   object TestServer extends PicsApp:
     LogbackUtils.init(rootLevel = Level.OFF)
 
-  val server: Fixture[ServerTools] = ResourceSuiteLocalFixture(
+  val server = ResourceSuiteLocalFixture(
     "server",
     for
       conf <- Resource
@@ -84,17 +85,18 @@ trait ServerSuite extends MUnitDatabaseSuite with ClientSuite:
     yield ServerTools(s)
   )
 
-  override def munitFixtures: Seq[Fixture[?]] = Seq(db, server, client)
+  override def munitFixtures: Seq[AnyFixture[?]] = Seq(db, server, client)
 
 trait ClientSuite:
   self: munit.CatsEffectSuite =>
-  val client: Fixture[HttpClientF2[IO]] = ResourceSuiteLocalFixture("client", HttpClientIO.resource)
+  val client =
+    ResourceSuiteLocalFixture("client", HttpClientIO.resource[IO])
 
-  override def munitFixtures: Seq[Fixture[?]] = Seq(client)
+  override def munitFixtures: Seq[AnyFixture[?]] = Seq(client)
 
 trait DoobieSuite extends MUnitDatabaseSuite:
   self: munit.CatsEffectSuite =>
-  val doobie: Fixture[DoobieDatabase[IO]] =
+  val doobie =
     ResourceSuiteLocalFixture(
       "doobie",
       Resource
@@ -103,7 +105,7 @@ trait DoobieSuite extends MUnitDatabaseSuite:
           DoobieDatabase.init(d)
     )
 
-  override def munitFixtures: Seq[Fixture[?]] = Seq(db, doobie)
+  override def munitFixtures: Seq[AnyFixture[?]] = Seq(db, doobie)
 
 object TestConf:
   def apply(container: MySQLContainer): Conf = Conf(

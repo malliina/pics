@@ -26,25 +26,23 @@ class Profile(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log):
       signOut.onclick = (_: MouseEvent) =>
         user
           .globalLogout()
-          .map { _ =>
+          .map: _ =>
             log.info("Signed out globally.")
-          }
-          .recover { case t =>
-            log.error(t)
-          }
+          .recover:
+            case t =>
+              log.error(t)
       disable.onclick = (_: MouseEvent) =>
         user
           .disableTotp()
-          .map { s =>
+          .map: s =>
             log.info(s"Disabled MFA for '${user.username}'. Message was '$s'.")
-          }
-          .recover { case t =>
-            log.error(t)
-          }
+          .recover:
+            case t =>
+              log.error(t)
       enable.onclick = (_: MouseEvent) =>
         user
           .associateTotp()
-          .map { secret =>
+          .map: secret =>
             log.info(s"Got secret code $secret")
             val codeContainer = qrCodeContainer.render
             val str =
@@ -57,17 +55,15 @@ class Profile(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log):
               val code = elem[HTMLInputElement](TotpCodeId).value
               user
                 .verifyTotp(code, "TOTP Device")
-                .map { _ =>
+                .map: _ =>
                   log.info("TOTP verified.")
                   elem[HTMLElement](TotpFeedbackId)
                     .appendChild(alertSuccess(s"MFA enabled.").render)
-                }
                 .feedbackTo(TotpFeedbackId)
               e.preventDefault()
-          }
-          .recover { case t =>
-            log.error(t)
-          }
+          .recover:
+            case t =>
+              log.error(t)
     }
   }
 

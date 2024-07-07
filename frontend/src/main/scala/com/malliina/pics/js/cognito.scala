@@ -70,12 +70,10 @@ object CognitoUserPool:
         List(attr).toJSArray,
         null,
         (err, data) =>
-          Option(err).foreach { e =>
+          Option(err).foreach: e =>
             p.failure(CognitoException(e))
-          }
-          Option(data).foreach { result =>
+          Option(data).foreach: result =>
             p.success(result)
-          }
       )
       p.future
 
@@ -189,31 +187,26 @@ object CognitoUser:
       )
       p.future
 
-    def confirm(code: String): Future[String] = withFuture[String] { p =>
+    def confirm(code: String): Future[String] = withFuture[String]: p =>
       self.confirmRegistration(
         code,
         forceAliasCreation = true,
         (err, success) =>
-          Option(err).foreach { err =>
+          Option(err).foreach: err =>
             p.failure(CognitoException(err))
-          }
-          Option(success).foreach { s =>
+          Option(success).foreach: s =>
             p.success(s)
-          }
       )
-    }
 
     def resend(): Future[Unit] =
       val p = Promise[Unit]()
       self.resendConfirmationCode((err, success) =>
-        Option(err).foreach { err =>
+        Option(err).foreach: err =>
           // The API returns an error object on success with message "200"...
           if err.message == "200" then p.trySuccess(())
           else p.failure(CognitoException(err))
-        }
-        Option(success).foreach { _ =>
+        Option(success).foreach: _ =>
           p.success(())
-        }
       )
       p.future
 
@@ -223,42 +216,36 @@ object CognitoUser:
     def reset(code: String, newPassword: String): Future[Unit] =
       promised(cb => self.confirmPassword(code, newPassword, cb))
 
-    def session(): Future[CognitoSession] = withFuture[CognitoSession] { p =>
+    def session(): Future[CognitoSession] = withFuture[CognitoSession]: p =>
       self.getSession((err, success) => complete(p, err, success))
-    }
 
-    def enableTotp(): Future[String] = withFuture[String] { p =>
+    def enableTotp(): Future[String] = withFuture[String]: p =>
       val settings = MfaSettings(preferred = true, enabled = true)
       self.setUserMfaPreference(
         null,
         settings,
         (err, success) => complete(p, err, success)
       )
-    }
 
-    def disableTotp(): Future[String] = withFuture[String] { p =>
+    def disableTotp(): Future[String] = withFuture[String]: p =>
       self.disableMFA((err, success) => complete(p, err, success))
-    }
 
-    def delete(): Future[String] = withFuture[String] { p =>
+    def delete(): Future[String] = withFuture[String]: p =>
       self.deleteUser((err, success) => complete(p, err, success))
-    }
 
-    def enableSms(): Future[String] = withFuture[String] { p =>
+    def enableSms(): Future[String] = withFuture[String]: p =>
       self.enableMFA((err, success) => complete(p, err, success))
-    }
 
-    def associateTotp(): Future[String] = withFuture[String] { p =>
+    def associateTotp(): Future[String] = withFuture[String]: p =>
       self.associateSoftwareToken(
         TOTPCallback(
           s => p.success(s),
           f => p.failure(CognitoException(f))
         )
       )
-    }
 
     def verifyTotp(code: String, friendlyName: String): Future[CognitoSession] =
-      withFuture[CognitoSession] { p =>
+      withFuture[CognitoSession]: p =>
         self.verifySoftwareToken(
           code,
           friendlyName,
@@ -267,10 +254,9 @@ object CognitoUser:
             fail => p.failure(CognitoException(fail))
           )
         )
-      }
 
     def sendMFA(code: String): Future[CognitoSession] =
-      withFuture[CognitoSession] { p =>
+      withFuture[CognitoSession]: p =>
         self.sendMFACode(
           code,
           SessionCallback(
@@ -279,7 +265,6 @@ object CognitoUser:
           ),
           "SOFTWARE_TOKEN_MFA"
         )
-      }
 
     def globalLogout(): Future[Unit] = promised(cb => self.globalSignOut(cb))
 
@@ -289,12 +274,10 @@ object CognitoUser:
       p.future
 
     private def complete[T](p: Promise[T], err: js.Error, t: T): Unit =
-      Option(err).foreach { err =>
+      Option(err).foreach: err =>
         p.failure(CognitoException(err))
-      }
-      Option(t).foreach { t =>
+      Option(t).foreach: t =>
         p.success(t)
-      }
 
     private def promised(run: SimpleCallback => Unit): Future[Unit] =
       val p = Promise[Unit]()

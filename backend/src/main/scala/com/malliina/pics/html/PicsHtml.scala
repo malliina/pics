@@ -87,9 +87,8 @@ class PicsHtml(
         ),
         tag("progress")(id := "progress", min := "0", max := "100", value := "0")(0),
         div(id := "feedback"),
-        created.fold(empty) { key =>
+        created.fold(empty): key =>
           Seq[Modifier]("Saved ", a(href := key.url)(key.key.key))
-        }
       )
     val conf = PageConf("Pics - Drop", bodyClass = DropClass, inner = content)
     baseIndex("drop", if user.readOnly then None else Option(user.name), conf)
@@ -156,9 +155,8 @@ class PicsHtml(
   def eject(message: Option[String]) =
     val content = divContainer(
       rowColumn(s"${col.md.six} top-padding")(
-        message.fold(empty) { msg =>
+        message.fold(empty): msg =>
           alertSuccess(msg)
-        }
       )
     )
     basePage(PageConf("Goodbye!", inner = content))

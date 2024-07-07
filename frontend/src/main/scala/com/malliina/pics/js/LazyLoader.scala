@@ -46,17 +46,15 @@ class LazyLoader(lazyClass: String):
       val lazyImages = document.querySelectorAll(s"img.$lazyClass")
       val lazyImageObserver = new IntersectionObserver(
         (entries, observer) =>
-          entries.foreach { e =>
+          entries.foreach: e =>
             if e.isIntersecting then
               val lazyImage = e.target.asInstanceOf[HTMLImageElement]
               lazyImage.setAttribute("src", lazyImage.getAttribute("data-src"))
               lazyImage.classList.remove(lazyClass)
               lazyImage.classList.add(PicsStrings.Loaded)
-              observer.unobserve(lazyImage)
-          },
+              observer.unobserve(lazyImage),
         IntersectionOptions.vertical(500)
       )
-      lazyImages.foreach { n =>
+      lazyImages.foreach: n =>
         lazyImageObserver.observe(n)
-      }
   )

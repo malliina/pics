@@ -38,6 +38,8 @@ class JsonJWS(jws: JWS):
           .map: _ =>
             JsonError(s"Not JSON: '$str'.")
           .flatMap: json =>
-            json.as[T].left.map { errors =>
-              JsonError(errors.message)
-            }
+            json
+              .as[T]
+              .left
+              .map: errors =>
+                JsonError(errors.message)

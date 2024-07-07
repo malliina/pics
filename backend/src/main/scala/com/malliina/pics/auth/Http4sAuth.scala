@@ -87,13 +87,13 @@ class Http4sAuth[F[_]: Sync](
   )
 
   private def jwt(headers: Headers) =
-    readJwt(headers).map { io =>
-      io.map: e =>
-        e.fold(
-          _ => Left(onUnauthorized(headers)),
-          user => Right(PicRequest.forUser(user.username, headers))
-        )
-    }
+    readJwt(headers)
+      .map: io =>
+        io.map: e =>
+          e.fold(
+            _ => Left(onUnauthorized(headers)),
+            user => Right(PicRequest.forUser(user.username, headers))
+          )
       .fold(_ => F.pure(Right(PicRequest.anon(headers))), identity)
 
   private def readJwt(headers: Headers): Either[IdentityError, F[Either[TokenError, JWTUser]]] =
@@ -102,7 +102,9 @@ class Http4sAuth[F[_]: Sync](
         val res = db
           .userByToken(token)
           .map: opt =>
-            opt.map { u => JWTUsers.user(u) }
+            opt
+              .map: u =>
+                JWTUsers.user(u)
               .toRight(TokenError(OAuthError(ErrorMessage("Invalid access token.")), headers))
         Right(res)
       case IdTokenResult(token) =>
@@ -114,7 +116,8 @@ class Http4sAuth[F[_]: Sync](
                   google
                     .validate(token)
                     .map: e =>
-                      e.map { email => EmailUser(email) },
+                      e.map: email =>
+                        EmailUser(email),
                 user => F.pure(Right(user))
               )
             .map: e =>
@@ -125,14 +128,13 @@ class Http4sAuth[F[_]: Sync](
 
   def token(headers: Headers): CredentialsResult = headers
     .get[Authorization]
-    .fold[CredentialsResult](NoCredentials(headers)) { h =>
+    .fold[CredentialsResult](NoCredentials(headers)): h =>
       h.credentials match
         case Token(scheme, token) =>
           if scheme == ci"token" then AccessTokenResult(AccessToken(token))
           else IdTokenResult(IdToken(token))
         case _ =>
           NoCredentials(headers)
-    }
 
   def session[T: Decoder](from: Headers): Either[IdentityError, T] =
     read[T](cookieNames.session, from)

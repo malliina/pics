@@ -20,9 +20,8 @@ class PicsSocket extends BaseSocket("/sockets"):
 
   val popovers: Map[String, Popover] = document
     .querySelectorAll("[data-bs-toggle='popover']")
-    .map { e =>
+    .map: e =>
       e.getAttribute(jsHtml.dataIdAttr.name) -> new Popover(e, PopoverOptions.manual)
-    }
     .toMap
 
   // hides popovers on outside click
@@ -36,9 +35,10 @@ class PicsSocket extends BaseSocket("/sockets"):
   )
 
   def installCopyListeners(parent: Element): Unit =
-    parent.getElementsByClassName(jsHtml.CopyButton).foreach { node =>
-      addClickListener(node)
-    }
+    parent
+      .getElementsByClassName(jsHtml.CopyButton)
+      .foreach: node =>
+        addClickListener(node)
 
   def addClickListener(node: Node): Unit =
     node.addEventListener(
@@ -49,44 +49,49 @@ class PicsSocket extends BaseSocket("/sockets"):
         val url = htmlElem.getAttribute(jsHtml.dataIdAttr.name)
         copyToClipboard(url)
 //        popovers.values.foreach(_.show())
-        popovers.get(url).foreach { p =>
-          p.show()
-        }
+        popovers
+          .get(url)
+          .foreach: p =>
+            p.show()
     )
 
   override def handlePayload(payload: Json): Unit =
-    val result = payload.hcursor.downField(PicsJson.EventKey).as[String].flatMap {
-      case PicsAdded.Added =>
-        payload.as[PicsAdded].map { pics =>
-          pics.pics.foreach(prepend)
-        }
-      case PicsRemoved.Removed =>
-        payload.as[PicsRemoved].map { keys =>
-          keys.keys.foreach(remove)
-        }
-      case ProfileInfo.Welcome =>
-        payload.as[ProfileInfo].map { profile =>
-          onProfile(profile)
-        }
-      case other =>
-        Left(DecodingFailure(s"Unknown '${PicsJson.EventKey}' value: '$other'.", Nil))
-    }
+    val result = payload.hcursor
+      .downField(PicsJson.EventKey)
+      .as[String]
+      .flatMap:
+        case PicsAdded.Added =>
+          payload
+            .as[PicsAdded]
+            .map: pics =>
+              pics.pics.foreach(prepend)
+        case PicsRemoved.Removed =>
+          payload
+            .as[PicsRemoved]
+            .map: keys =>
+              keys.keys.foreach(remove)
+        case ProfileInfo.Welcome =>
+          payload
+            .as[ProfileInfo]
+            .map: profile =>
+              onProfile(profile)
+        case other =>
+          Left(DecodingFailure(s"Unknown '${PicsJson.EventKey}' value: '$other'.", Nil))
     result.fold(err => log.info(s"Failed to parse '$payload': '$err'."), _ => ())
 
   def prepend(pic: BaseMeta) =
-    elemById(jsHtml.galleryId).map { gallery =>
-      val newElem =
-        jsHtml.thumbnail(pic, readOnly = isReadOnly, visible = false, lazyLoaded = false).render
-      installListeners(newElem)
-      gallery.insertBefore(newElem, gallery.firstChild)
-      // enables the transition
-      setTimeout(0.1.seconds) {
-        newElem.classList.remove("invisible")
-      }
-    }.getOrElse {
-      fill(jsHtml.picsId, jsHtml.gallery(Seq(pic), readOnly = isReadOnly, lazyLoaded = false))
-      elemById(jsHtml.galleryId).foreach(installListeners)
-    }
+    elemById(jsHtml.galleryId)
+      .map: gallery =>
+        val newElem =
+          jsHtml.thumbnail(pic, readOnly = isReadOnly, visible = false, lazyLoaded = false).render
+        installListeners(newElem)
+        gallery.insertBefore(newElem, gallery.firstChild)
+        // enables the transition
+        setTimeout(0.1.seconds):
+          newElem.classList.remove("invisible")
+      .getOrElse:
+        fill(jsHtml.picsId, jsHtml.gallery(Seq(pic), readOnly = isReadOnly, lazyLoaded = false))
+        elemById(jsHtml.galleryId).foreach(installListeners)
 
   def installListeners(elem: Element): Unit =
     installCopyListeners(elem)
@@ -106,10 +111,9 @@ class PicsSocket extends BaseSocket("/sockets"):
     isReadOnly = info.readOnly
 
   def fill(id: String, content: Frag): Unit =
-    elemById(id).foreach { elem =>
+    elemById(id).foreach: elem =>
       removeChildren(elem)
       elem.appendChild(content.render)
-    }
 
   def elemById(id: String): Option[Element] = Option(document.getElementById(id))
 
