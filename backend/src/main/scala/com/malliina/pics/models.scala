@@ -1,16 +1,16 @@
 package com.malliina.pics
 
-import java.time.Instant
-import java.util.Date
-import com.malliina.http.FullUrl
+import com.malliina.http.{FullUrl, SingleError}
 import com.malliina.pics.http4s.{Reverse, Urls}
 import com.malliina.values.{ErrorMessage, Username}
 import fs2.io.file.Path
+import io.circe.{Codec, Decoder, Encoder}
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
 import org.http4s.{Headers, Request, Uri}
-import io.circe.{Codec, Decoder, Encoder}
 
+import java.time.Instant
+import java.util.Date
 import scala.annotation.targetName
 
 opaque type NonNeg = Int
@@ -118,8 +118,11 @@ object PicMetas:
 
 case class PicResponse(pic: PicMeta) derives Codec.AsObject
 
-case class BucketName(name: String) extends AnyVal:
-  override def toString = name
+opaque type BucketName = String
+
+object BucketName:
+  def apply(s: String): BucketName = s
+  extension (bn: BucketName) def name: String = bn
 
 case class ContentType(contentType: String) extends AnyVal:
   def isImage = contentType.startsWith("image")

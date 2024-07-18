@@ -62,7 +62,7 @@ trait PicsApp extends IOApp:
     topic <- Resource.eval(Topic[F, PicMessage])
     doobieDatabase <-
       if conf.isFull then DoobieDatabase.init[F](conf.db)
-      else Resource.pure(DoobieDatabase.fast(conf.db))
+      else Resource.eval(DoobieDatabase.fast(conf.db))
   yield
     val db = PicsDatabase(doobieDatabase)
 //    val csrf =

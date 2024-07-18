@@ -1,6 +1,8 @@
 package com.malliina.pics.http4s
 
-import com.malliina.pics.{Access, Errors}
+import com.malliina.http.Errors
+import com.malliina.http4s.FormReader
+import com.malliina.pics.Access
 import io.circe.Codec
 
 case class AccessLevel(access: Access) derives Codec.AsObject

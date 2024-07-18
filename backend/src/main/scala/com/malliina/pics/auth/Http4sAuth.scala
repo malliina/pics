@@ -2,18 +2,18 @@ package com.malliina.pics.auth
 
 import cats.effect.Sync
 import cats.syntax.all.*
-import com.malliina.http.HttpClient
+import com.malliina.http.{Errors, HttpClient}
 import com.malliina.pics.auth.CredentialsResult.{AccessTokenResult, IdTokenResult, NoCredentials}
 import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.http4s.PicsService.version10
 import com.malliina.pics.http4s.{BasicService, PicsService, Reverse, Urls}
-import com.malliina.pics.{AppConf, Errors, PicRequest}
+import com.malliina.pics.{AppConf, PicRequest}
 import com.malliina.values.{AccessToken, ErrorMessage, IdToken, Username}
 import com.malliina.web.{CognitoAccessValidator, CognitoIdValidator, JWTUser, OAuthError}
 import io.circe.*
 import io.circe.syntax.EncoderOps
-import org.http4s.Credentials.Token
 import org.http4s.*
+import org.http4s.Credentials.Token
 import org.http4s.headers.{Authorization, Cookie, Location}
 import org.typelevel.ci.CIStringSyntax
 

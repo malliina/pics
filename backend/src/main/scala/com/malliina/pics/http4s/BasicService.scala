@@ -1,7 +1,7 @@
 package com.malliina.pics.http4s
 
 import cats.Applicative
-import com.malliina.pics.Errors
+import com.malliina.http.Errors
 import io.circe.syntax.EncoderOps
 import org.http4s.*
 import org.http4s.CacheDirective.{`must-revalidate`, `no-cache`, `no-store`}

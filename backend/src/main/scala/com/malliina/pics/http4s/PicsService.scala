@@ -5,7 +5,8 @@ import cats.data.NonEmptyList
 import cats.effect.Async
 import cats.syntax.all.{catsSyntaxApplicativeError, catsSyntaxApplicativeId, toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.html.UserFeedback
-import com.malliina.http.HttpClient
+import com.malliina.http.{Errors, HttpClient}
+import com.malliina.http4s.FormReader
 import com.malliina.pics.*
 import com.malliina.pics.PicsStrings.{XClientPic, XKey, XName}
 import com.malliina.pics.auth.AuthProvider.*
@@ -601,7 +602,9 @@ class PicsService[F[_]: Async](
         readForm(FormReader(form)).fold(
           err =>
             DecodeResult
-              .failureT(MalformedMessageBodyFailure(err.message.message, Option(err.asException))),
+              .failureT(
+                MalformedMessageBodyFailure(err.message.message, Option(ErrorsException(err)))
+              ),
           t => DecodeResult.successT(t)
         )
   private def ok[A](a: A)(using EntityEncoder[F, A]) = Ok(a, noCache)
