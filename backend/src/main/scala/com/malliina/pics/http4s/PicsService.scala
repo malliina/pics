@@ -6,6 +6,7 @@ import cats.effect.Async
 import cats.syntax.all.{catsSyntaxApplicativeError, catsSyntaxApplicativeId, toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.html.UserFeedback
 import com.malliina.http.{Errors, HttpClient}
+import com.malliina.http4s.FormDecoders
 import com.malliina.pics.*
 import com.malliina.pics.PicsStrings.{XClientPic, XKey, XName}
 import com.malliina.pics.auth.AuthProvider.*
@@ -52,11 +53,12 @@ object PicsService:
     topic: Topic[F, PicMessage],
     handler: MultiSizeHandler[F],
     http: HttpClient[F],
-    csrf: CSRF[F, F]
+    csrf: CSRF[F, F],
+    csrfConf: CSRFConf
   ): PicsService[F] =
     PicsService(
       PicService(db, handler),
-      PicsHtml.build(conf.isProdBuild),
+      PicsHtml.build(conf.isProdBuild, csrfConf),
       Http4sAuth.default(conf.app, db, http),
       Socials(conf.social, http),
       db,
@@ -80,7 +82,7 @@ class PicsService[F[_]: Async](
   handler: MultiSizeHandler[F],
   csrf: CSRF[F, F]
 ) extends PicsBasicService[F]
-  with Decoders[F]
+  with FormDecoders[F]
   with FeedbackJson:
   val pong = "pong"
   val F = Async[F]
@@ -352,7 +354,7 @@ class PicsService[F[_]: Async](
     csrf
       .generateToken[F]
       .flatMap: token =>
-        ok(content(MyCSRF.toToken(token))).map: res =>
+        ok(content(CSRFUtils.toToken(token))).map: res =>
           csrf.embedInResponseCookie(res, token)
 
   private def sendPic(key: Key, size: PicSize, req: Request[F]) =

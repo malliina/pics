@@ -3,7 +3,7 @@ package com.malliina.pics
 import com.malliina.html.{Bootstrap, Tags, UserFeedback}
 import com.malliina.http.FullUrl
 
-abstract class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, FragT])
+abstract class BasicHtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, FragT])
   extends Bootstrap(ts):
 
   import tags.*
@@ -29,6 +29,14 @@ abstract class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Ou
 
   val galleryId = "pic-gallery"
   val picsId = "pics-container"
+
+abstract class HtmlBuilder[Builder, Output <: FragT, FragT](
+  ts: Tags[Builder, Output, FragT],
+  csrf: CSRFConf
+) extends BasicHtmlBuilder(ts):
+
+  import tags.*
+  import tags.impl.all.*
 
   given AttrValue[FullUrl] = makeStringAttr(_.url)
   given AttrValue[Key] = makeStringAttr(_.key)
@@ -103,7 +111,7 @@ abstract class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Ou
       )
       thumb(pic, visible, lazyLoaded, more)
 
-  def csrfInput[V: AttrValue](inputValue: V, inputName: String = CSRFConf.CsrfTokenName) =
+  def csrfInput[V: AttrValue](inputValue: V, inputName: String = csrf.tokenName) =
     input(`type` := "hidden", name := inputName, value := inputValue)
 
   def thumb(pic: BaseMeta, visible: Boolean, lazyLoaded: Boolean, more: Modifier*) =

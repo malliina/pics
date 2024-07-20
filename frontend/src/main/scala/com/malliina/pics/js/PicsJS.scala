@@ -1,5 +1,6 @@
 package com.malliina.pics.js
 
+import com.malliina.pics.CSRFConf
 import org.scalajs.dom
 
 import scala.annotation.unused
@@ -7,17 +8,18 @@ import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
 import scala.scalajs.js.Dynamic.literal
 
-object PicsJS extends BaseHtml:
-  val csrf = CSRFUtils()
+object PicsJS extends BasicHtml:
+  val csrfConf = CSRFConf.default
+  val csrf = CSRFUtils(csrfConf)
   val popperJs = Popper
   val bootstrapJs = Bootstrap
   val bootstrapCss = BootstrapCss
 
   def main(args: Array[String]): Unit =
     if has(PicsClass) then
-      PicsSocket(csrf)
+      PicsSocket(csrf, csrfConf)
       LazyLoader()
-    if has(DropClass) then PicDrop()
+    if has(DropClass) then PicDrop(csrfConf)
     if has(LoginClass) then Login()
     if has(SignUpClass) then SignUp()
     if has(ProfileClass) then Profile()

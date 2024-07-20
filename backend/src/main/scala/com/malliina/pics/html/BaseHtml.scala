@@ -2,12 +2,12 @@ package com.malliina.pics.html
 
 import cats.Show
 import com.malliina.html.HtmlTags
-import com.malliina.pics.{HtmlBuilder, LoginStrings}
+import com.malliina.pics.{CSRFConf, HtmlBuilder, LoginStrings}
 import org.http4s.Uri
 import scalatags.Text.all.{Attr, AttrValue}
 import scalatags.text.Builder
 
-class BaseHtml extends HtmlBuilder(HtmlTags) with LoginStrings:
+class BaseHtml(csrf: CSRFConf) extends HtmlBuilder(HtmlTags, csrf) with LoginStrings:
   given showAttrValue[T](using s: Show[T]): AttrValue[T] = makeStringAttr(v => s.show(v))
   given AttrValue[Uri] =
     (t: Builder, a: Attr, v: Uri) =>

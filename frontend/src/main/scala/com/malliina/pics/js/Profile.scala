@@ -67,7 +67,7 @@ class Profile(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log):
     }
   }
 
-object ProfileHtml extends BaseHtml:
+object ProfileHtml extends BasicHtml:
 
   import scalatags.JsDom.all.*
 

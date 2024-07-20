@@ -1,14 +1,13 @@
 package com.malliina.pics.js
 
-import com.malliina.pics.CSRFConf.CsrfCookieName
-import com.malliina.pics.CSRFToken
+import com.malliina.pics.{CSRFConf, CSRFToken}
 import com.malliina.values.{ErrorMessage, Readable}
 import org.scalajs.dom
 import org.scalajs.dom.{Element, Event, HTMLFormElement}
 
 import java.util.NoSuchElementException
 
-class CSRFUtils(val log: BaseLogger = BaseLogger.console):
+class CSRFUtils(csrf: CSRFConf, val log: BaseLogger = BaseLogger.console):
   val document = dom.document
 
   def installCsrf(parent: Element): Unit =
@@ -23,14 +22,14 @@ class CSRFUtils(val log: BaseLogger = BaseLogger.console):
   def installTo(form: HTMLFormElement) =
     csrfFromCookie
       .map: token =>
-        val bh = BaseHtml
+        val bh = BaseHtml(csrf)
         import bh.given
         form.appendChild(bh.csrfInput(token).render)
       .getOrElse:
         log.info("CSRF token not found.")
 
   def csrfFromCookie: Either[ErrorMessage, CSRFToken] =
-    readCookie[CSRFToken](CsrfCookieName)
+    readCookie[CSRFToken](csrf.cookieName)
 
   def csrfFromCookieUnsafe = csrfFromCookie.fold(
     err => throw NoSuchElementException(err.message),

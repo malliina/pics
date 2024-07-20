@@ -1,15 +1,17 @@
 package com.malliina.pics
 
 import com.malliina.values.Readable
-import org.typelevel.ci.CIStringSyntax
+import org.typelevel.ci.{CIString, CIStringSyntax}
 
-object CSRFConf extends CSRFConf
+case class CSRFConf(tokenName: String, cookieName: String, headerName: CIString, noCheck: String)
 
-trait CSRFConf:
-  val CsrfTokenName = "csrfToken"
-  val CsrfCookieName = "csrfToken"
-  val CsrfHeaderName = ci"Csrf-Token"
-  val CsrfTokenNoCheck = "nocheck"
+object CSRFConf:
+  val default = CSRFConf(
+    "csrfToken",
+    "csrfToken",
+    ci"Csrf-Token",
+    "nocheck"
+  )
 
 opaque type CSRFToken = String
 

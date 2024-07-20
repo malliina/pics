@@ -1,11 +1,10 @@
 package com.malliina.pics.js
 
-import com.malliina.pics.CSRFConf.{CsrfHeaderName, CsrfTokenNoCheck}
-import com.malliina.pics.PicsStrings
+import com.malliina.pics.{CSRFConf, PicsStrings}
 import org.scalajs.dom.*
 import scalatags.JsDom.all.*
 
-class PicDrop extends Frontend with PicsStrings:
+class PicDrop(csrf: CSRFConf) extends Frontend with PicsStrings:
   val dropZone = elem[HTMLElement]("drop-zone")
   val progress = elem[HTMLProgressElement]("progress")
 
@@ -28,7 +27,7 @@ class PicDrop extends Frontend with PicsStrings:
       val xhr = new XMLHttpRequest
       xhr.open("POST", "/pics")
       xhr.setRequestHeader(XName.toString, file.name)
-      xhr.setRequestHeader(CsrfHeaderName.toString, CsrfTokenNoCheck)
+      xhr.setRequestHeader(csrf.headerName.toString, csrf.noCheck)
       xhr.onload = (e: Event) =>
         val loc = xhr.getResponseHeader("Location")
         val key = xhr.getResponseHeader(XKey.toString)

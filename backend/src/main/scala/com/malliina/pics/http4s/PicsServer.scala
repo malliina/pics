@@ -1,6 +1,5 @@
 package com.malliina.pics.http4s
 
-import cats.arrow.FunctionK
 import cats.data.Kleisli
 import cats.effect.*
 import cats.effect.std.Dispatcher
@@ -12,6 +11,7 @@ import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.{BuildInfo, CSRFConf, MultiSizeHandler, PicsConf}
 import com.malliina.util.AppLogger
 import fs2.concurrent.Topic
+import fs2.io.net.Network
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.middleware.{CSRF, GZip, HSTS}
 import org.http4s.server.websocket.WebSocketBuilder2
@@ -33,31 +33,34 @@ trait PicsApp extends IOApp:
   private val serverPort: Port =
     sys.env.get("SERVER_PORT").flatMap(s => Port.fromString(s)).getOrElse(port"9000")
 
-  def server(
+  def server[F[_]: Async: Concurrent](
     conf: => PicsConf,
-    sizeHandler: Resource[IO, MultiSizeHandler[IO]] = MultiSizeHandler.default,
+    sizeHandler: Resource[F, MultiSizeHandler[F]],
     port: Port = serverPort
-  ): Resource[IO, Server] = for
-    handler <- sizeHandler
-    csrf <- Resource.eval(MyCSRF.build[IO, IO](FunctionK.id[IO]))
-    picsApp <- appResource(conf, handler, csrf)
-    _ = log.info(s"Binding on port $port using app version ${BuildInfo.gitHash}...")
-    server <- EmberServerBuilder
-      .default[IO]
-      .withHost(host"0.0.0.0")
-      .withPort(serverPort)
-      .withHttpWebSocketApp(sockets => app(picsApp, sockets, csrf))
-      .withErrorHandler(ErrorHandler[IO].partial)
-      .withIdleTimeout(60.minutes)
-      .withRequestHeaderReceiveTimeout(30.minutes)
-      .withShutdownTimeout(1.millis)
-      .build
-  yield server
+  ): Resource[F, Server] =
+    val csrfConf = CSRFConf.default
+    for
+      handler <- sizeHandler
+      csrf <- Resource.eval(CSRFUtils(csrfConf).default[F])
+      picsApp <- appResource(conf, handler, csrf, csrfConf)
+      _ = log.info(s"Binding on port $port using app version ${BuildInfo.gitHash}...")
+      server <- EmberServerBuilder
+        .default[F]
+        .withHost(host"0.0.0.0")
+        .withPort(serverPort)
+        .withHttpWebSocketApp(sockets => app[F](picsApp, sockets, csrf, csrfConf))
+        .withErrorHandler(ErrorHandler[F].partial)
+        .withIdleTimeout(60.minutes)
+        .withRequestHeaderReceiveTimeout(30.minutes)
+        .withShutdownTimeout(1.millis)
+        .build
+    yield server
 
   private def appResource[F[_]: Async](
     conf: => PicsConf,
     handler: MultiSizeHandler[F],
-    csrf: CSRF[F, F]
+    csrf: CSRF[F, F],
+    csrfConf: CSRFConf
   ): Resource[F, PicsService[F]] = for
     dispatcher <- Dispatcher.parallel[F]
     http <- HttpClientIO.resource
@@ -68,20 +71,21 @@ trait PicsApp extends IOApp:
       else Resource.eval(DoobieDatabase.fast(conf.db))
   yield
     val db = PicsDatabase(doobieDatabase)
-    PicsService.default(conf, db, topic, handler, http, csrf)
+    PicsService.default(conf, db, topic, handler, http, csrf, csrfConf)
 
   def app[F[_]: Async](
     svc: PicsService[F],
     sockets: WebSocketBuilder2[F],
-    csrf: CSRF[F, F]
+    csrf: CSRF[F, F],
+    csrfConf: CSRFConf
   ): AppService[F] =
     val csrfHandler: Middleware[F, Request[F], Response[F], Request[F], Response[F]] = http =>
       Kleisli: (r: Request[F]) =>
         val nocheck =
           r.headers
-            .get(CSRFConf.CsrfHeaderName)
+            .get(csrfConf.headerName)
             .map(_.head.value)
-            .contains(CSRFConf.CsrfTokenNoCheck)
+            .contains(csrfConf.noCheck)
         val response = http(r)
         if nocheck then response
         else if r.method.isSafe then response
@@ -101,5 +105,5 @@ trait PicsApp extends IOApp:
   override def run(args: List[String]): IO[ExitCode] =
     for
       conf <- PicsConf.loadF[IO]
-      app <- server(conf).use(_ => IO.never).as(ExitCode.Success)
+      app <- server[IO](conf, MultiSizeHandler.default).use(_ => IO.never).as(ExitCode.Success)
     yield app

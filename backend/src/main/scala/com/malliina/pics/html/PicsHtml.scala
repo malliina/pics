@@ -26,7 +26,7 @@ object PicsHtml:
 
   val reverse = Reverse
 
-  def build(isProd: Boolean): PicsHtml =
+  def build(isProd: Boolean, csrf: CSRFConf): PicsHtml =
     val appScripts =
       if isProd then Seq(FileAssets.frontend_js)
       else Seq(FileAssets.frontend_js, FileAssets.frontend_loader_js, FileAssets.main_js)
@@ -35,7 +35,8 @@ object PicsHtml:
       appScripts,
       externalScripts,
       Seq(FileAssets.frontend_css, FileAssets.fonts_css, FileAssets.styles_css),
-      AssetsSource(isProd)
+      AssetsSource(isProd),
+      csrf
     )
 
   def postableForm(onAction: String, more: Modifier*) =
@@ -45,9 +46,10 @@ class PicsHtml(
   scripts: Seq[String],
   absoluteScripts: Seq[FullUrl],
   cssFiles: Seq[String],
-  assets: AssetsSource
-) extends BaseHtml:
-  private val authHtml = AuthHtml(assets)
+  assets: AssetsSource,
+  csrf: CSRFConf
+) extends BaseHtml(csrf):
+  private val authHtml = AuthHtml(assets, csrf)
 
   def signIn(feedback: Option[UserFeedback] = None) = basePage(authHtml.signIn(feedback))
 

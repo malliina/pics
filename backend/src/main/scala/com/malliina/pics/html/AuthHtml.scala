@@ -1,11 +1,11 @@
 package com.malliina.pics.html
 
 import com.malliina.html.UserFeedback
-import com.malliina.pics.AssetsSource
+import com.malliina.pics.{AssetsSource, CSRFConf}
 import com.malliina.pics.http4s.{Reverse, ReverseSocial, SocialRoute}
 import scalatags.Text.all.*
 
-class AuthHtml(assets: AssetsSource) extends BaseHtml:
+class AuthHtml(assets: AssetsSource, csrf: CSRFConf) extends BaseHtml(csrf):
   val reverseSocial = ReverseSocial
   val reverse = Reverse
   private val formGroupClass = s"$FormGroup pb-4"

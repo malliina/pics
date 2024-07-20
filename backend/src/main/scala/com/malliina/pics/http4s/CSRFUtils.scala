@@ -1,5 +1,6 @@
 package com.malliina.pics.http4s
 
+import cats.arrow.FunctionK
 import cats.effect.{Concurrent, Sync}
 import cats.syntax.all.toFunctorOps
 import cats.~>
@@ -11,7 +12,15 @@ import org.http4s.circe.CirceInstances
 import org.http4s.server.middleware.CSRF
 import org.http4s.{Response, Status}
 
-object MyCSRF extends CirceInstances:
+object CSRFUtils:
+  def generate[F[_]: Sync](generator: CSRF[F, F]): F[CSRFToken] =
+    generator.generateToken[F].map(CSRF.unlift).map(CSRFToken.apply)
+
+  def toToken(t: CSRF.CSRFToken): CSRFToken = CSRFToken(CSRF.unlift(t))
+
+class CSRFUtils(conf: CSRFConf) extends CirceInstances:
+  def default[F[_]: Sync: Concurrent] = build[F, F](FunctionK.id[F])
+
   def build[F[_]: Sync, G[_]: Concurrent](gf: G ~> F): F[CSRF[F, G]] =
     CSRF
       .generateSigningKey[F]()
@@ -23,12 +32,7 @@ object MyCSRF extends CirceInstances:
               .withEntity(Errors.single("CSRF"))
           )
           .withCSRFCheck(
-            CSRF.checkCSRFinHeaderAndForm[F, G](CSRFConf.CsrfTokenName, gf)
+            CSRF.checkCSRFinHeaderAndForm[F, G](conf.tokenName, gf)
           )
-          .withCookieName(CSRFConf.CsrfCookieName)
+          .withCookieName(conf.cookieName)
           .build
-
-  def generate[F[_]: Sync](generator: CSRF[F, F]): F[CSRFToken] =
-    generator.generateToken[F].map(CSRF.unlift).map(CSRFToken.apply)
-
-  def toToken(t: CSRF.CSRFToken): CSRFToken = CSRFToken(CSRF.unlift(t))
