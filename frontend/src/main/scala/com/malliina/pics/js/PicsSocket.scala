@@ -9,7 +9,7 @@ import scala.concurrent.duration.DurationDouble
 import scala.scalajs.js
 import scala.scalajs.js.timers.*
 
-class PicsSocket extends BaseSocket("/sockets"):
+class PicsSocket(csrf: CSRFUtils) extends BaseSocket("/sockets"):
   val jsHtml = BaseHtml
   val document = dom.document
 
@@ -83,14 +83,30 @@ class PicsSocket extends BaseSocket("/sockets"):
     elemById(jsHtml.galleryId)
       .map: gallery =>
         val newElem =
-          jsHtml.thumbnail(pic, readOnly = isReadOnly, visible = false, lazyLoaded = false).render
+          jsHtml
+            .thumbnail(
+              pic,
+              readOnly = isReadOnly,
+              visible = false,
+              lazyLoaded = false,
+              csrfToken = csrf.csrfFromCookieUnsafe
+            )
+            .render
         installListeners(newElem)
         gallery.insertBefore(newElem, gallery.firstChild)
         // enables the transition
         setTimeout(0.1.seconds):
           newElem.classList.remove("invisible")
       .getOrElse:
-        fill(jsHtml.picsId, jsHtml.gallery(Seq(pic), readOnly = isReadOnly, lazyLoaded = false))
+        fill(
+          jsHtml.picsId,
+          jsHtml.gallery(
+            Seq(pic),
+            readOnly = isReadOnly,
+            lazyLoaded = false,
+            csrfToken = csrf.csrfFromCookieUnsafe
+          )
+        ) // TODO add token
         elemById(jsHtml.galleryId).foreach(installListeners)
 
   def installListeners(elem: Element): Unit =

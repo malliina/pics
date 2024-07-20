@@ -28,7 +28,7 @@ class PicDrop extends Frontend with PicsStrings:
       val xhr = new XMLHttpRequest
       xhr.open("POST", "/pics")
       xhr.setRequestHeader(XName.toString, file.name)
-      xhr.setRequestHeader(CsrfHeaderName, CsrfTokenNoCheck)
+      xhr.setRequestHeader(CsrfHeaderName.toString, CsrfTokenNoCheck)
       xhr.onload = (e: Event) =>
         val loc = xhr.getResponseHeader("Location")
         val key = xhr.getResponseHeader(XKey.toString)

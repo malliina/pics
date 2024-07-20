@@ -127,5 +127,4 @@ object QRCodeOptions:
 @JSGlobal
 class QRCode(@unused elem: HTMLElement, @unused options: QRCodeOptions) extends js.Object:
   def clear(): Unit = js.native
-
   def makeCode(code: String): Unit = js.native

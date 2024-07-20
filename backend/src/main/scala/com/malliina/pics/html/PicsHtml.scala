@@ -55,13 +55,17 @@ class PicsHtml(
 
   def profile = basePage(authHtml.profile)
 
-  def drop(created: Option[PicMeta], feedback: Option[UserFeedback], user: BaseRequest) =
+  def drop(
+    created: Option[PicMeta],
+    feedback: Option[UserFeedback],
+    user: BaseRequest,
+    csrfToken: CSRFToken
+  ) =
     val content =
       divContainer(
         renderFeedback(feedback),
         fullRow(
           postableForm(reverse.sync.renderString, `class` := "drop-row form-inline")(
-//            CSRF.getToken(user.rh).fold(empty)(token => csrfInput(token.name, token.value)),
             submitButton(`class` := btn.info)("Sync")
           )
         ),
@@ -71,6 +75,7 @@ class PicsHtml(
             `class` := "drop-row form-inline",
             id := "delete-form"
           )(
+            csrfInput(csrfToken),
             divClass("input-group")(
               divClass("input-group-prepend")(
                 spanClass("input-group-text")("pics/")
@@ -93,10 +98,16 @@ class PicsHtml(
     val conf = PageConf("Pics - Drop", bodyClass = DropClass, inner = content)
     baseIndex("drop", if user.readOnly then None else Option(user.name), conf)
 
-  def pics(urls: Seq[PicMeta], feedback: Option[UserFeedback], user: BaseRequest, limits: Limits) =
+  def pics(
+    urls: Seq[PicMeta],
+    feedback: Option[UserFeedback],
+    user: BaseRequest,
+    limits: Limits,
+    csrfToken: CSRFToken
+  ) =
     val content = Seq(
       divClass("pics")(renderFeedback(feedback)),
-      picsContent(urls, user.readOnly),
+      picsContent(urls, user.readOnly, csrfToken),
       pageNav(limits)
     )
     val conf = PageConf("Pics", bodyClass = PicsClass, inner = content)

@@ -17,7 +17,7 @@ import scala.concurrent.duration.DurationInt
 object StaticService:
   private val log = AppLogger(getClass)
 
-class StaticService[F[_]: Async] extends BasicService[F]:
+class StaticService[F[_]: Async] extends PicsBasicService[F]:
   private val fontExtensions = List(".woff", ".woff2", ".eot", ".ttf")
   private val supportedStaticExtensions: List[String] =
     List(".html", ".js", ".map", ".css", ".png", ".ico", ".svg") ++ fontExtensions

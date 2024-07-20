@@ -6,7 +6,6 @@ import cats.effect.Async
 import cats.syntax.all.{catsSyntaxApplicativeError, catsSyntaxApplicativeId, toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.html.UserFeedback
 import com.malliina.http.{Errors, HttpClient}
-import com.malliina.http4s.FormReader
 import com.malliina.pics.*
 import com.malliina.pics.PicsStrings.{XClientPic, XKey, XName}
 import com.malliina.pics.auth.AuthProvider.*
@@ -28,7 +27,9 @@ import fs2.io.file.Path as FS2Path
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Encoder, Json}
 import org.http4s.CacheDirective.*
+import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.headers.{Accept, Location, `Cache-Control`, `WWW-Authenticate`}
+import org.http4s.server.middleware.CSRF
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.syntax.literals.mediaType
 import org.http4s.websocket.WebSocketFrame
@@ -50,7 +51,8 @@ object PicsService:
     db: PicsDatabase[F],
     topic: Topic[F, PicMessage],
     handler: MultiSizeHandler[F],
-    http: HttpClient[F]
+    http: HttpClient[F],
+    csrf: CSRF[F, F]
   ): PicsService[F] =
     PicsService(
       PicService(db, handler),
@@ -59,7 +61,8 @@ object PicsService:
       Socials(conf.social, http),
       db,
       topic,
-      handler
+      handler,
+      csrf
     )
 
   def ranges(headers: Headers) = headers
@@ -74,8 +77,11 @@ class PicsService[F[_]: Async](
   socials: Socials[F],
   db: MetaSourceT[F],
   topic: Topic[F, PicMessage],
-  handler: MultiSizeHandler[F]
-) extends BasicService[F]:
+  handler: MultiSizeHandler[F],
+  csrf: CSRF[F, F]
+) extends PicsBasicService[F]
+  with Decoders[F]
+  with FeedbackJson:
   val pong = "pong"
   val F = Async[F]
 
@@ -113,12 +119,12 @@ class PicsService[F[_]: Async](
               .flatMap: keys =>
                 val entries = keys.map: key =>
                   PicMetas.from(key, req)
-                render(req)(
-                  json = Pics(entries),
-                  html =
-                    val feedback = None // UserFeedbacks.flashed(req.rh.flash)
-                    html.pics(entries, feedback, listRequest.user, listRequest.limits)
-                )
+                renderRanged(req)(
+                  json = ok(Pics(entries)),
+                  html = csrfOk: token =>
+                    val feedback = req.feedbackAs[UserFeedback]
+                    html.pics(entries, feedback, listRequest.user, listRequest.limits, token)
+                ).clearFeedback
         .flatMap(_.fold(identity, identity))
     case req @ POST -> Root / "pics" =>
       auth
@@ -165,10 +171,13 @@ class PicsService[F[_]: Async](
                 r <- receive
               yield r
           )
+    case req @ POST -> Root / "pics" / "delete" =>
+      jsonOrForm[Deletion](req): (del, _) =>
+        removeKey(del.key, Reverse.drop, req)
     case req @ POST -> Root / "pics" / KeyParam(key) / "delete" =>
       removeKey(key, Reverse.list, req)
     case req @ POST -> Root / "pics" / KeyParam(key) =>
-      jsonOrForm[AccessLevel](req, Forms.access): (access, user) =>
+      jsonOrForm[AccessLevel](req): (access, user) =>
         changeAccess(key, access.access, user, req)
     case req @ DELETE -> Root / "pics" / KeyParam(key) =>
       removeKey(key, Reverse.drop, req)
@@ -209,8 +218,10 @@ class PicsService[F[_]: Async](
     case req @ GET -> Root / "drop" =>
       authed(req): user =>
         val created: Option[PicMeta] = None
-        val feedback: Option[UserFeedback] = None
-        ok(html.drop(created, feedback, user))
+        val feedback = req.feedbackAs[UserFeedback]
+        csrfOk: token =>
+          html.drop(created, feedback, user, token)
+        .clearFeedback
     case GET -> Root / "sign-up" =>
       ok(html.signUp())
     case req @ GET -> Root / "sign-in" =>
@@ -240,8 +251,8 @@ class PicsService[F[_]: Async](
               e.fold(
                 err => unauthorized(Errors(err.message), req),
                 token =>
-                  SeeOther(Location(Uri.unsafeFromString(twitter.authTokenUrl(token).url))).map:
-                    res => auth.withSession(TwitterState(token), req, res)
+                  seeOther(Uri.unsafeFromString(twitter.authTokenUrl(token).url)).map: res =>
+                    auth.withSession(TwitterState(token), req, res)
               )
         case Google =>
           startHinted(id, reverseSocial.google, socials.google, req)
@@ -306,11 +317,10 @@ class PicsService[F[_]: Async](
         case Apple =>
           handleCallbackV(socials.apple, reverseSocial.apple, req, id)
     case req @ GET -> Root / "sign-out" / "leave" =>
-      SeeOther(Location(Reverse.signOutCallback)).map: res =>
+      seeOther(Reverse.signOutCallback).map: res =>
         auth.clearSession(req, res)
     case GET -> Root / "sign-out" =>
-      // TODO .flashing("message" -> "You have now logged out.")
-      SeeOther(Location(Reverse.list))
+      seeOther(Reverse.list).withFeedback(UserFeedback.success("You have now logged out."))
     case GET -> Root / "legal" / "privacy" =>
       ok(html.privacyPolicy)
     case GET -> Root / "support" =>
@@ -337,6 +347,13 @@ class PicsService[F[_]: Async](
         .recover: err =>
           badRequest(Errors(NonEmptyList.of(err)))
   }
+
+  private def csrfOk[A](content: CSRFToken => A)(using EntityEncoder[F, A]) =
+    csrf
+      .generateToken[F]
+      .flatMap: token =>
+        ok(content(MyCSRF.toToken(token))).map: res =>
+          csrf.embedInResponseCookie(res, token)
 
   private def sendPic(key: Key, size: PicSize, req: Request[F]) =
     val sendPic = handler(size).storage
@@ -366,7 +383,7 @@ class PicsService[F[_]: Async](
   private def changeAccess(key: Key, to: Access, user: PicRequest, req: Request[F]) =
     if user.readOnly then
       delay(
-        log.warn(s"User '${user.name}' is not authorized to change access of any images.")
+        log.warn(s"User '${user.name}' is nota authorized to change access of any images.")
       ).flatMap: _ =>
         unauthorized(Errors(s"Unauthorized."), req)
     else
@@ -386,7 +403,7 @@ class PicsService[F[_]: Async](
         db.remove(key, user.name)
           .flatMap: wasDeleted =>
             if wasDeleted then
-              log.info(s"Key '$key' removed by '${user.name}' from '$req'.")
+              log.info(s"Key '$key' removed by '${user.name}' from '${req.uri}'.")
               handler
                 .remove(key)
                 .flatMap: _ =>
@@ -395,11 +412,16 @@ class PicsService[F[_]: Async](
                     .flatMap: _ =>
                       renderRanged(req)(
                         json = Accepted(Json.obj("message" -> "ok".asJson), noCache),
-                        html = SeeOther(Location(redir))
+                        html = seeOther(redir)
+                          .withFeedback(UserFeedback.success(s"Removed '$key'."))
                       )
             else
-              log.error(s"Key not found: '$key'.")
-              keyNotFound(key)
+              val msg = s"Key not found: '$key'."
+              log.warn(msg)
+              renderRanged(req)(
+                json = keyNotFound(key),
+                html = seeOther(redir).withFeedback(UserFeedback.error(msg))
+              )
 
   private def start(validator: FlowStart[F], reverse: SocialRoute, req: Request[F]) =
     validator
@@ -545,12 +567,12 @@ class PicsService[F[_]: Async](
   private def authedAll(req: Request[F])(code: PicRequest => F[Response[F]]): F[Response[F]] =
     auth.authenticateAll(req.headers).flatMap(_.fold(identity, code))
 
-  private def render[A: Encoder, B](req: Request[F])(json: A, html: B)(implicit
-    w: EntityEncoder[F, B]
-  ): F[Response[F]] =
-    renderRanged[A, B](req)(ok(json.asJson), ok(html))
+//  private def render[A: Encoder, B](req: Request[F])(json: A, html: B)(implicit
+//    w: EntityEncoder[F, B]
+//  ): F[Response[F]] =
+//    renderRanged[A, B](req)(ok(json.asJson), ok(html))
 
-  private def renderRanged[A: Encoder, B](
+  private def renderRanged(
     req: Request[F]
   )(json: F[Response[F]], html: F[Response[F]]): F[Response[F]] =
     val rs = ranges(req.headers)
@@ -580,12 +602,13 @@ class PicsService[F[_]: Async](
       log.error(s"Unable to parse image by '${by.name}'.", ipa)
       badRequestWith("Unable to parse image.")
 
-  private def jsonOrForm[T: Decoder](req: Request[F], readForm: FormReader => Either[Errors, T])(
+  private def jsonOrForm[T: Decoder](req: Request[F])(
     code: (T, PicRequest) => F[Response[F]]
-  ): F[Response[F]] =
+  )(using formDecoder: EntityDecoder[F, T]): F[Response[F]] =
     authed(req): user =>
       log.info(s"Handling JSON or form data for ${req.uri}...")
-      val decoder = jsonOf[F, T].orElse(formDecoder[T](readForm))
+
+      val decoder = jsonOf[F, T].orElse(formDecoder)
       decoder
         .decode(req, strict = false)
         .rethrowT
@@ -595,28 +618,12 @@ class PicsService[F[_]: Async](
           log.error(s"Form failure. $err")
           badRequest(Errors("Invalid form input."))
 
-  private def formDecoder[T](readForm: FormReader => Either[Errors, T]) =
-    UrlForm
-      .entityDecoder[F]
-      .flatMapR: form =>
-        readForm(FormReader(form)).fold(
-          err =>
-            DecodeResult
-              .failureT(
-                MalformedMessageBodyFailure(err.message.message, Option(ErrorsException(err)))
-              ),
-          t => DecodeResult.successT(t)
-        )
-  private def ok[A](a: A)(using EntityEncoder[F, A]) = Ok(a, noCache)
   private def badRequestWith(message: String) = badRequest(Errors(message))
-  private def badRequest(errors: Errors): F[Response[F]] =
-    BadRequest(errors.asJson, noCache)
   private def unauthorized(errors: Errors, req: Request[F]): F[Response[F]] = Unauthorized(
     `WWW-Authenticate`(NonEmptyList.of(Challenge("myscheme", "myrealm"))),
     errors.asJson
   ).map(r => auth.clearSession(req, r.removeCookie(cookieNames.provider)))
   private def keyNotFound(key: Key) = notFoundWith(s"Not found: '$key'.")
-  private def notFound(req: Request[F]) = notFoundWith(s"Not found: '${req.uri}'.")
   private def notFoundWith(message: String) = NotFound(Errors(message).asJson, noCache)
   private def serverError(message: String) =
     InternalServerError(Errors(message).asJson, noCache)

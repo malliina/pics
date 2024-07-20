@@ -1,9 +1,12 @@
 package com.malliina.pics.js
 
-import com.malliina.pics.CSRFConf.{CsrfCookieName, CsrfTokenName}
+import com.malliina.pics.CSRFConf.CsrfCookieName
+import com.malliina.pics.CSRFToken
+import com.malliina.values.{ErrorMessage, Readable}
 import org.scalajs.dom
-import org.scalajs.dom.HTMLFormElement
-import org.scalajs.dom.{Element, Event}
+import org.scalajs.dom.{Element, Event, HTMLFormElement}
+
+import java.util.NoSuchElementException
 
 class CSRFUtils(val log: BaseLogger = BaseLogger.console):
   val document = dom.document
@@ -18,16 +21,29 @@ class CSRFUtils(val log: BaseLogger = BaseLogger.console):
         )
 
   def installTo(form: HTMLFormElement) =
-    readCookie(CsrfCookieName)
-      .map: tokenValue =>
-        form.appendChild(BaseHtml.csrfInput(CsrfTokenName, tokenValue).render)
+    csrfFromCookie
+      .map: token =>
+        val bh = BaseHtml
+        import bh.given
+        form.appendChild(bh.csrfInput(token).render)
       .getOrElse:
         log.info("CSRF token not found.")
 
-  def readCookie(key: String) =
-    cookiesMap(document.cookie).get(key)
+  def csrfFromCookie: Either[ErrorMessage, CSRFToken] =
+    readCookie[CSRFToken](CsrfCookieName)
 
-  def cookiesMap(in: String) =
+  def csrfFromCookieUnsafe = csrfFromCookie.fold(
+    err => throw NoSuchElementException(err.message),
+    identity
+  )
+
+  def readCookie[R](key: String)(using r: Readable[R]): Either[ErrorMessage, R] =
+    cookiesMap(document.cookie)
+      .get(key)
+      .toRight(ErrorMessage(s"Cookie not found: '$key'."))
+      .flatMap(str => r.read(str))
+
+  private def cookiesMap(in: String) =
     in.split(";")
       .toList
       .map(_.trim.split("=", 2).toList)

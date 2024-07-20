@@ -8,8 +8,10 @@ import scalatags.Text.all.{Attr, AttrValue}
 import scalatags.text.Builder
 
 class BaseHtml extends HtmlBuilder(HtmlTags) with LoginStrings:
-  given showAttrValue[T](using s: Show[T]): AttrValue[T] =
-    (t: Builder, a: Attr, v: T) => t.setAttr(a.name, Builder.GenericAttrValueSource(s.show(v)))
+  given showAttrValue[T](using s: Show[T]): AttrValue[T] = makeStringAttr(v => s.show(v))
   given AttrValue[Uri] =
     (t: Builder, a: Attr, v: Uri) =>
       t.setAttr(a.name, Builder.GenericAttrValueSource(v.renderString))
+
+  override def makeStringAttr[T](write: T => String): AttrValue[T] =
+    (t: Builder, a: Attr, v: T) => t.setAttr(a.name, Builder.GenericAttrValueSource(write(v)))

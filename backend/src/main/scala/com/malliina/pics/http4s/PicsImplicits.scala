@@ -1,9 +1,9 @@
 package com.malliina.pics.http4s
 
-import org.http4s.circe.CirceInstances
-import org.http4s.dsl.Http4sDsl
+import cats.Applicative
+import com.malliina.http4s.BasicService
 import org.http4s.headers.`Content-Type`
-import org.http4s.{Charset, EntityEncoder, MediaType, syntax}
+import org.http4s.{Charset, EntityEncoder, MediaType}
 import scalatags.generic.Frag
 
 trait MyScalatagsInstances:
@@ -21,8 +21,5 @@ trait MyScalatagsInstances:
       .contramap[C](content => content.render)
       .withContentType(`Content-Type`(mediaType, charset))
 
-abstract class PicsImplicits[F[_]]
-  extends syntax.AllSyntax
-  with Http4sDsl[F]
-  with MyScalatagsInstances
-  with CirceInstances
+class PicsBasicService[F[_]: Applicative] extends BasicService[F] with MyScalatagsInstances:
+  export BasicService.noCache

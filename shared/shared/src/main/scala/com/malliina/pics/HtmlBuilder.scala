@@ -3,7 +3,7 @@ package com.malliina.pics
 import com.malliina.html.{Bootstrap, Tags, UserFeedback}
 import com.malliina.http.FullUrl
 
-class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, FragT])
+abstract class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, FragT])
   extends Bootstrap(ts):
 
   import tags.*
@@ -30,23 +30,31 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
   val galleryId = "pic-gallery"
   val picsId = "pics-container"
 
-  given AttrValue[FullUrl] = genericAttr[FullUrl]
-  given AttrValue[Key] = genericAttr[Key]
+  given AttrValue[FullUrl] = makeStringAttr(_.url)
+  given AttrValue[Key] = makeStringAttr(_.key)
+  given AttrValue[CSRFToken] = makeStringAttr(_.value)
+
+  def makeStringAttr[T](write: T => String): AttrValue[T]
 
   given Conversion[Key, Frag] = (key) => stringFrag(key.key)
 
   def noPictures = p(`class` := s"$Lead pics-feedback")("No pictures.")
 
-  def picsContent(urls: Seq[PicMeta], readOnly: Boolean): Modifier =
+  def picsContent(urls: Seq[PicMeta], readOnly: Boolean, csrfToken: CSRFToken): Modifier =
     divClass("pics-container", id := picsId)(
       if urls.isEmpty then noPictures
-      else gallery(urls, readOnly, lazyLoaded = true)
+      else gallery(urls, readOnly, lazyLoaded = true, csrfToken = csrfToken)
     )
 
-  def gallery(pics: Seq[BaseMeta], readOnly: Boolean, lazyLoaded: Boolean) =
+  def gallery(
+    pics: Seq[BaseMeta],
+    readOnly: Boolean,
+    lazyLoaded: Boolean,
+    csrfToken: CSRFToken
+  ) =
     divClass("gallery", id := galleryId)(
       pics.map: pic =>
-        thumbnail(pic, readOnly, visible = true, lazyLoaded = lazyLoaded)
+        thumbnail(pic, readOnly, visible = true, lazyLoaded = lazyLoaded, csrfToken = csrfToken)
     )
 
   def renderFeedback(feedback: Option[UserFeedback]): Modifier =
@@ -56,7 +64,13 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
 
   def thumbId(key: Key) = s"pic-$key"
 
-  def thumbnail(pic: BaseMeta, readOnly: Boolean, visible: Boolean, lazyLoaded: Boolean) =
+  def thumbnail(
+    pic: BaseMeta,
+    readOnly: Boolean,
+    visible: Boolean,
+    lazyLoaded: Boolean,
+    csrfToken: CSRFToken
+  ) =
     val toggleText = if pic.access == Access.Public then "Make private" else "Make public"
     val newAccess = if pic.access == Access.Public then Access.Private else Access.Public
     if readOnly then thumb(pic, visible, lazyLoaded)
@@ -64,11 +78,13 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
       val more = figcaption(`class` := "figure-caption caption")(
         div(
           postableForm(s"/pics/${pic.key}/delete")(
+            csrfInput(csrfToken),
             submitButton(`class` := s"${btnOutline.danger} ${btn.sm}")("Delete")
           )
         ),
         div(
           postableForm(s"/pics/${pic.key}")(
+            csrfInput(csrfToken),
             input(`type` := "hidden", name := Access.FormKey, value := newAccess.name),
             submitButton(`class` := s"${btnOutline.default} ${btn.sm}")(toggleText)
           )
@@ -87,7 +103,7 @@ class HtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, Fra
       )
       thumb(pic, visible, lazyLoaded, more)
 
-  def csrfInput(inputName: String, inputValue: String) =
+  def csrfInput[V: AttrValue](inputValue: V, inputName: String = CSRFConf.CsrfTokenName) =
     input(`type` := "hidden", name := inputName, value := inputValue)
 
   def thumb(pic: BaseMeta, visible: Boolean, lazyLoaded: Boolean, more: Modifier*) =

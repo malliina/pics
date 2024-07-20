@@ -50,10 +50,13 @@ case class Key(key: String) extends AnyVal:
   def append(s: String): Key = Key(s"$key$s")
 
 object Key:
+  val Key = "key"
   val Length = 7
 
   given Codec[Key] =
     Codec.from(Decoder.decodeString.map(s => apply(s)), Encoder.encodeString.contramap(_.key))
+
+  given Readable[Key] = Readable.string.map(apply)
 
 object KeyParam:
   def unapply(str: String): Option[Key] =

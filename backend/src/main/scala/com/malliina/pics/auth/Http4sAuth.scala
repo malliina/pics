@@ -6,7 +6,7 @@ import com.malliina.http.{Errors, HttpClient}
 import com.malliina.pics.auth.CredentialsResult.{AccessTokenResult, IdTokenResult, NoCredentials}
 import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.http4s.PicsService.version10
-import com.malliina.pics.http4s.{BasicService, PicsService, Reverse, Urls}
+import com.malliina.pics.http4s.{PicsBasicService, PicsService, Reverse, Urls}
 import com.malliina.pics.{AppConf, PicRequest}
 import com.malliina.values.{AccessToken, ErrorMessage, IdToken, Username}
 import com.malliina.web.{CognitoAccessValidator, CognitoIdValidator, JWTUser, OAuthError}
@@ -40,7 +40,7 @@ class Http4sAuth[F[_]: Sync](
   google: GoogleTokenAuth[F],
   db: PicsDatabase[F],
   val cookieNames: CookieConf
-) extends BasicService[F]:
+) extends PicsBasicService[F]:
   val cookiePath = Option("/")
   val F = Sync[F]
 
