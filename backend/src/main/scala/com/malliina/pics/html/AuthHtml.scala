@@ -1,7 +1,8 @@
 package com.malliina.pics.html
 
 import com.malliina.html.UserFeedback
-import com.malliina.pics.{AssetsSource, CSRFConf}
+import com.malliina.http.CSRFConf
+import com.malliina.pics.AssetsSource
 import com.malliina.pics.http4s.{Reverse, ReverseSocial, SocialRoute}
 import scalatags.Text.all.*
 

@@ -1,6 +1,7 @@
 package com.malliina.pics.js
 
-import com.malliina.pics.{CSRFConf, PicsStrings}
+import com.malliina.http.CSRFConf
+import com.malliina.pics.PicsStrings
 import org.scalajs.dom.*
 import scalatags.JsDom.all.*
 

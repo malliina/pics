@@ -1,5 +1,6 @@
 package com.malliina.pics.js
 
+import com.malliina.http.CSRFConf
 import com.malliina.pics.*
 import io.circe.*
 import org.scalajs.dom

@@ -5,10 +5,12 @@ import cats.effect.*
 import cats.effect.std.Dispatcher
 import com.comcast.ip4s.{Port, host, port}
 import com.malliina.database.DoobieDatabase
+import com.malliina.http.CSRFConf
 import com.malliina.http.io.HttpClientIO
+import com.malliina.http4s.CSRFUtils
 import com.malliina.logback.AppLogging
 import com.malliina.pics.db.PicsDatabase
-import com.malliina.pics.{BuildInfo, CSRFConf, MultiSizeHandler, PicsConf}
+import com.malliina.pics.{BuildInfo, MultiSizeHandler, PicsConf}
 import com.malliina.util.AppLogger
 import fs2.concurrent.Topic
 import fs2.io.net.Network

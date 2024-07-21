@@ -1,7 +1,8 @@
 package com.malliina.pics.http4s
 
 import cats.Applicative
-import com.malliina.http4s.BasicService
+import cats.effect.kernel.Sync
+import com.malliina.http4s.{BasicService, CSRFSupport}
 import org.http4s.headers.`Content-Type`
 import org.http4s.{Charset, EntityEncoder, MediaType}
 import scalatags.generic.Frag
@@ -21,5 +22,7 @@ trait MyScalatagsInstances:
       .contramap[C](content => content.render)
       .withContentType(`Content-Type`(mediaType, charset))
 
-class PicsBasicService[F[_]: Applicative] extends BasicService[F] with MyScalatagsInstances:
+class PicsBasicService[F[_]: Applicative: Sync] extends BasicService[F] with MyScalatagsInstances:
   export BasicService.noCache
+
+abstract class HtmlService[F[_]: Applicative: Sync] extends PicsBasicService[F] with CSRFSupport[F]

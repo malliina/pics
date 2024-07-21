@@ -1,6 +1,6 @@
-import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 
-val webAuthVersion = "6.9.1"
+val webAuthVersion = "6.9.2"
 val primitivesVersion = "3.7.1"
 val munitVersion = "1.0.0"
 
@@ -28,8 +28,8 @@ inThisBuild(
   )
 )
 
-val cross = portableProject(JSPlatform, JVMPlatform)
-  .crossType(PortableType.Full)
+val cross = crossProject(JSPlatform, JVMPlatform)
+  .crossType(CrossType.Full)
   .in(file("shared"))
   .settings(
     libraryDependencies ++=

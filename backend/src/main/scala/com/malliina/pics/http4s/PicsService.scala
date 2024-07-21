@@ -5,7 +5,7 @@ import cats.data.NonEmptyList
 import cats.effect.Async
 import cats.syntax.all.{catsSyntaxApplicativeError, catsSyntaxApplicativeId, toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.html.UserFeedback
-import com.malliina.http.{Errors, HttpClient}
+import com.malliina.http.{CSRFConf, Errors, HttpClient}
 import com.malliina.http4s.FormDecoders
 import com.malliina.pics.*
 import com.malliina.pics.PicsStrings.{XClientPic, XKey, XName}
@@ -80,10 +80,9 @@ class PicsService[F[_]: Async](
   db: MetaSourceT[F],
   topic: Topic[F, PicMessage],
   handler: MultiSizeHandler[F],
-  csrf: CSRF[F, F]
-) extends PicsBasicService[F]
-  with FormDecoders[F]
-  with FeedbackJson:
+  val csrf: CSRF[F, F]
+) extends HtmlService[F]
+  with FormDecoders[F]:
   val pong = "pong"
   val F = Async[F]
 
@@ -97,7 +96,7 @@ class PicsService[F[_]: Async](
   val reverseSocial = ReverseSocial
   val cookieNames = auth.cookieNames
 
-  def routes(sockets: WebSocketBuilder2[F]) = HttpRoutes.of[F] {
+  def routes(sockets: WebSocketBuilder2[F]) = HttpRoutes.of[F]:
     case GET -> Root            => SeeOther(Location(uri"/pics"))
     case GET -> Root / "ping"   => ok(AppMeta.default.asJson)
     case GET -> Root / "health" => ok(AppMeta.default.asJson)
@@ -348,14 +347,6 @@ class PicsService[F[_]: Async](
           sendPic(Key(rest), size, req)
         .recover: err =>
           badRequest(Errors(NonEmptyList.of(err)))
-  }
-
-  private def csrfOk[A](content: CSRFToken => A)(using EntityEncoder[F, A]) =
-    csrf
-      .generateToken[F]
-      .flatMap: token =>
-        ok(content(CSRFUtils.toToken(token))).map: res =>
-          csrf.embedInResponseCookie(res, token)
 
   private def sendPic(key: Key, size: PicSize, req: Request[F]) =
     val sendPic = handler(size).storage
@@ -594,7 +585,7 @@ class PicsService[F[_]: Async](
     case ImageException(ioe) =>
       val msg = "An I/O error occurred."
       log.error(msg, ioe)
-      serverError(msg)
+      serverErrorWith(msg)
     case ImageReaderFailure(file) =>
       val size = Files.size(file).bytes
       val isReadable = Files.isReadable(file)
@@ -626,7 +617,4 @@ class PicsService[F[_]: Async](
     errors.asJson
   ).map(r => auth.clearSession(req, r.removeCookie(cookieNames.provider)))
   private def keyNotFound(key: Key) = notFoundWith(s"Not found: '$key'.")
-  private def notFoundWith(message: String) = NotFound(Errors(message).asJson, noCache)
-  private def serverError(message: String) =
-    InternalServerError(Errors(message).asJson, noCache)
   private def delay[A](thunk: => A): F[A] = F.delay(thunk)

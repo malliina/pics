@@ -1,7 +1,7 @@
 package com.malliina.pics
 
 import com.malliina.html.{Bootstrap, Tags, UserFeedback}
-import com.malliina.http.FullUrl
+import com.malliina.http.{CSRFConf, CSRFToken, FullUrl}
 
 abstract class BasicHtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, FragT])
   extends Bootstrap(ts):

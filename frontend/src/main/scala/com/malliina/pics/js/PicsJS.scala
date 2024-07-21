@@ -1,6 +1,6 @@
 package com.malliina.pics.js
 
-import com.malliina.pics.CSRFConf
+import com.malliina.http.CSRFConf
 import org.scalajs.dom
 
 import scala.annotation.unused

@@ -1,6 +1,6 @@
 package com.malliina.pics.js
 
-import com.malliina.pics.{CSRFConf, CSRFToken}
+import com.malliina.http.{CSRFConf, CSRFToken}
 import com.malliina.values.{ErrorMessage, Readable}
 import org.scalajs.dom
 import org.scalajs.dom.{Element, Event, HTMLFormElement}

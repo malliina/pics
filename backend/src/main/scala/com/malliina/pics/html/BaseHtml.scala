@@ -2,7 +2,8 @@ package com.malliina.pics.html
 
 import cats.Show
 import com.malliina.html.HtmlTags
-import com.malliina.pics.{CSRFConf, HtmlBuilder, LoginStrings}
+import com.malliina.http.CSRFConf
+import com.malliina.pics.{HtmlBuilder, LoginStrings}
 import org.http4s.Uri
 import scalatags.Text.all.{Attr, AttrValue}
 import scalatags.text.Builder

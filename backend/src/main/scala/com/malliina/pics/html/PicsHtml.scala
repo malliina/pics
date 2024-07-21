@@ -2,7 +2,7 @@ package com.malliina.pics.html
 
 import com.malliina.html.HtmlTags.{defer as _, *}
 import com.malliina.html.UserFeedback
-import com.malliina.http.FullUrl
+import com.malliina.http.{CSRFConf, CSRFToken, FullUrl}
 import com.malliina.live.LiveReload
 import com.malliina.pics.assets.{FileAssets, HashedAssets}
 import com.malliina.pics.html.PicsHtml.*
