@@ -195,7 +195,7 @@ class PicsService[F[_]: Async](
                   db.putMetaIfNotExists(key.withUser(adminUser))
                 .flatMap: changes =>
                   log.info(s"Sync complete. Upserted ${changes.sum} rows.")
-                  SeeOther(Location(Reverse.drop))
+                  seeOther(Reverse.drop)
         else unauthorized(Errors("Admin required."), req)
     case req @ GET -> Root / "sockets" =>
       authedAll(req): user =>
@@ -384,7 +384,7 @@ class PicsService[F[_]: Async](
         .flatMap: meta =>
           renderRanged(req)(
             json = Accepted(Json.obj("message" -> "ok".asJson), noCache),
-            html = SeeOther(Location(Reverse.list))
+            html = seeOther(Reverse.list)
           )
 
   private def removeKey(key: Key, redir: Uri, req: Request[F]) =
@@ -458,7 +458,7 @@ class PicsService[F[_]: Async](
       .getOrElse(Nil)
     (url, sessionParams)
   .flatMap: (url, sessionParams) =>
-    SeeOther(Location(Uri.unsafeFromString(url.url))).map: res =>
+    seeOther(Uri.unsafeFromString(url.url)).map: res =>
       val session = sessionParams.toMap.asJson
       auth
         .withSession(session, req, res)

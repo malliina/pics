@@ -17,8 +17,8 @@ import fs2.io.net.Network
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.middleware.{CSRF, GZip, HSTS}
 import org.http4s.server.websocket.WebSocketBuilder2
-import org.http4s.server.{Middleware, Router, Server}
-import org.http4s.{HttpRoutes, Request, Response}
+import org.http4s.server.{Router, Server}
+import org.http4s.{HttpApp, HttpRoutes, Request, Response}
 
 import scala.concurrent.duration.{Duration, DurationInt}
 
@@ -28,8 +28,6 @@ object PicsServer extends PicsApp:
   AppLogging.init()
 
 trait PicsApp extends IOApp:
-  type AppService[F[_]] = Kleisli[F, Request[F], Response[F]]
-
   private val log = AppLogger(getClass)
 
   private val serverPort: Port =
@@ -41,16 +39,17 @@ trait PicsApp extends IOApp:
     port: Port = serverPort
   ): Resource[F, Server] =
     val csrfConf = CSRFConf.default
+    val csrfUtils = CSRFUtils(csrfConf)
     for
       handler <- sizeHandler
-      csrf <- Resource.eval(CSRFUtils(csrfConf).default[F])
+      csrf <- Resource.eval(csrfUtils.default[F])
       picsApp <- appResource(conf, handler, csrf, csrfConf)
       _ = log.info(s"Binding on port $port using app version ${BuildInfo.gitHash}...")
       server <- EmberServerBuilder
         .default[F]
         .withHost(host"0.0.0.0")
         .withPort(serverPort)
-        .withHttpWebSocketApp(sockets => app[F](picsApp, sockets, csrf, csrfConf))
+        .withHttpWebSocketApp(sockets => app[F](picsApp, sockets, csrfUtils.middleware(csrf)))
         .withErrorHandler(ErrorHandler[F].partial)
         .withIdleTimeout(60.minutes)
         .withRequestHeaderReceiveTimeout(30.minutes)
@@ -78,21 +77,9 @@ trait PicsApp extends IOApp:
   def app[F[_]: Async](
     svc: PicsService[F],
     sockets: WebSocketBuilder2[F],
-    csrf: CSRF[F, F],
-    csrfConf: CSRFConf
-  ): AppService[F] =
-    val csrfHandler: Middleware[F, Request[F], Response[F], Request[F], Response[F]] = http =>
-      Kleisli: (r: Request[F]) =>
-        val nocheck =
-          r.headers
-            .get(csrfConf.headerName)
-            .map(_.head.value)
-            .contains(csrfConf.noCheck)
-        val response = http(r)
-        if nocheck then response
-        else if r.method.isSafe then response
-        else csrf.checkCSRF(r, response)
-    csrfHandler:
+    csrfChecker: CSRFUtils.CSRFChecker[F]
+  ): HttpApp[F] =
+    csrfChecker:
       GZip:
         HSTS:
           orNotFound:
