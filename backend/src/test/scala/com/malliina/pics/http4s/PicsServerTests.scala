@@ -3,7 +3,7 @@ package com.malliina.pics.http4s
 import cats.Show
 import cats.effect.*
 import com.malliina.http.io.{HttpClientF2, HttpClientIO}
-import com.malliina.http.{FullUrl, OkHttpResponse}
+import com.malliina.http.{CSRFConf, FullUrl, OkHttpResponse}
 import com.malliina.pics.AppMeta
 import okhttp3.RequestBody
 import org.http4s.circe.CirceInstances
@@ -50,10 +50,11 @@ class PicsServerTests extends munit.CatsEffectSuite with ServerSuite with CirceI
     http.get(baseUrl / uri, Map("Accept" -> Show[MediaType].show(mediaType)))
 
   def make(uri: String, mediaType: MediaType): IO[OkHttpResponse] =
+    val csrf = CSRFConf.default
     http.post(
       baseUrl / uri,
       RequestBody.create(Array.empty[Byte]),
-      Map("Accept" -> Show[MediaType].show(mediaType))
+      Map("Accept" -> Show[MediaType].show(mediaType), csrf.headerName.toString -> csrf.noCheck)
     )
 
   def baseUrl: FullUrl = server().baseHttpUrl

@@ -560,11 +560,6 @@ class PicsService[F[_]: Async](
   private def authedAll(req: Request[F])(code: PicRequest => F[Response[F]]): F[Response[F]] =
     auth.authenticateAll(req.headers).flatMap(_.fold(identity, code))
 
-//  private def render[A: Encoder, B](req: Request[F])(json: A, html: B)(implicit
-//    w: EntityEncoder[F, B]
-//  ): F[Response[F]] =
-//    renderRanged[A, B](req)(ok(json.asJson), ok(html))
-
   private def renderRanged(
     req: Request[F]
   )(json: F[Response[F]], html: F[Response[F]]): F[Response[F]] =

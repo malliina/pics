@@ -1,6 +1,6 @@
 scalaVersion := "2.12.20"
 
-val utilsVersion = "1.6.40"
+val utilsVersion = "1.6.41"
 
 Seq(
   "com.malliina" % "sbt-revolver-rollup" % utilsVersion,
