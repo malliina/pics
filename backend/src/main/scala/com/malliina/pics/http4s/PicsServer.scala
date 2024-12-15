@@ -33,7 +33,7 @@ trait PicsApp extends IOApp:
   private val serverPort: Port =
     sys.env.get("SERVER_PORT").flatMap(s => Port.fromString(s)).getOrElse(port"9000")
 
-  def server[F[_]: Async: Concurrent](
+  def server[F[_]: Async](
     conf: => PicsConf,
     sizeHandler: Resource[F, MultiSizeHandler[F]],
     port: Port = serverPort
@@ -42,7 +42,7 @@ trait PicsApp extends IOApp:
     val csrfUtils = CSRFUtils(csrfConf)
     for
       handler <- sizeHandler
-      csrf <- Resource.eval(csrfUtils.default[F])
+      csrf <- Resource.eval(csrfUtils.default[F](onFailure = CSRFUtils.defaultFailure[F]))
       picsApp <- appResource(conf, handler, csrf, csrfConf)
       _ = log.info(s"Binding on port $port using app version ${BuildInfo.gitHash}...")
       server <- EmberServerBuilder

@@ -11,7 +11,7 @@ import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.config.ConfigError
 import com.malliina.database.{Conf, DoobieDatabase}
 import com.malliina.http.FullUrl
-import com.malliina.http.io.{HttpClientF2, HttpClientIO}
+import com.malliina.http.io.HttpClientIO
 import com.malliina.logback.LogbackUtils
 import com.malliina.pics.*
 import com.malliina.pics.http4s.PicsApp
