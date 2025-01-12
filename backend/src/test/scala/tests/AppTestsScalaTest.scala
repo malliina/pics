@@ -11,6 +11,7 @@ import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.config.ConfigError
 import com.malliina.database.{Conf, DoobieDatabase}
 import com.malliina.http.FullUrl
+import com.malliina.http.UrlSyntax.url
 import com.malliina.http.io.HttpClientIO
 import com.malliina.logback.LogbackUtils
 import com.malliina.pics.*
@@ -47,9 +48,9 @@ trait MUnitDatabaseSuite:
       PicsConf.picsConf.parse[Password]("testdb.pass").map(testDatabaseConf)
 
     private def testDatabaseConf(password: Password) = Conf(
-      "jdbc:mysql://localhost:3306/testpics",
+      url"jdbc:mysql://localhost:3306/testpics",
       "testpics",
-      password.pass,
+      password,
       Conf.MySQLDriver,
       maxPoolSize = 2,
       autoMigrate = true
@@ -109,9 +110,9 @@ trait DoobieSuite extends MUnitDatabaseSuite:
 
 object TestConf:
   def apply(container: MySQLContainer): Conf = Conf(
-    container.jdbcUrl,
+    FullUrl.build(container.jdbcUrl).toOption.get,
     container.username,
-    container.password,
+    Password(container.password),
     Conf.MySQLDriver,
     2,
     true

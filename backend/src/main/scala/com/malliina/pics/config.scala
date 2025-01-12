@@ -3,6 +3,7 @@ package com.malliina.pics
 import cats.effect.Sync
 import com.malliina.config.{ConfigError, ConfigNode, ConfigReadable, Env}
 import com.malliina.database.Conf
+import com.malliina.http.UrlSyntax.url
 import com.malliina.pics.app.LocalConf
 import com.malliina.pics.auth.{SecretKey, SignInWithApple, Social}
 import com.malliina.values.{ErrorMessage, Password}
@@ -108,18 +109,18 @@ object PicsConf:
       )
 
   private def prodDatabaseConf(password: Password, maxPoolSize: Int) = Conf(
-    "jdbc:mysql://localhost:3306/pics",
+    url"jdbc:mysql://localhost:3306/pics",
     "pics",
-    password.pass,
+    password,
     Conf.MySQLDriver,
     maxPoolSize,
     autoMigrate = true
   )
 
   private def devDatabaseConf(password: Password) = Conf(
-    "jdbc:mysql://localhost:3307/pics",
+    url"jdbc:mysql://localhost:3307/pics",
     "pics",
-    password.pass,
+    password,
     Conf.MySQLDriver,
     2,
     autoMigrate = false

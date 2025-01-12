@@ -4,6 +4,7 @@ import cats.effect.IO
 import com.malliina.pics.PicsConf
 import com.malliina.web.JWTKeys
 import tests.ClientSuite
+
 import java.time.Instant
 
 class AppleTests extends munit.CatsEffectSuite with ClientSuite:

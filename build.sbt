@@ -1,8 +1,8 @@
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 
-val webAuthVersion = "6.9.5"
-val primitivesVersion = "3.7.4"
-val munitVersion = "1.0.3"
+val webAuthVersion = "6.9.6"
+val primitivesVersion = "3.7.5"
+val munitVersion = "1.0.4"
 
 inThisBuild(
   Seq(
@@ -65,12 +65,12 @@ val backend = project
         "com.malliina" %% m % webAuthVersion
       } ++ Seq(
         "org.apache.commons" % "commons-text" % "1.13.0",
-        "software.amazon.awssdk" % "s3" % "2.29.34",
+        "software.amazon.awssdk" % "s3" % "2.29.50",
         "mysql" % "mysql-connector-java" % "8.0.33",
         "com.sksamuel.scrimage" % "scrimage-core" % "4.3.0",
-        "com.malliina" %% "logstreams-client" % "2.8.0",
+        "com.malliina" %% "logstreams-client" % "2.8.2",
         "com.malliina" %% "config" % primitivesVersion,
-        "com.dimafeng" %% "testcontainers-scala-mysql" % "0.41.4" % Test,
+        "com.dimafeng" %% "testcontainers-scala-mysql" % "0.41.5" % Test,
         "org.typelevel" %% "munit-cats-effect" % "2.0.0" % Test
       ),
     assembly / assemblyJarName := "app.jar",
