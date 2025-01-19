@@ -55,36 +55,30 @@ object PicsConf:
 
   given ConfigReadable[SecretKey] = ConfigReadable.string.map(s => SecretKey(s))
 
-  def picsNode = LocalConf.config.parse[ConfigNode]("pics")
-  def picsConf = picsNode.toOption.get
-
   def loadConf(): Either[ConfigError, PicsConf] =
     for
-      node <- picsNode
+      node <- LocalConf.config.parse[ConfigNode]("pics")
       conf <- load(
         node,
-        node
-          .parse[Password]("db.pass")
-          .map: pass =>
-            if BuildInfo.isProd then prodDatabaseConf(pass, if isStaging then 2 else 5)
-            else devDatabaseConf(pass)
+        pass =>
+          if BuildInfo.isProd then prodDatabaseConf(pass, if isStaging then 2 else 5)
+          else devDatabaseConf(pass),
+        isTest = false
       )
     yield conf
 
   def loadF[F[_]: Sync] = Sync[F].fromEither(loadConf())
 
-  def loadWith(db: Either[ConfigError, Conf]) =
-    for
-      node <- picsNode
-      conf <- load(node, db)
-    yield conf
-
-  def load(root: ConfigNode, db: Either[ConfigError, Conf]): Either[ConfigError, PicsConf] =
+  def load(
+    root: ConfigNode,
+    dbConf: Password => Conf,
+    isTest: Boolean
+  ): Either[ConfigError, PicsConf] =
     for
       secret <-
         if BuildInfo.isProd then root.parse[SecretKey]("app.secret")
         else root.opt[SecretKey]("app.secret").map(_.getOrElse(SecretKey.dev))
-      dbConf <- db
+      dbPass <- root.parse[Password]("db.pass")
       googleWebSecret <- root.parse[ClientSecret]("google.web.secret")
       githubSecret <- root.parse[ClientSecret]("github.client.secret")
       microsoftSecret <- root.parse[ClientSecret]("microsoft.client.secret")
@@ -95,10 +89,10 @@ object PicsConf:
     yield
       val isProdBuild = BuildInfo.isProd
       PicsConf(
-        isTest = false,
+        isTest,
         isProdBuild,
         AppConf(secret),
-        dbConf,
+        dbConf(dbPass),
         Social.google(googleWebSecret),
         Social.github(githubSecret),
         Social.microsoft(microsoftSecret),

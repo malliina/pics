@@ -7,9 +7,9 @@ import java.nio.file.{Path, Paths}
 
 object LocalConf:
   private val appDir: Path = Paths.get(sys.props("user.home")).resolve(".pics")
-  private val localConfFile: Path = appDir.resolve("pics.conf")
   val isProd: Boolean = BuildInfo.mode == "prod"
-  private val localConfig: ConfigNode = ConfigNode.default(localConfFile)
+  def local(file: String) = ConfigNode.default(appDir.resolve(file))
+  private val localConfig: ConfigNode = local("pics.conf")
   val config: ConfigNode =
     if isProd then ConfigNode.load("application-prod.conf")
     else localConfig

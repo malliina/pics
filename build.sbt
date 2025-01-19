@@ -65,12 +65,11 @@ val backend = project
         "com.malliina" %% m % webAuthVersion
       } ++ Seq(
         "org.apache.commons" % "commons-text" % "1.13.0",
-        "software.amazon.awssdk" % "s3" % "2.29.50",
+        "software.amazon.awssdk" % "s3" % "2.30.2",
         "mysql" % "mysql-connector-java" % "8.0.33",
         "com.sksamuel.scrimage" % "scrimage-core" % "4.3.0",
         "com.malliina" %% "logstreams-client" % "2.8.2",
         "com.malliina" %% "config" % primitivesVersion,
-        "com.dimafeng" %% "testcontainers-scala-mysql" % "0.41.5" % Test,
         "org.typelevel" %% "munit-cats-effect" % "2.0.0" % Test
       ),
     assembly / assemblyJarName := "app.jar",

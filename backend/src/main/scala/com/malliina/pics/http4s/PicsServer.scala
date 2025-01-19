@@ -22,12 +22,18 @@ import org.http4s.{HttpApp, HttpRoutes, Request, Response}
 
 import scala.concurrent.duration.{Duration, DurationInt}
 
-object PicsServer extends PicsApp:
+object PicsServer extends IOApp with AppResources:
   override def runtimeConfig =
     super.runtimeConfig.copy(cpuStarvationCheckInitialDelay = Duration.Inf)
   AppLogging.init()
 
-trait PicsApp extends IOApp:
+  override def run(args: List[String]): IO[ExitCode] =
+    for
+      conf <- PicsConf.loadF[IO]
+      app <- server[IO](conf, MultiSizeHandler.default).use(_ => IO.never).as(ExitCode.Success)
+    yield app
+
+trait AppResources:
   private val log = AppLogger(getClass)
 
   private val serverPort: Port =
@@ -90,9 +96,3 @@ trait PicsApp extends IOApp:
 
   private def orNotFound[F[_]: Async](rs: HttpRoutes[F]): Kleisli[F, Request[F], Response[F]] =
     Kleisli(req => rs.run(req).getOrElseF(PicsBasicService[F].notFound(req)))
-
-  override def run(args: List[String]): IO[ExitCode] =
-    for
-      conf <- PicsConf.loadF[IO]
-      app <- server[IO](conf, MultiSizeHandler.default).use(_ => IO.never).as(ExitCode.Success)
-    yield app
