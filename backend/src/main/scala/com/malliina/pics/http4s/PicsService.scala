@@ -573,20 +573,20 @@ class PicsService[F[_]: Async](
 
   @unused
   private def failResize(error: ImageFailure, by: PicRequest): F[Response[F]] = error match
-    case UnsupportedFormat(format, supported) =>
+    case ImageFailure.UnsupportedFormat(format, supported) =>
       val msg = s"Unsupported format: '$format', must be one of: '${supported.mkString(", ")}'"
       log.error(msg)
       badRequestWith(msg)
-    case ImageException(ioe) =>
+    case ImageFailure.ImageException(ioe) =>
       val msg = "An I/O error occurred."
       log.error(msg, ioe)
       serverErrorWith(msg)
-    case ImageReaderFailure(file) =>
+    case ImageFailure.ImageReaderFailure(file) =>
       val size = Files.size(file).bytes
       val isReadable = Files.isReadable(file)
       log.error(s"Unable to read image from file '$file'. Size: $size, readable: $isReadable.")
       badRequestWith("Unable to read image.")
-    case ResizeException(ipa) =>
+    case ImageFailure.ResizeException(ipa) =>
       log.error(s"Unable to parse image by '${by.name}'.", ipa)
       badRequestWith("Unable to parse image.")
 

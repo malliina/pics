@@ -2,6 +2,7 @@ package com.malliina.pics
 
 import cats.effect.Sync
 import cats.syntax.all.*
+import com.malliina.pics.ImageFailure.ImageException
 import com.malliina.storage.{StorageLong, StorageSize}
 import com.malliina.util.AppLogger
 import com.sksamuel.scrimage.ImmutableImage

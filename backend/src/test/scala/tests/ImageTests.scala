@@ -1,7 +1,8 @@
 package tests
 
 import cats.effect.IO
-import com.malliina.pics.{ContentType, ImageException, Resizer, ScrimageResizer}
+import com.malliina.pics.ImageFailure.ImageException
+import com.malliina.pics.{ContentType, Resizer, ScrimageResizer}
 import com.malliina.storage.{StorageInt, StorageSize}
 import fs2.io.file.Path
 

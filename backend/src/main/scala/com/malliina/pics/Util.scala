@@ -27,7 +27,7 @@ object Util:
   private val generator = new RandomStringGenerator.Builder()
     .withinRange('a', 'z')
     .filteredBy(CharacterPredicates.LETTERS)
-    .build()
+    .get()
 
   def randomString(length: Int) = generator.generate(length).toLowerCase
 

@@ -1,11 +1,12 @@
 package com.malliina.pics
 
+import com.malliina.pics.ImageFailure.{ImageException, ImageReaderFailure, UnsupportedFormat}
+
 import java.awt.image.BufferedImage
 import java.awt.{Color, RenderingHints}
 import java.io.{IOException, InputStream}
 import java.nio.file.Path
 import javax.imageio.ImageIO
-
 import org.apache.commons.io.FilenameUtils
 
 object Resizer:
