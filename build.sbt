@@ -1,9 +1,16 @@
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 
 val versions = new {
+  val ci = "1.4.2"
+  val circe = "0.14.10"
+  val commonsText = "1.13.0"
   val logstreams = "2.8.3"
+  val mysql = "8.0.33"
   val munit = "1.1.0"
+  val munitCats = "2.0.0"
   val primitives = "3.7.7"
+  val s3 = "2.30.36"
+  val scrimage = "4.3.0"
   val webAuth = "6.9.8"
 }
 
@@ -37,9 +44,9 @@ val cross = crossProject(JSPlatform, JVMPlatform)
   .settings(
     libraryDependencies ++=
       Seq("generic", "parser").map { m =>
-        "io.circe" %%% s"circe-$m" % "0.14.10"
+        "io.circe" %%% s"circe-$m" % versions.circe
       } ++ Seq(
-        "org.typelevel" %%% "case-insensitive" % "1.4.2",
+        "org.typelevel" %%% "case-insensitive" % versions.ci,
         "com.malliina" %%% "primitives" % versions.primitives,
         "com.malliina" %%% "util-html" % versions.webAuth
       )
@@ -67,13 +74,13 @@ val backend = project
       Seq("util-http4s", "web-auth", "database").map { m =>
         "com.malliina" %% m % versions.webAuth
       } ++ Seq(
-        "org.apache.commons" % "commons-text" % "1.13.0",
-        "software.amazon.awssdk" % "s3" % "2.30.12",
-        "mysql" % "mysql-connector-java" % "8.0.33",
-        "com.sksamuel.scrimage" % "scrimage-core" % "4.3.0",
+        "org.apache.commons" % "commons-text" % versions.commonsText,
+        "software.amazon.awssdk" % "s3" % versions.s3,
+        "mysql" % "mysql-connector-java" % versions.mysql,
+        "com.sksamuel.scrimage" % "scrimage-core" % versions.scrimage,
         "com.malliina" %% "logstreams-client" % versions.logstreams,
         "com.malliina" %% "config" % versions.primitives,
-        "org.typelevel" %% "munit-cats-effect" % "2.0.0" % Test
+        "org.typelevel" %% "munit-cats-effect" % versions.munitCats % Test
       ),
     assembly / assemblyJarName := "app.jar",
     Compile / resourceDirectories += io.Path.userHome / ".pics",
