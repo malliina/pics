@@ -16,7 +16,7 @@ object MultiSizeHandler:
     combo <- Resource.eval(combined(sm, md, lg, orig))
   yield combo
 
-  def empty[F[_]: Sync: Files](): F[MultiSizeHandler[F]] =
+  def empty[F[_]: {Sync, Files}](): F[MultiSizeHandler[F]] =
     for
       sm <- FilePicsIO.named("small")
       m <- FilePicsIO.named("medium")
@@ -25,7 +25,7 @@ object MultiSizeHandler:
       combo <- combined(sm, m, l, o)
     yield combo
 
-  def combined[F[_]: Sync: Files](
+  def combined[F[_]: {Sync, Files}](
     small: DataSourceT[F],
     medium: DataSourceT[F],
     large: DataSourceT[F],
@@ -43,7 +43,7 @@ object MultiSizeHandler:
       ImageHandler("original", AsIsResizer[F], co)
     )
 
-  def cached[F[_]: Sync: Files](name: String, origin: DataSourceT[F]) =
+  def cached[F[_]: {Sync, Files}](name: String, origin: DataSourceT[F]) =
     FilePicsIO
       .named(name)
       .map: fp =>
@@ -55,7 +55,7 @@ class MultiSizeHandler[F[_]: Sync](
   val larges: ImageHandler[F],
   val originals: ImageHandler[F]
 ) extends ImageHandlerLike[F]:
-  val handlers = NonEmptyList.of(smalls, mediums, larges, originals)
+  private val handlers = NonEmptyList.of(smalls, mediums, larges, originals)
 
   def apply(size: PicSize): ImageHandler[F] = size match
     case PicSize.Small    => smalls

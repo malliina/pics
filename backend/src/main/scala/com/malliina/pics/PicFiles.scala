@@ -19,7 +19,7 @@ case class DataFile(
 ) extends DataResponse
 
 object DataFile:
-  def apply[F[_]: Sync: Files](file: Path): F[DataFile] =
+  def apply[F[_]: {Sync, Files}](file: Path): F[DataFile] =
     val F = Files[F]
     F.size(file)
       .map: bytes =>

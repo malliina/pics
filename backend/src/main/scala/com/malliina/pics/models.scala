@@ -87,7 +87,7 @@ object Keys:
   private val generator = new RandomStringGenerator.Builder()
     .withinRange('0', 'z')
     .filteredBy(CharacterPredicates.LETTERS, CharacterPredicates.DIGITS)
-    .build()
+    .get()
 
   def randomish(): Key = Key(generator.generate(Key.Length).toLowerCase)
 

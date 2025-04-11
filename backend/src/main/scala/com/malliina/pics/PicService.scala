@@ -13,7 +13,7 @@ trait PicServiceT[F[_]]:
 object PicService:
   private val log = AppLogger(getClass)
 
-class PicService[F[_]: Sync: Files](val db: MetaSourceT[F], handler: MultiSizeHandler[F])
+class PicService[F[_]: {Sync, Files}](val db: MetaSourceT[F], handler: MultiSizeHandler[F])
   extends PicServiceT[F]:
   val F = Files[F]
   val S = Sync[F]

@@ -91,9 +91,6 @@ class ForgotPassword(log: BaseLogger) extends AuthFrontend(log):
 
   def show(): Unit = forgotForm.removeAttribute(Hidden)
 
-object Mfa:
-  def apply(user: CognitoUser, log: BaseLogger): Mfa = new Mfa(user, log)
-
 class Mfa(user: CognitoUser, log: BaseLogger) extends AuthFrontend(log):
   private val success = Promise[CognitoSession]()
   val session = success.future

@@ -31,5 +31,4 @@ class AuthFrontend(log: BaseLogger) extends Frontend with LoginStrings:
     PicsJS.csrf.installTo(to)
     to.submit()
 
-  implicit class FutureOps[T](val f: Future[T]):
-    def feedbackTo(id: String): Future[T] = recovered(id)(f)
+  extension [T](f: Future[T]) def feedbackTo(id: String): Future[T] = recovered(id)(f)

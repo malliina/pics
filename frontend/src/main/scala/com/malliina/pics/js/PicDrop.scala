@@ -6,8 +6,8 @@ import org.scalajs.dom.*
 import scalatags.JsDom.all.*
 
 class PicDrop(csrf: CSRFConf) extends Frontend with PicsStrings:
-  val dropZone = elem[HTMLElement]("drop-zone")
-  val progress = elem[HTMLProgressElement]("progress")
+  private val dropZone = elem[HTMLElement]("drop-zone")
+  private val progress = elem[HTMLProgressElement]("progress")
 
   dropZone.ondrop = (e: DragEvent) =>
     e.preventDefault()

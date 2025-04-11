@@ -51,7 +51,14 @@ object Social:
     secret
   )
 
-sealed abstract class AuthProvider(val name: String)
+enum AuthProvider(val name: String):
+  case Google extends AuthProvider("google")
+  case Microsoft extends AuthProvider("microsoft")
+  case Amazon extends AuthProvider("amazon")
+  case Twitter extends AuthProvider("twitter")
+  case Facebook extends AuthProvider("facebook")
+  case GitHub extends AuthProvider("github")
+  case Apple extends AuthProvider("apple")
 
 object AuthProvider:
   def forString(s: String): Either[String, AuthProvider] =
@@ -61,11 +68,3 @@ object AuthProvider:
 
   def unapply(str: String): Option[AuthProvider] =
     forString(str).toOption
-
-  case object Google extends AuthProvider("google")
-  case object Microsoft extends AuthProvider("microsoft")
-  case object Amazon extends AuthProvider("amazon")
-  case object Twitter extends AuthProvider("twitter")
-  case object Facebook extends AuthProvider("facebook")
-  case object GitHub extends AuthProvider("github")
-  case object Apple extends AuthProvider("apple")

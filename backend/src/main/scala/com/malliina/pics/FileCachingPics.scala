@@ -6,7 +6,7 @@ import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import com.malliina.storage.StorageSize
 import fs2.io.file.{Files, Path}
 
-class FileCachingPics[F[_]: Sync: Files](cache: FilePicsIO[F], origin: DataSourceT[F])
+class FileCachingPics[F[_]: {Sync, Files}](cache: FilePicsIO[F], origin: DataSourceT[F])
   extends DataSourceT[F]:
   override def load(from: Int, until: Int): F[List[FlatMeta]] = origin.load(from, until)
 

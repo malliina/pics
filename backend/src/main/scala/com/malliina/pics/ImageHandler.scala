@@ -5,7 +5,7 @@ import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import com.sksamuel.scrimage.ImmutableImage
 import fs2.io.file.{Files, Path}
 
-class ImageHandler[F[_]: Sync: Files](
+class ImageHandler[F[_]: {Sync, Files}](
   prefix: String,
   resizer: ImageResizer[F],
   val storage: DataSourceT[F]

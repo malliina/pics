@@ -3,13 +3,13 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 val versions = new {
   val ci = "1.4.2"
   val circe = "0.14.10"
-  val commonsText = "1.13.0"
+  val commonsText = "1.13.1"
   val logstreams = "2.8.3"
   val mysql = "8.0.33"
   val munit = "1.1.0"
-  val munitCats = "2.0.0"
+  val munitCats = "2.1.0"
   val primitives = "3.7.7"
-  val s3 = "2.30.36"
+  val s3 = "2.31.20"
   val scrimage = "4.3.0"
   val webAuth = "6.9.8"
 }

@@ -39,9 +39,6 @@ class SignUp(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log):
         submitToken(success.accessToken, LoginTokenId, signupForm)
       .feedbackTo(SignUpFeedbackId)
 
-object Confirm:
-  def apply(log: BaseLogger) = new Confirm(log)
-
 class Confirm(log: BaseLogger) extends AuthFrontend(log):
   private val success = Promise[CognitoUser]()
   val confirmed = success.future

@@ -28,7 +28,7 @@ class CSRFUtils(csrf: CSRFConf, val log: BaseLogger = BaseLogger.console):
       .getOrElse:
         log.info("CSRF token not found.")
 
-  def csrfFromCookie: Either[ErrorMessage, CSRFToken] =
+  private def csrfFromCookie: Either[ErrorMessage, CSRFToken] =
     readCookie[CSRFToken](csrf.cookieName)
 
   def csrfFromCookieUnsafe = csrfFromCookie.fold(

@@ -14,11 +14,11 @@ import java.io.{IOException, InputStream}
 object ScrimageResizer:
   private val log = AppLogger(getClass)
 
-  def Small[F[_]: Sync: Files] = ScrimageResizer(400, 300)
-  def Medium[F[_]: Sync: Files] = ScrimageResizer(1440, 1080)
-  def Large[F[_]: Sync: Files] = ScrimageResizer(2880, 2160)
+  def Small[F[_]: {Sync, Files}] = ScrimageResizer(400, 300)
+  def Medium[F[_]: {Sync, Files}] = ScrimageResizer(1440, 1080)
+  def Large[F[_]: {Sync, Files}] = ScrimageResizer(2880, 2160)
 
-class ScrimageResizer[F[_]: Sync: Files](maxWidth: Int, maxHeight: Int) extends ImageResizer[F]:
+class ScrimageResizer[F[_]: {Sync, Files}](maxWidth: Int, maxHeight: Int) extends ImageResizer[F]:
   override def resize(
     image: ImmutableImage,
     dest: Path
@@ -36,7 +36,7 @@ class ScrimageResizer[F[_]: Sync: Files](maxWidth: Int, maxHeight: Int) extends 
       )
     yield resizedSize
 
-class AsIsResizer[F[_]: Sync: Files] extends ImageResizer[F]:
+class AsIsResizer[F[_]: {Sync, Files}] extends ImageResizer[F]:
   override def resize(image: ImmutableImage, dest: Path): F[Either[ImageException, StorageSize]] =
     recovered:
       for
