@@ -7,7 +7,6 @@ import org.scalajs.dom
 import org.scalajs.dom.*
 
 import scala.concurrent.duration.DurationDouble
-import scala.scalajs.js
 import scala.scalajs.js.timers.*
 
 class PicsSocket(csrf: CSRFUtils, csrfConf: CSRFConf) extends BaseSocket("/sockets"):

@@ -5,20 +5,20 @@ val versions = new {
   val circe = "0.14.10"
   val commonsText = "1.13.1"
   val logstreams = "2.8.3"
-  val mysql = "8.0.33"
-  val munit = "1.1.0"
+  val mariadb = "3.5.3"
+  val munit = "1.1.1"
   val munitCats = "2.1.0"
-  val primitives = "3.7.7"
-  val s3 = "2.31.20"
-  val scrimage = "4.3.0"
-  val webAuth = "6.9.8"
+  val primitives = "3.7.10"
+  val s3 = "2.31.50"
+  val scrimage = "4.3.1"
+  val webAuth = "6.9.9"
 }
 
 inThisBuild(
   Seq(
     organization := "com.malliina",
     version := "0.0.1",
-    scalaVersion := "3.6.2",
+    scalaVersion := "3.7.0",
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit" % versions.munit % Test
     ),
@@ -76,7 +76,7 @@ val backend = project
       } ++ Seq(
         "org.apache.commons" % "commons-text" % versions.commonsText,
         "software.amazon.awssdk" % "s3" % versions.s3,
-        "mysql" % "mysql-connector-java" % versions.mysql,
+        "org.mariadb.jdbc" % "mariadb-java-client" % versions.mariadb,
         "com.sksamuel.scrimage" % "scrimage-core" % versions.scrimage,
         "com.malliina" %% "logstreams-client" % versions.logstreams,
         "com.malliina" %% "config" % versions.primitives,

@@ -281,7 +281,7 @@ class PicsService[F[_]: Async](
             requestToken <- auth
               .session[TwitterState](req.headers)
               .left
-              .map(e => OAuthError(s"Session failure."))
+              .map(_ => OAuthError(s"Session failure."))
             verifier <- params
               .get(OauthVerifierKey)
               .toRight(OAuthError(s"Missing $OauthVerifierKey query paramater."))
@@ -381,7 +381,7 @@ class PicsService[F[_]: Async](
         unauthorized(Errors(s"Unauthorized."), req)
     else
       db.modify(key, user.name, to)
-        .flatMap: meta =>
+        .flatMap: _ =>
           renderRanged(req)(
             json = Accepted(Json.obj("message" -> "ok".asJson), noCache),
             html = seeOther(Reverse.list)

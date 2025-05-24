@@ -84,7 +84,7 @@ class AuthHtml(assets: AssetsSource, csrf: CSRFConf) extends BaseHtml(csrf):
     Seq("aws-cognito-sdk.min.js", "amazon-cognito-identity.min.js").map: file =>
       jsScript(assets.at(s"js/$file"))
 
-  private def loginForm(feedback: Option[UserFeedback] = None) =
+  private def loginForm(feedback: Option[UserFeedback]) =
     form(id := LoginFormId, cls := col.md.twelve, method := Post, novalidate)(
       input(`type` := "hidden", name := TokenKey, id := LoginTokenId),
       divClass(formGroupClass)(
@@ -143,7 +143,7 @@ class AuthHtml(assets: AssetsSource, csrf: CSRFConf) extends BaseHtml(csrf):
       divClass(formGroupClass, id := ResetFeedbackId)
     )
 
-  private def signUpForm(feedback: Option[UserFeedback] = None) =
+  private def signUpForm(feedback: Option[UserFeedback]) =
     form(
       id := SignUpFormId,
       cls := col.md.twelve,

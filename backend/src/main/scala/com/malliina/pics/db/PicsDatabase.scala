@@ -54,7 +54,7 @@ class PicsDatabase[F[_]](db: DoobieDatabase[F]) extends MetaSourceT[F] with User
 
   override def modify(key: Key, user: PicOwner, access: Access): F[KeyMeta] = db.run:
     for
-      up <-
+      _ <-
         sql"update pics set access = $access where `key` = $key and user = (select id from users where username = $user)".update.run
       row <- metaQuery(key)
     yield

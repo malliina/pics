@@ -22,14 +22,14 @@ class PicDrop(csrf: CSRFConf) extends Frontend with PicsStrings:
     dropZone.className = "upload-drop-zone"
     false
 
-  def startUpload(files: FileList): Unit =
+  private def startUpload(files: FileList): Unit =
     if files.length > 0 then
       val file = files(0)
       val xhr = new XMLHttpRequest
       xhr.open("POST", "/pics")
       xhr.setRequestHeader(XName.toString, file.name)
       xhr.setRequestHeader(csrf.headerName.toString, csrf.noCheck)
-      xhr.onload = (e: Event) =>
+      xhr.onload = (_: Event) =>
         val loc = xhr.getResponseHeader("Location")
         val key = xhr.getResponseHeader(XKey.toString)
         if loc != null && key != null then

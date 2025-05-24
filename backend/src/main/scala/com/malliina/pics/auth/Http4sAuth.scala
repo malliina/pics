@@ -112,7 +112,7 @@ class Http4sAuth[F[_]: Sync](
           F.delay(ios.validate(AccessToken(token.value)).orElse(android.validate(token)))
             .flatMap: e =>
               e.fold(
-                err =>
+                _ =>
                   google
                     .validate(token)
                     .map: e =>

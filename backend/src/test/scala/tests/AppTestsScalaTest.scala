@@ -5,7 +5,6 @@ import cats.effect
 import cats.effect.IO
 import cats.effect.IO.asyncForIO
 import cats.effect.kernel.Resource
-import cats.syntax.flatMap.*
 import ch.qos.logback.classic.Level
 import com.comcast.ip4s.port
 import com.malliina.config.{ConfigError, ConfigNode, MissingValue}
@@ -27,7 +26,7 @@ trait MUnitDatabaseSuite:
   val testConf: ConfigNode = LocalConf.local("test-pics.conf")
 
   val db: Fixture[Conf] = new Fixture[Conf]("database"):
-    var conf: Either[ConfigError, Conf] = Left(MissingValue(NonEmptyList.of("password")))
+    private var conf: Either[ConfigError, Conf] = Left(MissingValue(NonEmptyList.of("password")))
     def apply(): Conf = conf.fold(err => throw err, ok => ok)
 
     override def beforeAll(): Unit =
@@ -39,10 +38,10 @@ trait MUnitDatabaseSuite:
     override def afterAll(): Unit = ()
 
     private def testDatabaseConf(password: Password) = Conf(
-      url"jdbc:mysql://127.0.0.1:3306/testpics",
+      url"jdbc:mariadb://127.0.0.1:3306/testpics",
       "testpics",
       password,
-      Conf.MySQLDriver,
+      PicsConf.mariaDbDriver,
       maxPoolSize = 2,
       autoMigrate = true
     )

@@ -23,7 +23,7 @@ object AppMode:
   given ConfigReadable[AppMode] = ConfigReadable.string.emapParsed:
     case "prod" => Right(Prod)
     case "dev"  => Right(Dev)
-    case other  => Left(ErrorMessage("Must be 'prod' or 'dev'."))
+    case _      => Left(ErrorMessage("Must be 'prod' or 'dev'."))
 
 case class PicsConf(
   isTest: Boolean,
@@ -50,6 +50,8 @@ case class PicsConf(
   def isFull = isTest || isProdBuild
 
 object PicsConf:
+  val mariaDbDriver = "org.mariadb.jdbc.Driver"
+
   private val envName = Env.read[String]("ENV_NAME")
   private val isStaging = envName.contains("staging")
 
@@ -103,19 +105,19 @@ object PicsConf:
       )
 
   private def prodDatabaseConf(password: Password, maxPoolSize: Int) = Conf(
-    url"jdbc:mysql://localhost:3306/pics",
+    url"jdbc:mariadb://localhost:3306/pics",
     "pics",
     password,
-    Conf.MySQLDriver,
+    mariaDbDriver,
     maxPoolSize,
     autoMigrate = true
   )
 
   private def devDatabaseConf(password: Password) = Conf(
-    url"jdbc:mysql://localhost:3307/pics",
+    url"jdbc:mariadb://localhost:3307/pics",
     "pics",
     password,
-    Conf.MySQLDriver,
+    mariaDbDriver,
     2,
     autoMigrate = false
   )
