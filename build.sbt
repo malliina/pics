@@ -18,7 +18,7 @@ inThisBuild(
   Seq(
     organization := "com.malliina",
     version := "0.0.1",
-    scalaVersion := "3.7.0",
+    scalaVersion := "3.7.1",
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit" % versions.munit % Test
     ),
