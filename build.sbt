@@ -57,7 +57,7 @@ val crossJs = cross.js
 
 val frontend = project
   .in(file("frontend"))
-  .enablePlugins(RollupPlugin)
+  .enablePlugins(EsbuildPlugin)
   .disablePlugins(RevolverPlugin)
   .dependsOn(crossJs)
 

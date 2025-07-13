@@ -27,14 +27,11 @@ object PicsHtml:
   val reverse = Reverse
 
   def build(isProd: Boolean, csrf: CSRFConf): PicsHtml =
-    val appScripts =
-      if isProd then Seq(FileAssets.frontend_js)
-      else Seq(FileAssets.frontend_js, FileAssets.frontend_loader_js, FileAssets.main_js)
     val externalScripts = if isProd then Nil else FullUrl.build(LiveReload.script).toSeq
     PicsHtml(
-      appScripts,
+      Seq(FileAssets.main_js),
       externalScripts,
-      Seq(FileAssets.frontend_css, FileAssets.fonts_css, FileAssets.styles_css),
+      Seq(FileAssets.main_css),
       AssetsSource(isProd),
       csrf
     )

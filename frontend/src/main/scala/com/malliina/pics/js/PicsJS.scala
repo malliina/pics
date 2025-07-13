@@ -14,6 +14,14 @@ object PicsJS extends BasicHtml:
   val popperJs = Popper
   val bootstrapJs = Bootstrap
   val bootstrapCss = BootstrapCss
+  val commonCss = CommonCss
+  val galleryCss = GalleryCss
+  val footerCss = FooterCss
+  val dropCss = DropCss
+  val authCss = AuthCss
+  val profileCss = ProfileCss
+  val navCss = NavCss
+  val fontsCss = FontsCss
 
   def main(args: Array[String]): Unit =
     if has(PicsClass) then
@@ -53,3 +61,35 @@ class Popover(@unused e: dom.Element, @unused options: PopoverOptions) extends j
 @js.native
 @JSImport("bootstrap/dist/css/bootstrap.min.css", JSImport.Namespace)
 object BootstrapCss extends js.Object
+
+@js.native
+@JSImport("./css/common.css", JSImport.Namespace)
+object CommonCss extends js.Object
+
+@js.native
+@JSImport("./css/gallery.css", JSImport.Namespace)
+object GalleryCss extends js.Object
+
+@js.native
+@JSImport("./css/footer.css", JSImport.Namespace)
+object FooterCss extends js.Object
+
+@js.native
+@JSImport("./css/drop.css", JSImport.Namespace)
+object DropCss extends js.Object
+
+@js.native
+@JSImport("./css/auth.css", JSImport.Namespace)
+object AuthCss extends js.Object
+
+@js.native
+@JSImport("./css/profile.css", JSImport.Namespace)
+object ProfileCss extends js.Object
+
+@js.native
+@JSImport("./css/navigation.css", JSImport.Namespace)
+object NavCss extends js.Object
+
+@js.native
+@JSImport("./css/fonts.css", JSImport.Namespace)
+object FontsCss extends js.Object

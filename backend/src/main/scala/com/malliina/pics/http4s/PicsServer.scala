@@ -74,8 +74,10 @@ trait AppResources:
     _ <- AppLogging.resource(dispatcher, http)
     topic <- Resource.eval(Topic[F, PicMessage])
     doobieDatabase <-
-      if conf.isFull then DoobieDatabase.init[F](conf.db)
-      else Resource.eval(DoobieDatabase.fast(conf.db))
+      val db = conf.db
+      log.info(s"Using database ${db.url}...")
+      if conf.isFull then DoobieDatabase.init[F](db)
+      else Resource.eval(DoobieDatabase.fast(db))
   yield
     val db = PicsDatabase(doobieDatabase)
     PicsService.default(conf, db, topic, handler, http, csrf, csrfConf)
