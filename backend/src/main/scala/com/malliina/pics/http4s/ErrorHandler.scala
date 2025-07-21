@@ -14,7 +14,7 @@ class ErrorHandler[F[_]: Async] extends PicsBasicService[F]:
   def partial: PartialFunction[Throwable, F[Response[F]]] =
     case re: ResponseException =>
       val error = re.error
-      log.error(s"HTTP ${error.code} for '${error.url}'.")
+      log.error(s"HTTP ${error.code} for '${error.url}'. Body: '${error.response.asString}'.")
       serverError
     case ioe: IOException =>
       log.debug(s"Server IO error.", ioe)

@@ -5,13 +5,13 @@ val versions = new {
   val circe = "0.14.10"
   val commonsText = "1.13.1"
   val logstreams = "2.8.3"
-  val mariadb = "3.5.4"
+  val mariadb = "3.5.3"
   val munit = "1.1.1"
   val munitCats = "2.1.0"
-  val primitives = "3.7.13"
-  val s3 = "2.32.4"
-  val scrimage = "4.3.3"
-  val webAuth = "6.9.11"
+  val primitives = "3.7.10"
+  val s3 = "2.31.50"
+  val scrimage = "4.3.1"
+  val webAuth = "6.9.9"
 }
 
 inThisBuild(
@@ -34,9 +34,7 @@ inThisBuild(
     },
     scalacOptions ++= Seq(
       "-Wunused:all"
-    ),
-    // https://users.scala-lang.org/t/scala-js-with-3-7-0-package-scala-contains-object-and-package-with-same-name-caps/10786/6
-    dependencyOverrides += "org.scala-lang" %% "scala3-library" % scalaVersion.value
+    )
   )
 )
 
