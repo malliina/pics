@@ -5,15 +5,13 @@ import cats.effect.*
 import cats.effect.std.Dispatcher
 import com.comcast.ip4s.{Port, host, port}
 import com.malliina.database.DoobieDatabase
-import com.malliina.http.CSRFConf
-import com.malliina.http.io.HttpClientIO
+import com.malliina.http.{CSRFConf, HttpClient}
 import com.malliina.http4s.CSRFUtils
 import com.malliina.logback.AppLogging
 import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.{BuildInfo, MultiSizeHandler, PicsConf}
 import com.malliina.util.AppLogger
 import fs2.concurrent.Topic
-import fs2.io.net.Network
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.middleware.{CSRF, GZip, HSTS}
 import org.http4s.server.websocket.WebSocketBuilder2
@@ -70,7 +68,7 @@ trait AppResources:
     csrfConf: CSRFConf
   ): Resource[F, PicsService[F]] = for
     dispatcher <- Dispatcher.parallel[F]
-    http <- HttpClientIO.resource
+    http <- HttpClient.resource[F]()
     _ <- AppLogging.resource(dispatcher, http)
     topic <- Resource.eval(Topic[F, PicMessage])
     doobieDatabase <-

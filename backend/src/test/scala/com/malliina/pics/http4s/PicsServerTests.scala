@@ -2,14 +2,16 @@ package com.malliina.pics.http4s
 
 import cats.Show
 import cats.effect.*
-import com.malliina.http.io.{HttpClientF2, HttpClientIO}
-import com.malliina.http.{CSRFConf, FullUrl, HttpResponse}
+import com.malliina.http.{CSRFConf, FullUrl, HttpClient, HttpHeaders, HttpResponse}
 import com.malliina.pics.AppMeta
-import okhttp3.RequestBody
 import org.http4s.circe.CirceInstances
 import org.http4s.implicits.mediaType
 import org.http4s.{MediaType, Status}
+
+import java.net.http.HttpClient as JHttpClient
 import tests.ServerSuite
+
+import java.net.http.HttpClient.Redirect
 
 class PicsServerTests extends munit.CatsEffectSuite with ServerSuite with CirceInstances:
   test("can make request"):
@@ -18,10 +20,14 @@ class PicsServerTests extends munit.CatsEffectSuite with ServerSuite with CirceI
     val result = http.getAs[AppMeta](baseUrl / "ping")
     assertIO(result, AppMeta.default)
 
-  test("root redirects"):
-    val client = HttpClientIO(http.client.newBuilder().followRedirects(false).build())
-    val req = client.get(baseUrl)
-    req.map(res => assertEquals(res.code, Status.SeeOther.code))
+  val noRedir = HttpClient
+    .resource[IO](JHttpClient.newBuilder().followRedirects(Redirect.NEVER), Map.empty)
+  val noRedirHttp = ResourceFunFixture(noRedir)
+  noRedirHttp.test("root redirects"): client =>
+    client
+      .get(baseUrl)
+      .map: res =>
+        assertEquals(res.code, Status.SeeOther.code)
 
   test("version endpoint returns ok for acceptable Accept header"):
     val req = getUri("version", PicsService.version10)
@@ -51,11 +57,12 @@ class PicsServerTests extends munit.CatsEffectSuite with ServerSuite with CirceI
 
   def make(uri: String, mediaType: MediaType): IO[HttpResponse] =
     val csrf = CSRFConf.default
-    http.post(
+    http.postString(
       baseUrl / uri,
-      RequestBody.create(Array.empty[Byte]),
+      "",
+      HttpHeaders.application.octetStream,
       Map("Accept" -> Show[MediaType].show(mediaType), csrf.headerName.toString -> csrf.noCheck)
     )
 
   def baseUrl: FullUrl = server().baseHttpUrl
-  def http: HttpClientF2[IO] = client()
+  def http: HttpClient[IO] = client()

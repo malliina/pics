@@ -1,7 +1,6 @@
 package tests
 
 import cats.data.NonEmptyList
-import cats.effect
 import cats.effect.IO
 import cats.effect.IO.asyncForIO
 import cats.effect.kernel.Resource
@@ -9,9 +8,8 @@ import ch.qos.logback.classic.Level
 import com.comcast.ip4s.port
 import com.malliina.config.{ConfigError, ConfigNode, MissingValue}
 import com.malliina.database.{Conf, DoobieDatabase}
-import com.malliina.http.FullUrl
 import com.malliina.http.UrlSyntax.url
-import com.malliina.http.io.HttpClientIO
+import com.malliina.http.{FullUrl, HttpClient}
 import com.malliina.logback.LogbackUtils
 import com.malliina.pics.*
 import com.malliina.pics.app.LocalConf
@@ -82,7 +80,7 @@ trait ServerSuite extends MUnitDatabaseSuite with ClientSuite:
 trait ClientSuite:
   self: munit.CatsEffectSuite =>
   val client =
-    ResourceSuiteLocalFixture("client", HttpClientIO.resource[IO])
+    ResourceSuiteLocalFixture("client", HttpClient.resource[IO]())
 
   override def munitFixtures: Seq[AnyFixture[?]] = Seq(client)
 

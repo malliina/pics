@@ -4,14 +4,14 @@ val versions = new {
   val ci = "1.4.2"
   val circe = "0.14.10"
   val commonsText = "1.14.0"
-  val logstreams = "2.10.0"
+  val logstreams = "2.10.1"
   val mariadb = "3.5.6"
   val munit = "1.2.0"
   val munitCats = "2.1.0"
-  val primitives = "3.7.18"
+  val primitives = "3.8.3"
   val s3 = "2.33.9"
   val scrimage = "4.3.4"
-  val webAuth = "6.9.14"
+  val webAuth = "6.9.15"
 }
 
 inThisBuild(

@@ -4,7 +4,7 @@ import cats.effect.{Resource, Sync}
 import cats.effect.kernel.Async
 import cats.effect.std.Dispatcher
 import ch.qos.logback.classic.Level
-import com.malliina.http.io.HttpClientF2
+import com.malliina.http.HttpClient
 import com.malliina.logstreams.client.LogstreamsUtils
 import com.malliina.pics.BuildInfo
 
@@ -18,7 +18,7 @@ object AppLogging:
       )
     )
 
-  def resource[F[_]: Async](d: Dispatcher[F], http: HttpClientF2[F]): Resource[F, Boolean] =
+  def resource[F[_]: Async](d: Dispatcher[F], http: HttpClient[F]): Resource[F, Boolean] =
     Resource.make(LogstreamsUtils.installIfEnabled("pics", userAgent, d, http))(_ =>
       Sync[F].delay(LogbackUtils.loggerContext.stop())
     )
