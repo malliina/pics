@@ -3,7 +3,7 @@ package com.malliina.pics.db
 import cats.implicits.*
 import com.malliina.database.DoobieDatabase
 import com.malliina.pics.db.PicsDatabase.log
-import com.malliina.pics.{Access, Key, KeyMeta, MetaSourceT, NonNeg, PicOwner, UserDatabase}
+import com.malliina.pics.{Access, Key, KeyMeta, KeyNotFound, MetaSourceT, NonNeg, PicOwner, UserDatabase}
 import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, UserId, Username}
 import doobie.ConnectionIO
@@ -53,7 +53,14 @@ class PicsDatabase[F[_]](db: DoobieDatabase[F]) extends MetaSourceT[F] with User
         wasDeleted
 
   override def modify(key: Key, user: PicOwner, access: Access): F[KeyMeta] = db.run:
+    val owns = sql"""select exists(select p.`key`
+                                   from pics p, users u
+                                   where p.user = u.id and p.`key` = $key and u.username = $user)"""
+      .query[Boolean]
+      .unique
     for
+      ownsPic <- owns
+      _ <- if !ownsPic then fail(KeyNotFound(key)) else pure(())
       _ <-
         sql"update pics set access = $access where `key` = $key and user = (select id from users where username = $user)".update.run
       row <- metaQuery(key)
@@ -92,3 +99,4 @@ class PicsDatabase[F[_]](db: DoobieDatabase[F]) extends MetaSourceT[F] with User
   yield userId
 
   def pure[T](t: T): ConnectionIO[T] = t.pure[ConnectionIO]
+  def fail[A](e: Exception): ConnectionIO[A] = e.raiseError[ConnectionIO, A]

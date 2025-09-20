@@ -4,14 +4,12 @@ val versions = new {
   val ci = "1.4.2"
   val circe = "0.14.10"
   val commonsText = "1.14.0"
-  val logstreams = "2.10.4"
   val mariadb = "3.5.6"
   val munit = "1.2.0"
   val munitCats = "2.1.0"
-  val primitives = "3.8.4"
   val s3 = "2.33.9"
   val scrimage = "4.3.4"
-  val webAuth = "6.9.16"
+  val util = "6.10.0"
 }
 
 inThisBuild(
@@ -49,8 +47,8 @@ val cross = crossProject(JSPlatform, JVMPlatform)
         "io.circe" %%% s"circe-$m" % versions.circe
       } ++ Seq(
         "org.typelevel" %%% "case-insensitive" % versions.ci,
-        "com.malliina" %%% "primitives" % versions.primitives,
-        "com.malliina" %%% "util-html" % versions.webAuth
+        "com.malliina" %%% "primitives" % versions.util,
+        "com.malliina" %%% "util-html" % versions.util
       )
   )
 
@@ -74,14 +72,14 @@ val backend = project
     buildInfoPackage := "com.malliina.pics",
     libraryDependencies ++=
       Seq("util-http4s", "web-auth", "database").map { m =>
-        "com.malliina" %% m % versions.webAuth
+        "com.malliina" %% m % versions.util
       } ++ Seq(
         "org.apache.commons" % "commons-text" % versions.commonsText,
         "software.amazon.awssdk" % "s3" % versions.s3,
         "org.mariadb.jdbc" % "mariadb-java-client" % versions.mariadb,
         "com.sksamuel.scrimage" % "scrimage-core" % versions.scrimage,
-        "com.malliina" %% "logstreams-client" % versions.logstreams,
-        "com.malliina" %% "config" % versions.primitives,
+        "com.malliina" %% "logstreams-client" % versions.util,
+        "com.malliina" %% "config" % versions.util,
         "org.typelevel" %% "munit-cats-effect" % versions.munitCats % Test
       ),
     assembly / assemblyJarName := "app.jar",
