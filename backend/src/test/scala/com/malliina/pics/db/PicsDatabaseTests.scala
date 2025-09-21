@@ -8,7 +8,7 @@ class PicsDatabaseTests extends munit.CatsEffectSuite with DoobieSuite:
   test("can CRUD pic meta"):
     val data = doobie()
     val picsDatabase = PicsDatabase(data)
-    val user = PicOwner("testuser")
+    val user = PicOwner.build("testuser").toOption.get
     val key = Keys.randomish()
     for
       _ <- picsDatabase.saveMeta(key, user)

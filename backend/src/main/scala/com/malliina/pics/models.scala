@@ -40,12 +40,11 @@ trait BaseRequest:
 case class PicRequest(name: PicOwner, readOnly: Boolean, rh: Headers) extends BaseRequest
 
 object PicRequest:
-  val AnonUser = PicOwner("anon")
-
-  def anon(headers: Headers): PicRequest = PicRequest(AnonUser, true, headers)
-  def forUser(user: Username, headers: Headers): PicRequest = apply(PicOwner(user.name), headers)
+  def anon(headers: Headers): PicRequest = PicRequest(PicOwner.anon, true, headers)
+  def forUser(user: Username, headers: Headers): PicRequest =
+    apply(PicOwner.fromUser(user), headers)
   def apply(user: PicOwner, headers: Headers): PicRequest =
-    apply(PicOwner(user.name), user == AnonUser, headers)
+    apply(user, user == PicOwner.anon, headers)
 
 case class ListRequest(limits: Limits, user: PicRequest) extends LimitsLike:
   override def limit: NonNeg = limits.limit
@@ -89,7 +88,7 @@ object Keys:
     .filteredBy(CharacterPredicates.LETTERS, CharacterPredicates.DIGITS)
     .get()
 
-  def randomish(): Key = Key(generator.generate(Key.Length).toLowerCase)
+  def randomish(): Key = Key.build(generator.generate(Key.Length).toLowerCase).toOption.get
 
 case class FlatMeta(key: Key, lastModified: Instant):
   def withUser(user: PicOwner) = KeyMeta(key, user, Access.Private, lastModified)

@@ -1,8 +1,8 @@
 package com.malliina.pics.http4s
 
-import com.malliina.pics.{PicOwner, PicsAdded, PicsRemoved, ProfileInfo}
-import io.circe.*
+import com.malliina.pics.{PicOwner, PicsAdded, PicsJson, PicsRemoved, ProfileInfo}
 import io.circe.syntax.EncoderOps
+import io.circe.{Encoder, Json}
 
 sealed trait PicMessage:
   def forUser(user: PicOwner): Boolean
@@ -12,7 +12,7 @@ sealed trait UnicastMessage extends PicMessage:
   override def forUser(user: PicOwner): Boolean = user == target
 
 object PicMessage:
-  private val pingJson = Json.obj("event" -> "ping".asJson)
+  private val pingJson = Json.obj(PicsJson.EventKey -> "ping".asJson)
   given Encoder[PicMessage] =
     case AddedMessage(pics, _)   => pics.asJson
     case RemovedMessage(pics, _) => pics.asJson

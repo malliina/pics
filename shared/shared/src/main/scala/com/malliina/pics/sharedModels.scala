@@ -1,11 +1,11 @@
 package com.malliina.pics
 
 import java.util.Date
-
 import com.malliina.http.FullUrl
-import com.malliina.values.{ValidatingCompanion, ErrorMessage, Readable}
+import com.malliina.values.Literals.err
+import com.malliina.values.{ErrorMessage, Readable, Username, ValidatingCompanion}
 import io.circe.generic.semiauto.deriveCodec
-import io.circe.{Codec, Json, Decoder, Encoder}
+import io.circe.{Codec, Decoder, Encoder, Json}
 import io.circe.syntax.EncoderOps
 
 enum Access(val name: String):
@@ -28,15 +28,16 @@ object Access:
   def parseUnsafe(in: String): Access =
     parse(in).fold(err => throw IllegalArgumentException(err.message), identity)
 
-case class PicOwner(name: String) extends AnyVal:
-  override def toString: String = name
+opaque type PicOwner = String
 
 object PicOwner extends ValidatingCompanion[String, PicOwner]:
-  val anon: PicOwner = PicOwner("anon")
+  val anon: PicOwner = "anon"
+  val admin: PicOwner = "malliina123@gmail.com"
 
-  override def build(input: String): Either[ErrorMessage, PicOwner] = Right(apply(input))
-
-  override def write(t: PicOwner): String = t.name
+  override def build(input: String): Either[ErrorMessage, PicOwner] = Right(input)
+  override def write(t: PicOwner): String = t
+  extension (o: PicOwner) def name = write(o)
+  def fromUser(username: Username): PicOwner = username.name
 
 case class ProfileInfo(user: PicOwner, readOnly: Boolean)
 
@@ -44,23 +45,30 @@ object ProfileInfo:
   val Welcome = "welcome"
   given Codec[ProfileInfo] = PicsJson.evented(Welcome, deriveCodec[ProfileInfo])
 
-case class Key(key: String) extends AnyVal:
-  override def toString: String = key
-
-  def append(s: String): Key = Key(s"$key$s")
+opaque type Key = String
 
 object Key:
   val Key = "key"
   val Length = 7
 
-  given Codec[Key] =
-    Codec.from(Decoder.decodeString.map(s => apply(s)), Encoder.encodeString.contramap(_.key))
+  extension (k: Key)
+    def append(s: String): Key = s"$k$s"
+    def key: String = k
 
-  given Readable[Key] = Readable.string.map(apply)
+  def build(input: String): Either[ErrorMessage, Key] =
+    if input.isBlank then Left(err"Blank key not allowed.") else Right(input.trim)
+
+  given Codec[Key] =
+    Codec.from(
+      Decoder.decodeString.emap(s => build(s).left.map(_.message)),
+      Encoder.encodeString.contramap(_.key)
+    )
+
+  given Readable[Key] = Readable.string.emap(build)
 
 object KeyParam:
   def unapply(str: String): Option[Key] =
-    if str.trim.nonEmpty then Option(Key(str.trim)) else None
+    if str.trim.nonEmpty then Key.build(str).toOption else None
 
 case class PicsRemoved(keys: Seq[Key])
 

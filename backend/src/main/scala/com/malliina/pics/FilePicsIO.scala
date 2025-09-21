@@ -17,17 +17,17 @@ object FilePicsIO:
   private val picsDir =
     sys.env.get(PicsEnvKey).map(Path(_)).getOrElse(tmpDir.resolve("pics"))
 
-  def default[F[_]: Sync: Files](): F[FilePicsIO[F]] = directory(picsDir)
-  def thumbs[F[_]: Sync: Files](): F[FilePicsIO[F]] = named("thumbs")
-  def named[F[_]: Sync: Files](name: String): F[FilePicsIO[F]] = directory(picsDir.resolve(name))
+  def default[F[_]: {Sync, Files}](): F[FilePicsIO[F]] = directory(picsDir)
+  def thumbs[F[_]: {Sync, Files}](): F[FilePicsIO[F]] = named("thumbs")
+  def named[F[_]: {Sync, Files}](name: String): F[FilePicsIO[F]] = directory(picsDir.resolve(name))
 
-  private def directory[F[_]: Sync: Files](dir: Path) =
+  private def directory[F[_]: {Sync, Files}](dir: Path) =
     Files[F]
       .createDirectories(dir)
       .map: _ =>
         new FilePicsIO[F](dir)
 
-class FilePicsIO[F[_]: Sync: Files](val dir: Path) extends DataSourceT[F]:
+class FilePicsIO[F[_]: {Sync, Files}](val dir: Path) extends DataSourceT[F]:
   val S = Sync[F]
   val F = Files[F]
   import FilePicsIO.log
@@ -37,11 +37,17 @@ class FilePicsIO[F[_]: Sync: Files](val dir: Path) extends DataSourceT[F]:
     F.list(dir)
       .drop(from)
       .take(from + until)
-      .evalMap: p =>
-        F.getLastModifiedTime(p)
-          .map: lastModified =>
+      .flatMap: p =>
+        fs2.Stream
+          .eval(F.getLastModifiedTime(p))
+          .flatMap: lastModified =>
             val lastMod = Instant.ofEpochMilli(lastModified.toMillis)
-            FlatMeta(Key(p.fileName.toString), lastMod)
+            Key
+              .build(p.fileName.toString)
+              .map: key =>
+                fs2.Stream(FlatMeta(key, lastMod))
+              .getOrElse:
+                fs2.Stream.empty
       .compile
       .toList
 

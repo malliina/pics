@@ -40,7 +40,7 @@ object S3Source:
   def Large[F[_]: Async] = forBucket(BucketName("malliina-pics-large"))
   def Original[F[_]: Async] = forBucket(BucketName("malliina-pics"))
 
-  def default[F[_]: Async: Files](bucket: BucketName, client: S3AsyncClient): F[S3Source[F]] =
+  def default[F[_]: {Async, Files}](bucket: BucketName, client: S3AsyncClient): F[S3Source[F]] =
     val downloadsDir = FilePicsIO.tmpDir.resolve("downloads")
     Files[F]
       .createDirectories(downloadsDir)
@@ -78,8 +78,12 @@ class S3Source[F[_]: Async](bucket: BucketName, client: S3AsyncClient, downloads
     val newAcc = acc ++ current
       .contents()
       .asScala
-      .map: obj =>
-        FlatMeta(Key(obj.key()), obj.lastModified())
+      .flatMap: obj =>
+        Key
+          .build(obj.key())
+          .toOption
+          .map: key =>
+            FlatMeta(key, obj.lastModified())
     if !current.isTruncated || newAcc.size >= desiredSize then F.pure(newAcc.take(desiredSize))
     else
       listBatch(_.continuationToken(current.nextContinuationToken())).flatMap: next =>

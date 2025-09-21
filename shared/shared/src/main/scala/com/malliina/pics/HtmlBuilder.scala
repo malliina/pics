@@ -6,7 +6,6 @@ import com.malliina.http.{CSRFConf, CSRFToken, FullUrl}
 abstract class BasicHtmlBuilder[Builder, Output <: FragT, FragT](ts: Tags[Builder, Output, FragT])
   extends Bootstrap(ts):
 
-  import tags.*
   import tags.impl.all.*
 
   val DropClass = "drop"

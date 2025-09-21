@@ -7,9 +7,9 @@ val versions = new {
   val mariadb = "3.5.6"
   val munit = "1.2.0"
   val munitCats = "2.1.0"
-  val s3 = "2.33.9"
+  val s3 = "2.34.0"
   val scrimage = "4.3.4"
-  val util = "6.10.0"
+  val util = "6.10.1"
 }
 
 inThisBuild(
@@ -26,7 +26,7 @@ inThisBuild(
       case PathList("com", "malliina", xs @ _*)                 => MergeStrategy.first
       case PathList("META-INF", "okio.kotlin_module")           => MergeStrategy.first
       case PathList("module-info.class")                        => MergeStrategy.first
-      case x =>
+      case x                                                    =>
         val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
         oldStrategy(x)
     },

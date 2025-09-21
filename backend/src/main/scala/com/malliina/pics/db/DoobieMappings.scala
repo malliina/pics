@@ -8,7 +8,7 @@ import java.time.Instant
 
 trait DoobieMappings:
   given Meta[Instant] = doobie.implicits.legacy.instant.JavaTimeInstantMeta
-  given Meta[Key] = Meta[String].timap(Key.apply)(_.key)
+  given Meta[Key] = Meta[String].timap(Key.build(_).getUnsafe)(_.key)
   given Meta[PicOwner] = Meta[String].timap(PicOwner.build(_).getUnsafe)(_.name)
   given Meta[Username] = Meta[String].timap(Username.build(_).getUnsafe)(_.name)
   given Meta[Access] = Meta[String].timap(Access.parse(_).getUnsafe)(_.name)

@@ -5,7 +5,7 @@ import cats.data.NonEmptyList
 import cats.effect.Async
 import cats.syntax.all.{catsSyntaxApplicativeError, catsSyntaxApplicativeId, toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.html.UserFeedback
-import com.malliina.http.{CSRFConf, Errors, HttpClient}
+import com.malliina.http.{CSRFConf, Errors, HttpClient, SingleError}
 import com.malliina.http4s.FormDecoders
 import com.malliina.pics.*
 import com.malliina.pics.PicsStrings.{XClientPic, XKey, XName}
@@ -18,7 +18,7 @@ import com.malliina.pics.html.PicsHtml
 import com.malliina.pics.http4s.PicsService.{log, ranges, version10}
 import com.malliina.storage.StorageLong
 import com.malliina.util.AppLogger
-import com.malliina.values.{AccessToken, Email}
+import com.malliina.values.{AccessToken, Email, Readable}
 import com.malliina.web.*
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.TwitterAuthFlow.{OauthTokenKey, OauthVerifierKey}
@@ -97,9 +97,9 @@ class PicsService[F[_]: Async](
   val cookieNames = auth.cookieNames
 
   def routes(sockets: WebSocketBuilder2[F]) = HttpRoutes.of[F]:
-    case GET -> Root            => SeeOther(Location(uri"/pics"))
-    case GET -> Root / "ping"   => ok(AppMeta.default.asJson)
-    case GET -> Root / "health" => ok(AppMeta.default.asJson)
+    case GET -> Root                   => SeeOther(Location(uri"/pics"))
+    case GET -> Root / "ping"          => ok(AppMeta.default.asJson)
+    case GET -> Root / "health"        => ok(AppMeta.default.asJson)
     case req @ GET -> Root / "version" =>
       val res = ok(AppMeta.default.asJson)
       renderRanged(req)(res, res)
@@ -148,9 +148,10 @@ class PicsService[F[_]: Async](
                     req.headers.get(XName).map(_.head.value)
                   )
                   .flatMap: keyMeta =>
+
                     val clientKey = req.headers
                       .get(XClientPic)
-                      .map(h => Key(h.head.value))
+                      .flatMap(h => summon[Readable[Key]].read(h.head.value).toOption)
                       .getOrElse(keyMeta.key)
                     val picMeta = PicMetas.from(keyMeta, req)
                     log.info(s"Saved '${picMeta.key}' by '${user.name}' with URL '${picMeta.url}'.")
@@ -183,7 +184,7 @@ class PicsService[F[_]: Async](
     case req @ DELETE -> Root / "pics" / KeyParam(key) =>
       removeKey(key, Reverse.drop, req)
     case req @ POST -> Root / "sync" =>
-      val adminUser = PicOwner("malliina123@gmail.com")
+      val adminUser = PicOwner.admin
       authed(req): user =>
         if user.name == adminUser then
           handler.originals.storage
@@ -342,9 +343,11 @@ class PicsService[F[_]: Async](
     case req @ GET -> Root / KeyParam(key) / "large" =>
       sendPic(key, PicSize.Large, req)
     case req @ GET -> Root / rest if ContentType.parse(rest).exists(_.isImage) =>
-      PicSize(req)
-        .map: size =>
-          sendPic(Key(rest), size, req)
+      val handler = for
+        size <- PicSize(req)
+        key <- Key.build(rest).left.map(err => SingleError.input(err.message))
+      yield sendPic(key, size, req)
+      handler
         .recover: err =>
           badRequest(Errors(NonEmptyList.of(err)))
 
