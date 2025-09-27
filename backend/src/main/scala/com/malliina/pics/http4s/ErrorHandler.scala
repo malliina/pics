@@ -2,6 +2,7 @@ package com.malliina.pics.http4s
 
 import cats.effect.Async
 import com.malliina.http.ResponseException
+import com.malliina.pics.KeyNotFound
 import com.malliina.util.AppLogger
 import org.http4s.Response
 
@@ -12,6 +13,9 @@ class ErrorHandler[F[_]: Async] extends PicsBasicService[F]:
   private val log = AppLogger(getClass)
 
   def partial: PartialFunction[Throwable, F[Response[F]]] =
+    case knf: KeyNotFound =>
+      log.info(s"Key not found: '${knf.key}'.")
+      notFoundWith("Key not found.")
     case re: ResponseException =>
       val error = re.error
       log.error(s"HTTP ${error.code} for '${error.url}'.")
