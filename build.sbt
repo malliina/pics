@@ -5,10 +5,10 @@ val versions = new {
   val circe = "0.14.10"
   val commonsText = "1.14.0"
   val mariadb = "3.5.6"
-  val munit = "1.2.0"
+  val munit = "1.2.1"
   val munitCats = "2.1.0"
-  val s3 = "2.34.0"
-  val scrimage = "4.3.4"
+  val s3 = "2.40.3"
+  val scrimage = "4.3.5"
   val util = "6.10.1"
 }
 
