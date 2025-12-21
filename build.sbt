@@ -9,7 +9,7 @@ val versions = new {
   val munitCats = "2.1.0"
   val s3 = "2.40.3"
   val scrimage = "4.3.5"
-  val util = "6.10.1"
+  val util = "6.10.3"
 }
 
 inThisBuild(

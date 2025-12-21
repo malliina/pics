@@ -215,7 +215,7 @@ class PicsService[F[_]: Async](
           Text(message.asJson.noSpaces)
         val fromClient: fs2.Pipe[F, WebSocketFrame, Unit] = _.evalMap:
           case Text(message, _) => delay(log.info(message))
-          case f                => delay(log.debug(s"Unknown WebSocket frame: $f"))
+          case f => delay(log.debug(s"Unknown WebSocket frame: $f"))
         sockets.build(toClient, fromClient)
     case req @ GET -> Root / "drop" =>
       authed(req): user =>
