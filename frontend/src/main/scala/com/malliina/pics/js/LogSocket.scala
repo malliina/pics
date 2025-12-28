@@ -1,6 +1,7 @@
 package com.malliina.pics.js
 
 import com.malliina.http.FullUrl
+import com.malliina.pics.BuildInfo
 import com.malliina.values.IdToken
 import io.circe.{Codec, Encoder}
 
@@ -50,17 +51,19 @@ case class LogEvents(events: Seq[LogEvent]) derives Encoder.AsObject
 
 object LogSocket:
   val queryKey = "token"
-  def prod = LogSocket(
+
+  private def prod = LogSocket(
     FullUrl.https("logs.malliina.com", "/sources/token"),
     FullUrl.wss("logs.malliina.com", "/ws/sources/clients")
   )
-  def dev = LogSocket(
+  private def dev = LogSocket(
     FullUrl("http", "localhost:9001", "/sources/token"),
     FullUrl.ws("localhost:9001", "/ws/sources/clients")
   )
 
+  def impl = if BuildInfo.isProdLog then prod else dev
   lazy val instance: LogSocket =
-    val log = dev
+    val log = impl
     log.start()
     log
 

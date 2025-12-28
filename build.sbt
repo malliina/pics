@@ -1,3 +1,6 @@
+import com.malliina.rollup.CommonKeys
+import com.malliina.rollup.CommonKeys.isProd
+import org.scalajs.sbtplugin.Stage
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 
 val versions = new {
@@ -57,9 +60,17 @@ val crossJs = cross.js
 
 val frontend = project
   .in(file("frontend"))
-  .enablePlugins(EsbuildPlugin)
+  .enablePlugins(EsbuildPlugin, BuildInfoPlugin)
   .disablePlugins(RevolverPlugin)
   .dependsOn(crossJs)
+  .settings(
+    buildInfoPackage := "com.malliina.pics",
+    isProd := scalaJSStage.value == Stage.FullOpt,
+    buildInfoKeys ++= Seq[BuildInfoKey](
+      "isProd" -> isProd.value,
+      "isProdLog" -> isProd.value
+    )
+  )
 
 val backend = project
   .in(file("backend"))
