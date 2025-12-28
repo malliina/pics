@@ -1,4 +1,3 @@
-import com.malliina.rollup.CommonKeys
 import com.malliina.rollup.CommonKeys.isProd
 import org.scalajs.sbtplugin.Stage
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
