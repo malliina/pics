@@ -18,7 +18,7 @@ import com.malliina.pics.html.PicsHtml
 import com.malliina.pics.http4s.PicsService.{log, ranges, version10}
 import com.malliina.storage.StorageLong
 import com.malliina.util.AppLogger
-import com.malliina.values.{AccessToken, Email, Readable}
+import com.malliina.values.{AccessToken, Email}
 import com.malliina.web.*
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.TwitterAuthFlow.{OauthTokenKey, OauthVerifierKey}
@@ -148,10 +148,9 @@ class PicsService[F[_]: Async](
                     req.headers.get(XName).map(_.head.value)
                   )
                   .flatMap: keyMeta =>
-
                     val clientKey = req.headers
                       .get(XClientPic)
-                      .flatMap(h => summon[Readable[Key]].read(h.head.value).toOption)
+                      .flatMap(h => Key.reader.read(h.head.value).toOption)
                       .getOrElse(keyMeta.key)
                     val picMeta = PicMetas.from(keyMeta, req)
                     log.info(s"Saved '${picMeta.key}' by '${user.name}' with URL '${picMeta.url}'.")
@@ -164,7 +163,7 @@ class PicsService[F[_]: Async](
                         log.info(s"Published added message for '${picMeta.key}' by ${user.name}.")
                         Accepted(PicResponse(picMeta).asJson).map: res =>
                           res.putHeaders(
-                            Location(Uri.unsafeFromString(picMeta.url.url)),
+                            Location(Urls.toUri(picMeta.url)),
                             Header.Raw(XKey, picMeta.key.key),
                             Header.Raw(XClientPic, clientKey.key)
                           )
@@ -215,7 +214,7 @@ class PicsService[F[_]: Async](
           Text(message.asJson.noSpaces)
         val fromClient: fs2.Pipe[F, WebSocketFrame, Unit] = _.evalMap:
           case Text(message, _) => delay(log.info(message))
-          case f => delay(log.debug(s"Unknown WebSocket frame: $f"))
+          case f                => delay(log.debug(s"Unknown WebSocket frame: $f"))
         sockets.build(toClient, fromClient)
     case req @ GET -> Root / "drop" =>
       authed(req): user =>
@@ -253,7 +252,7 @@ class PicsService[F[_]: Async](
               e.fold(
                 err => unauthorized(Errors(err.message), req),
                 token =>
-                  seeOther(Uri.unsafeFromString(twitter.authTokenUrl(token).url)).map: res =>
+                  seeOther(Urls.toUri(twitter.authTokenUrl(token))).map: res =>
                     auth.withSession(TwitterState(token), req, res)
               )
         case Google =>
@@ -461,7 +460,7 @@ class PicsService[F[_]: Async](
       .getOrElse(Nil)
     (url, sessionParams)
   .flatMap: (url, sessionParams) =>
-    seeOther(Uri.unsafeFromString(url.url)).map: res =>
+    seeOther(Urls.toUri(url)).map: res =>
       val session = sessionParams.toMap.asJson
       auth
         .withSession(session, req, res)

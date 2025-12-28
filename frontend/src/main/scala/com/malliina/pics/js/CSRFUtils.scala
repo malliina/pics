@@ -7,7 +7,7 @@ import org.scalajs.dom.{Element, Event, HTMLFormElement}
 
 import java.util.NoSuchElementException
 
-class CSRFUtils(csrf: CSRFConf, val log: BaseLogger = BaseLogger.console):
+class CSRFUtils(csrf: CSRFConf, val log: BaseLogger):
   val document = dom.document
 
   def installCsrf(parent: Element): Unit =

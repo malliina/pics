@@ -33,12 +33,9 @@ class IntersectionObserver(
   def observe(elem: Node): Unit = js.native
   def unobserve(elem: Node): Unit = js.native
 
-object LazyLoader:
-  def apply() = new LazyLoader(PicsStrings.Lazy)
-
 /** https://developers.google.com/web/fundamentals/performance/lazy-loading-guidance/images-and-video/
   */
-class LazyLoader(lazyClass: String):
+class LazyLoader(lazyClass: String = PicsStrings.Lazy):
   val document = dom.document
   document.addEventListener[Event](
     "DOMContentLoaded",

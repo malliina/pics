@@ -9,7 +9,7 @@ import scala.scalajs.js
 import scala.scalajs.js.Dynamic.literal
 import scala.scalajs.js.annotation.JSGlobal
 
-class Profile(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log):
+class Profile(log: BaseLogger) extends AuthFrontend(log):
 
   import ProfileHtml.*
 

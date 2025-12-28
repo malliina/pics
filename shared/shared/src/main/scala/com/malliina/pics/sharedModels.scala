@@ -64,7 +64,7 @@ object Key:
       Encoder.encodeString.contramap(_.key)
     )
 
-  given Readable[Key] = Readable.string.emap(build)
+  given reader: Readable[Key] = Readable.string.emap(build)
 
 object KeyParam:
   def unapply(str: String): Option[Key] =

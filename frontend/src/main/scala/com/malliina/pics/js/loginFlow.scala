@@ -5,13 +5,13 @@ import org.scalajs.dom.*
 import scala.concurrent.Promise
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
-class Login(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log):
-  val loginForm = elem[HTMLFormElement](LoginFormId)
+class Login(log: BaseLogger) extends AuthFrontend(log):
+  private val loginForm = elem[HTMLFormElement](LoginFormId)
   loginForm.onsubmit = (e: Event) =>
     authenticate()
     e.preventDefault()
   val confirm = Confirm(log)
-  val forgot = ForgotPassword(log)
+  private val forgot = ForgotPassword(log)
 
   elem[HTMLAnchorElement](ForgotPasswordLinkId).onclick = (_: Event) =>
     hide()

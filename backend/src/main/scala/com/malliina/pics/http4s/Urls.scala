@@ -1,11 +1,13 @@
 package com.malliina.pics.http4s
 
 import com.malliina.http.FullUrl
-import org.http4s.Request
+import org.http4s.{Request, Uri}
 import org.http4s.headers.Host
 import org.typelevel.ci.CIStringSyntax
 
 object Urls:
+  def toUri(url: FullUrl) = Uri.unsafeFromString(url.url)
+
   def hostOnly[F[_]](req: Request[F]): FullUrl =
     val proto = if isSecure(req) then "https" else "http"
     val uri = req.uri

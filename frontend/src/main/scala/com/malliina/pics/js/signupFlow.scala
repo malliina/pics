@@ -5,8 +5,8 @@ import org.scalajs.dom.{Event, HTMLAnchorElement, HTMLFormElement}
 import scala.concurrent.{Future, Promise}
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
-class SignUp(log: BaseLogger = BaseLogger.console) extends AuthFrontend(log):
-  val signupForm = elem[HTMLFormElement](SignUpFormId)
+class SignUp(log: BaseLogger) extends AuthFrontend(log):
+  private val signupForm = elem[HTMLFormElement](SignUpFormId)
   signupForm.onsubmit = (e: Event) =>
     signUp()
     e.preventDefault()
@@ -43,7 +43,7 @@ class Confirm(log: BaseLogger) extends AuthFrontend(log):
   private val success = Promise[CognitoUser]()
   val confirmed = success.future
 
-  val confirmForm = elem[HTMLFormElement](ConfirmFormId)
+  private val confirmForm = elem[HTMLFormElement](ConfirmFormId)
   confirmForm.onsubmit = (e: Event) =>
     confirm()
     e.preventDefault()

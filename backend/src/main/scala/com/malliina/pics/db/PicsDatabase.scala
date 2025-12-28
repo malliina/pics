@@ -87,8 +87,8 @@ class PicsDatabase[F[_]](db: DoobieDatabase[F]) extends MetaSourceT[F] with User
 
   private def metaQuery(fragment: Fragment) =
     sql"""select p.`key`, u.username, p.access, p.added
-                from pics p, users u
-                where p.user = u.id $fragment""".query[KeyMeta]
+          from pics p, users u
+          where p.user = u.id $fragment""".query[KeyMeta]
 
   private def fetchOrCreateUser(name: PicOwner): ConnectionIO[UserId] = for
     userRow <- sql"select id from users where username = $name".query[UserId].option

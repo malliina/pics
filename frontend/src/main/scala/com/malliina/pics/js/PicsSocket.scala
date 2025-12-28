@@ -9,7 +9,8 @@ import org.scalajs.dom.*
 import scala.concurrent.duration.DurationDouble
 import scala.scalajs.js.timers.*
 
-class PicsSocket(csrf: CSRFUtils, csrfConf: CSRFConf) extends BaseSocket("/sockets"):
+class PicsSocket(csrf: CSRFUtils, csrfConf: CSRFConf, log: BaseLogger)
+  extends BaseSocket("/sockets", log):
   val jsHtml = BaseHtml(csrfConf)
   val document = dom.document
 

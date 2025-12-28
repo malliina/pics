@@ -9,8 +9,10 @@ import scala.scalajs.js.annotation.JSImport
 import scala.scalajs.js.Dynamic.literal
 
 object PicsJS extends BasicHtml:
+  val log = LogSocket.instance
+
   val csrfConf = CSRFConf.default
-  val csrf = CSRFUtils(csrfConf)
+  val csrf = CSRFUtils(csrfConf, LogSocket.instance)
   val popperJs = Popper
   val bootstrapJs = Bootstrap
   val bootstrapCss = BootstrapCss
@@ -25,12 +27,12 @@ object PicsJS extends BasicHtml:
 
   def main(args: Array[String]): Unit =
     if has(PicsClass) then
-      PicsSocket(csrf, csrfConf)
+      PicsSocket(csrf, csrfConf, log)
       LazyLoader()
     if has(DropClass) then PicDrop(csrfConf)
-    if has(LoginClass) then Login()
-    if has(SignUpClass) then SignUp()
-    if has(ProfileClass) then Profile()
+    if has(LoginClass) then Login(log)
+    if has(SignUpClass) then SignUp(log)
+    if has(ProfileClass) then Profile(log)
 
   private def has(feature: String) = dom.document.body.classList.contains(feature)
 

@@ -114,12 +114,12 @@ object PicsConf:
   )
 
   private def devDatabaseConf(password: Password) = Conf(
-    url"jdbc:mariadb://localhost:3307/pics",
+    url"jdbc:mariadb://localhost:3306/pics",
     "pics",
     password,
     mariaDbDriver,
     2,
-    autoMigrate = false
+    autoMigrate = true
   )
 
   private def siwaConf(privateKey: Path) = SignInWithApple.Conf(
