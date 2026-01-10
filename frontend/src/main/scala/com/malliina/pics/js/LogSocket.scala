@@ -16,7 +16,7 @@ case class TokenResponse(token: IdToken) derives Codec.AsObject
 enum Level(val name: String):
   case Info extends Level("info")
   case Warn extends Level("warn")
-  case Error extends Level("warn")
+  case Error extends Level("error")
 
 object Level:
   given Encoder[Level] = Encoder.encodeString.contramap(_.name)
@@ -67,12 +67,15 @@ object LogSocket:
     log.start()
     log
 
+  def start(isProd: Boolean) =
+    if isProd then prod else dev
+
 class LogSocket(tokenUrl: FullUrl, socketUrl: FullUrl, fallback: BaseLogger = BaseLogger.console)
   extends BaseLogger:
   private var current: BaseLogger = fallback
   def log = current
 
-  def start() = fetchToken(tokenUrl).map: res =>
+  def start(): Future[Unit] = fetchToken(tokenUrl).map: res =>
     val simple = new SimpleSocket(socketUrl.withQuery(LogSocket.queryKey -> res.token.token))
     current = SocketLogger(simple, fallback)
 
