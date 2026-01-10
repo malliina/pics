@@ -71,7 +71,7 @@ class AppleAuthFlow[F[_]: Sync](
             validator
               .validate(tokens.id_token, keys.keys, Instant.now())
               .flatMap: v =>
-                v.readString(EmailKey).map(Email.apply)
+                v.read[Email](EmailKey)
 
   override def extraRedirParams(redirectUrl: FullUrl): Map[String, String] =
     Map(ResponseType -> CodeKey, "response_mode" -> "form_post")

@@ -38,5 +38,5 @@ class GoogleTokenAuth[F[_]: Sync](validator: KeyClient[F]):
           parsed
             .read(parsed.claims.getBooleanClaim(EmailVerified), EmailVerified)
             .flatMap: isVerified =>
-              if isVerified then parsed.readString(EmailKey).map(Email.apply)
+              if isVerified then parsed.parse[Email](EmailKey)
               else Left(InvalidClaims(token, ErrorMessage("Email not verified.")))

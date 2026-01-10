@@ -18,7 +18,7 @@ class JWS(secret: SecretKey):
     val signer = new MACSigner(secret.value)
     val data = new JWSObject(new JWSHeader(JWSAlgorithm.HS256), new Payload(payload))
     data.sign(signer)
-    IdToken(data.serialize())
+    IdToken.unsafe(data.serialize())
 
   def verify(token: TokenValue): Either[InvalidSignature, String] =
     val parsed = JWSObject.parse(token.value)

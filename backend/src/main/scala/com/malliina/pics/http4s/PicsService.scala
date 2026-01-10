@@ -26,7 +26,7 @@ import com.malliina.web.Utils.randomString
 import fs2.concurrent.Topic
 import fs2.io.file.Path as FS2Path
 import io.circe.syntax.EncoderOps
-import io.circe.{Decoder, Encoder, Json}
+import io.circe.{Decoder, Json}
 import org.http4s.CacheDirective.*
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.headers.{Accept, Location, `Cache-Control`, `WWW-Authenticate`}
@@ -276,8 +276,8 @@ class PicsService[F[_]: Async](
           val maybe = for
             token <- params
               .get(OauthTokenKey)
-              .map(AccessToken.apply)
               .toRight(OAuthError(s"Missing $OauthTokenKey query parameter."))
+              .flatMap(str => AccessToken.build(str).left.map(err => OAuthError(err.message)))
             requestToken <- auth
               .session[TwitterState](req.headers)
               .left
@@ -311,7 +311,7 @@ class PicsService[F[_]: Async](
             cb =>
               socials.amazon
                 .validateCallback(cb)
-                .map(e => e.map(user => Email(user.username.value)))
+                .map(e => e.map(user => Email.unsafe(user.username.value)))
           )
         case Facebook =>
           handleCallbackV(socials.facebook, reverseSocial.facebook, req, id)

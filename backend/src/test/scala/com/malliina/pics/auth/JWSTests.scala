@@ -20,7 +20,7 @@ class JWSTests extends FunSuite:
 
   test("jwt"):
     val jwt = JWT(secretKey)
-    val expected = MyData(Username("Hi"))
+    val expected = MyData(Username.unsafe("Hi"))
     val signed = jwt.sign(expected, 1.hour)
     val actual = jwt.verify[MyData](signed)
     assert(actual.isRight)

@@ -18,9 +18,9 @@ trait EmailAuth:
   def authEmail(rh: Request[IO]): Future[Email]
 
 case class EmailUser(email: Email) extends JWTUser:
-  override val username = Username(email.email)
+  override val username = Username.unsafe(email.email)
 
 case class UserPayload(username: Username) derives Codec.AsObject
 
 object UserPayload:
-  def email(email: Email): UserPayload = apply(Username(email.value))
+  def email(email: Email): UserPayload = apply(Username.unsafe(email.value))

@@ -11,14 +11,14 @@ val versions = new {
   val munitCats = "2.1.0"
   val s3 = "2.41.2"
   val scrimage = "4.3.5"
-  val util = "6.10.3"
+  val util = "6.11.0"
 }
 
 inThisBuild(
   Seq(
     organization := "com.malliina",
     version := "0.0.1",
-    scalaVersion := "3.7.1",
+    scalaVersion := "3.7.4",
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit" % versions.munit % Test
     ),

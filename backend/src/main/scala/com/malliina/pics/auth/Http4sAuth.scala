@@ -109,7 +109,7 @@ class Http4sAuth[F[_]: Sync](
         Right(res)
       case IdTokenResult(token) =>
         val res: F[Either[TokenError, JWTUser]] =
-          F.delay(ios.validate(AccessToken(token.value)).orElse(android.validate(token)))
+          F.delay(ios.validate(AccessToken.unsafe(token.value)).orElse(android.validate(token)))
             .flatMap: e =>
               e.fold(
                 _ =>
@@ -131,8 +131,12 @@ class Http4sAuth[F[_]: Sync](
     .fold[CredentialsResult](NoCredentials(headers)): h =>
       h.credentials match
         case Token(scheme, token) =>
-          if scheme == ci"token" then AccessTokenResult(AccessToken(token))
-          else IdTokenResult(IdToken(token))
+          if scheme == ci"token" then
+            AccessToken
+              .build(token)
+              .map(at => AccessTokenResult(at))
+              .getOrElse(NoCredentials(headers))
+          else IdToken.build(token).map(it => IdTokenResult(it)).getOrElse(NoCredentials(headers))
         case _ =>
           NoCredentials(headers)
 
@@ -206,8 +210,10 @@ class Http4sAuth[F[_]: Sync](
       header <- headers.get[Cookie].toRight(MissingCredentials("Cookie parsing error.", headers))
       cookie <- header.values
         .find(_.name == cookieName)
-        .map(c => IdToken(c.content))
         .toRight(MissingCredentials(s"Cookie not found: '$cookieName'.", headers))
+        .flatMap(c =>
+          IdToken.build(c.content).left.map(err => MissingCredentials(err.message, headers))
+        )
       t <- webJwt
         .verify[T](cookie)
         .left
