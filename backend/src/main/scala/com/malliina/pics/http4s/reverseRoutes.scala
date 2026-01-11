@@ -36,4 +36,4 @@ trait Reverse:
   val sync = uri"/sync"
   val delete = uri"/pics/delete"
 
-  def pic(key: Key) = Uri.unsafeFromString(s"/$key")
+  def pic(key: Key) = uri"/".addPath(key.key)

@@ -8,6 +8,7 @@ import com.malliina.pics.assets.{FileAssets, HashedAssets}
 import com.malliina.pics.html.PicsHtml.*
 import com.malliina.pics.http4s.Reverse
 import com.malliina.pics.{AssetsSource, html as _, *}
+import com.malliina.values.NonNeg
 import org.http4s.Uri
 import scalatags.Text.all.*
 

@@ -150,7 +150,7 @@ class PicsService[F[_]: Async](
                   .flatMap: keyMeta =>
                     val clientKey = req.headers
                       .get(XClientPic)
-                      .flatMap(h => Key.reader.read(h.head.value).toOption)
+                      .flatMap(h => Key.readable.read(h.head.value).toOption)
                       .getOrElse(keyMeta.key)
                     val picMeta = PicMetas.from(keyMeta, req)
                     log.info(s"Saved '${picMeta.key}' by '${user.name}' with URL '${picMeta.url}'.")
@@ -311,7 +311,9 @@ class PicsService[F[_]: Async](
             cb =>
               socials.amazon
                 .validateCallback(cb)
-                .map(e => e.map(user => Email.unsafe(user.username.value)))
+                .map: e =>
+                  e.flatMap: user =>
+                    Email.build(user.username.value).left.map(err => OAuthError(err))
           )
         case Facebook =>
           handleCallbackV(socials.facebook, reverseSocial.facebook, req, id)

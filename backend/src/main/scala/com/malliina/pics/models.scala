@@ -2,35 +2,15 @@ package com.malliina.pics
 
 import com.malliina.http.{FullUrl, SingleError}
 import com.malliina.pics.http4s.{Reverse, Urls}
-import com.malliina.values.{ErrorMessage, Username}
+import com.malliina.values.{NonNeg, Username}
 import fs2.io.file.Path
-import io.circe.{Codec, Decoder, Encoder}
+import io.circe.Codec
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
 import org.http4s.{Headers, Request, Uri}
 
 import java.time.Instant
 import java.util.Date
-import scala.annotation.targetName
-
-opaque type NonNeg = Int
-
-object NonNeg:
-  given Codec[NonNeg] = Codec.from(
-    Decoder.decodeInt.emap(i => apply(i).left.map(_.message)),
-    Encoder.encodeInt.contramap(identity)
-  )
-
-  def apply(i: Int): Either[ErrorMessage, NonNeg] =
-    if i >= 0 then Right(i)
-    else Left(ErrorMessage(s"Value must be non-negative. Got '$i'."))
-
-  extension (nn: NonNeg)
-    def value: Int = nn
-    def minus(other: Int): Either[ErrorMessage, NonNeg] = apply(value - other)
-    def plus(other: Int): Either[ErrorMessage, NonNeg] = apply(value + other)
-    @targetName("add")
-    def +(other: NonNeg): NonNeg = value + other
 
 trait BaseRequest:
   def name: PicOwner

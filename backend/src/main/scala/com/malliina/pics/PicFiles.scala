@@ -4,7 +4,7 @@ import cats.Monad
 import cats.effect.Sync
 import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import com.malliina.storage.{StorageLong, StorageSize}
-import com.malliina.values.{AccessToken, Username}
+import com.malliina.values.{AccessToken, NonNeg, Username}
 import fs2.io.file.{Files, Path}
 
 sealed trait DataResponse:

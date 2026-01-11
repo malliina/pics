@@ -3,7 +3,8 @@ package com.malliina.pics
 import com.malliina.http.Errors
 import com.malliina.http4s.QueryParsers.parseOrDefault
 import com.malliina.pics.Limits.DefaultLimit
-import com.malliina.pics.Literals.nonNeg
+import com.malliina.values.Literals.nonNeg
+import com.malliina.values.NonNeg
 import org.http4s.{ParseFailure, Query, QueryParamDecoder}
 
 trait LimitsLike:

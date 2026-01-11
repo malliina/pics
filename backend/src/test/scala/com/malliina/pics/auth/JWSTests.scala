@@ -1,5 +1,6 @@
 package com.malliina.pics.auth
 
+import com.malliina.values.Literals.user
 import com.malliina.values.Username
 import io.circe.Codec
 import munit.FunSuite
@@ -20,7 +21,7 @@ class JWSTests extends FunSuite:
 
   test("jwt"):
     val jwt = JWT(secretKey)
-    val expected = MyData(Username.unsafe("Hi"))
+    val expected = MyData(user"Hi")
     val signed = jwt.sign(expected, 1.hour)
     val actual = jwt.verify[MyData](signed)
     assert(actual.isRight)

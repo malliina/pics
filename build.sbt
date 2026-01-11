@@ -9,9 +9,9 @@ val versions = new {
   val mariadb = "3.5.7"
   val munit = "1.2.1"
   val munitCats = "2.1.0"
-  val s3 = "2.41.2"
+  val s3 = "2.41.5"
   val scrimage = "4.3.5"
-  val util = "6.11.0"
+  val util = "6.11.1"
 }
 
 inThisBuild(

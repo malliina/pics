@@ -3,7 +3,7 @@ package com.malliina.pics
 import java.util.Date
 import com.malliina.http.FullUrl
 import com.malliina.values.Literals.err
-import com.malliina.values.{ErrorMessage, Readable, Username, ValidatingCompanion}
+import com.malliina.values.{ErrorMessage, StringEnumCompanion, Username, ValidatedString}
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.{Codec, Decoder, Encoder, Json}
 import io.circe.syntax.EncoderOps
@@ -14,23 +14,14 @@ enum Access(val name: String):
 
   override def toString: String = name
 
-object Access:
+object Access extends StringEnumCompanion[Access]:
   val FormKey = "access"
-  given Codec[Access] = Codec.from(
-    Decoder.decodeString.emap(s => parse(s).left.map(_.message)),
-    Encoder.encodeString.contramap(_.name)
-  )
-  given Readable[Access] = Readable.string.emap(parse)
-
-  def parse(in: String): Either[ErrorMessage, Access] =
-    Access.values.find(v => v.name == in).toRight(ErrorMessage(s"Unknown access value: '$in'."))
-
-  def parseUnsafe(in: String): Access =
-    parse(in).fold(err => throw IllegalArgumentException(err.message), identity)
+  override def all: Seq[Access] = Seq(Public, Private)
+  override def write(t: Access): String = t.name
 
 opaque type PicOwner = String
 
-object PicOwner extends ValidatingCompanion[String, PicOwner]:
+object PicOwner extends ValidatedString[PicOwner]:
   val anon: PicOwner = "anon"
   val admin: PicOwner = "malliina123@gmail.com"
 
@@ -47,9 +38,11 @@ object ProfileInfo:
 
 opaque type Key = String
 
-object Key:
+object Key extends ValidatedString[Key]:
   val Key = "key"
   val Length = 7
+
+  override def write(t: Key): String = t
 
   extension (k: Key)
     def append(s: String): Key = s"$k$s"
@@ -57,14 +50,6 @@ object Key:
 
   def build(input: String): Either[ErrorMessage, Key] =
     if input.isBlank then Left(err"Blank key not allowed.") else Right(input.trim)
-
-  given Codec[Key] =
-    Codec.from(
-      Decoder.decodeString.emap(s => build(s).left.map(_.message)),
-      Encoder.encodeString.contramap(_.key)
-    )
-
-  given reader: Readable[Key] = Readable.string.emap(build)
 
 object KeyParam:
   def unapply(str: String): Option[Key] =

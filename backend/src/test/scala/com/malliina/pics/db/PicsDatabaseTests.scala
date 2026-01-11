@@ -1,7 +1,7 @@
 package com.malliina.pics.db
 
-import com.malliina.pics.Literals.nonNeg
 import com.malliina.pics.{Keys, PicOwner}
+import com.malliina.values.Literals.nonNeg
 import tests.DoobieSuite
 
 class PicsDatabaseTests extends munit.CatsEffectSuite with DoobieSuite:

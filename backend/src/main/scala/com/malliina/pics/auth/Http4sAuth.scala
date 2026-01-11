@@ -109,18 +109,24 @@ class Http4sAuth[F[_]: Sync](
         Right(res)
       case IdTokenResult(token) =>
         val res: F[Either[TokenError, JWTUser]] =
-          F.delay(ios.validate(AccessToken.unsafe(token.value)).orElse(android.validate(token)))
-            .flatMap: e =>
-              e.fold(
-                _ =>
-                  google
-                    .validate(token)
-                    .map: e =>
-                      e.map: email =>
-                        EmailUser(email),
-                user => F.pure(Right(user))
-              )
-            .map: e =>
+          F.delay(
+            AccessToken
+              .build(token.value)
+              .left
+              .map(err => OAuthError(err))
+              .flatMap(at => ios.validate(at))
+              .orElse(android.validate(token))
+          ).flatMap: e =>
+            e.fold(
+              _ =>
+                google
+                  .validate(token)
+                  .map: e =>
+                    e.map: email =>
+                      EmailUser(email),
+              user => F.pure(Right(user))
+            )
+          .map: e =>
               e.left.map: error =>
                 TokenError(error, headers)
         Right(res)
@@ -162,7 +168,7 @@ class Http4sAuth[F[_]: Sync](
     provider: AuthProvider,
     req: Request[F],
     res: Response[F]
-  ) =
+  ): Response[F] =
     withUser(user, req, res)
       .removeCookie(cookieNames.returnUri)
       .removeCookie(removalCookie(cookieNames.prompt, req))

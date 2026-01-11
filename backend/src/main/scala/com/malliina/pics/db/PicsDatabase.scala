@@ -3,9 +3,9 @@ package com.malliina.pics.db
 import cats.implicits.*
 import com.malliina.database.DoobieDatabase
 import com.malliina.pics.db.PicsDatabase.log
-import com.malliina.pics.{Access, Key, KeyMeta, KeyNotFound, MetaSourceT, NonNeg, PicOwner, UserDatabase}
+import com.malliina.pics.{Access, Key, KeyMeta, KeyNotFound, MetaSourceT, PicOwner, UserDatabase}
 import com.malliina.util.AppLogger
-import com.malliina.values.{AccessToken, UserId, Username}
+import com.malliina.values.{AccessToken, NonNeg, UserId, Username}
 import doobie.ConnectionIO
 import doobie.implicits.*
 import doobie.util.fragment.Fragment
