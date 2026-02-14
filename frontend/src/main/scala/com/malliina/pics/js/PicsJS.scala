@@ -2,12 +2,16 @@ package com.malliina.pics.js
 
 import com.malliina.http.CSRFConf
 import org.scalajs.dom
-import org.scalajs.dom.Event
+import org.scalajs.dom.ErrorEvent
 
 import scala.annotation.unused
 import scala.scalajs.js
-import scala.scalajs.js.annotation.JSImport
 import scala.scalajs.js.Dynamic.literal
+import scala.scalajs.js.annotation.JSImport
+
+@js.native
+trait ExceptionEvent extends ErrorEvent:
+  def error: Exception = js.native
 
 object PicsJS extends BasicHtml:
   val log = LogSocket.instance
@@ -28,7 +32,10 @@ object PicsJS extends BasicHtml:
 
   def main(args: Array[String]): Unit =
     dom.window
-      .addEventListener[Event]("error", event => log.info(s"JS error: ${event.`type`}: $event."))
+      .addEventListener[ExceptionEvent](
+        "error",
+        ee => log.info(s"${ee.error} at ${ee.filename}:${ee.lineno}:${ee.colno}")
+      )
     if has(PicsClass) then
       PicsSocket(csrf, csrfConf, log)
       LazyLoader()
@@ -36,6 +43,7 @@ object PicsJS extends BasicHtml:
     if has(LoginClass) then Login(log)
     if has(SignUpClass) then SignUp(log)
     if has(ProfileClass) then Profile(log)
+    throw Exception("this is a test")
 
   private def has(feature: String) = dom.document.body.classList.contains(feature)
 
