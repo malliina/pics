@@ -14,6 +14,7 @@ case class TokenRequest(app: String) derives Codec.AsObject
 case class TokenResponse(token: IdToken) derives Codec.AsObject
 
 enum Level(val name: String):
+  case Debug extends Level("debug")
   case Info extends Level("info")
   case Warn extends Level("warn")
   case Error extends Level("error")
@@ -31,6 +32,8 @@ case class LogEvent(
 ) derives Encoder.AsObject
 
 object LogEvent:
+  def debug(message: String) =
+    build(message, Level.Debug)
   def info(message: String) =
     build(message, Level.Info)
   def error(t: Throwable) =
@@ -50,7 +53,7 @@ object LogEvent:
 case class LogEvents(events: Seq[LogEvent]) derives Encoder.AsObject
 
 object LogSocket:
-  val queryKey = "token"
+  private val queryKey = "token"
 
   private def prod = LogSocket(
     FullUrl.https("logs.malliina.com", "/sources/token"),
@@ -82,10 +85,15 @@ class LogSocket(tokenUrl: FullUrl, socketUrl: FullUrl, fallback: BaseLogger = Ba
   private def fetchToken(from: FullUrl): Future[TokenResponse] =
     Http.post[TokenRequest, TokenResponse](from, TokenRequest("pics-web"))
 
+  override def debug(message: String): Unit = current.debug(message)
   override def info(message: String): Unit = current.info(message)
   override def error(t: Throwable): Unit = current.error(t)
 
 class SocketLogger(socket: SimpleSocket, fallback: BaseLogger) extends BaseLogger:
+  override def debug(message: String): Unit =
+    if socket.isOpen then sendSingle(LogEvent.info(message))
+    else fallback.debug(message)
+
   override def info(message: String): Unit =
     if socket.isOpen then sendSingle(LogEvent.info(message))
     else fallback.info(message)

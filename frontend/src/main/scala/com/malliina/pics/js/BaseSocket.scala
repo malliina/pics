@@ -1,7 +1,7 @@
 package com.malliina.pics.js
 
 import com.malliina.http.FullUrl
-import com.malliina.pics.js.BaseSocket.{EventKey, Ping, wsBaseUrl}
+import com.malliina.pics.js.BaseSocket.wsBaseUrl
 import io.circe.*
 import io.circe.parser.parse
 import org.scalajs.dom
@@ -30,13 +30,11 @@ class BaseSocket(wsPath: String, log: BaseLogger) extends SimpleSocket(wsBaseUrl
   def handleValidated[T: Decoder](json: Json)(process: T => Unit): Unit =
     json.as[T].fold(err => onJsonFailure(err), process)
 
-  def onMessage(msg: MessageEvent): Unit =
-    log.info(s"Got message: ${msg.data.toString}")
+  private def onMessage(msg: MessageEvent): Unit =
+    log.debug(s"Got message: ${msg.data.toString}")
     parse(msg.data.toString).fold(
       pf => onJsonException(pf),
-      json =>
-        val isPing = json.hcursor.downField(EventKey).as[String].toOption.contains(Ping)
-        if !isPing then handlePayload(json)
+      json => handlePayload(json)
     )
 
   def setFeedback(feedback: String): Unit =

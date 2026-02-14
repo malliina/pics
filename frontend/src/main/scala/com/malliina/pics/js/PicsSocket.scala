@@ -61,6 +61,8 @@ class PicsSocket(csrf: CSRFUtils, csrfConf: CSRFConf, log: BaseLogger)
       .downField(PicsJson.EventKey)
       .as[String]
       .flatMap:
+        case BaseSocket.Ping =>
+          Right(())
         case PicsAdded.Added =>
           payload
             .as[PicsAdded]

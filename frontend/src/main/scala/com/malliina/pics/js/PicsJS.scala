@@ -2,6 +2,7 @@ package com.malliina.pics.js
 
 import com.malliina.http.CSRFConf
 import org.scalajs.dom
+import org.scalajs.dom.Event
 
 import scala.annotation.unused
 import scala.scalajs.js
@@ -26,6 +27,8 @@ object PicsJS extends BasicHtml:
   val fontsCss = FontsCss
 
   def main(args: Array[String]): Unit =
+    dom.window
+      .addEventListener[Event]("error", event => log.info(s"JS error: ${event.`type`}: $event."))
     if has(PicsClass) then
       PicsSocket(csrf, csrfConf, log)
       LazyLoader()
