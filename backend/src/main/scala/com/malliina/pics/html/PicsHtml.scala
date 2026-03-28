@@ -49,11 +49,15 @@ class PicsHtml(
 ) extends BaseHtml(csrf):
   private val authHtml = AuthHtml(assets, csrf)
 
-  def signIn(feedback: Option[UserFeedback] = None) = basePage(authHtml.signIn(feedback))
+  def signIn(lang: Lang, feedback: Option[UserFeedback] = None) = basePage(
+    authHtml.signIn(lang, feedback)
+  )
 
-  def signUp(feedback: Option[UserFeedback] = None) = basePage(authHtml.signUp(feedback))
+  def signUp(lang: Lang, feedback: Option[UserFeedback] = None) = basePage(
+    authHtml.signUp(lang, feedback)
+  )
 
-  def profile = basePage(authHtml.profile)
+  def profile(lang: Lang) = basePage(authHtml.profile(lang))
 
   def drop(
     created: Option[PicMeta],

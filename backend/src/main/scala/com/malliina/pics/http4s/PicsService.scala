@@ -224,7 +224,7 @@ class PicsService[F[_]: Async](
           html.drop(created, feedback, user, token)
         .clearFeedback
     case GET -> Root / "sign-up" =>
-      ok(html.signUp())
+      ok(html.signUp(Lang.en))
     case req @ GET -> Root / "sign-in" =>
       val reverseSocial = ReverseSocial
       req.cookies
@@ -240,7 +240,7 @@ class PicsService[F[_]: Async](
           case Twitter   => reverseSocial.twitter
           case Apple     => reverseSocial.apple
         .map(r => TemporaryRedirect(Location(r.start)))
-        .getOrElse(ok(html.signIn(None)))
+        .getOrElse(ok(html.signIn(Lang.en, None)))
     case req @ GET -> Root / "sign-in" / AuthProvider(id) =>
       id match
         case Twitter =>

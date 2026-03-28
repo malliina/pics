@@ -7,18 +7,19 @@ val versions = new {
   val circe = "0.14.10"
   val commonsText = "1.15.0"
   val mariadb = "3.5.7"
-  val munit = "1.2.1"
-  val munitCats = "2.1.0"
-  val s3 = "2.41.5"
-  val scrimage = "4.3.5"
-  val util = "6.11.1"
+  val munit = "1.2.4"
+  val munitCats = "2.2.0"
+  val s3 = "2.42.23"
+  val scala = "3.8.2"
+  val scrimage = "4.3.10"
+  val util = "6.13.0"
 }
 
 inThisBuild(
   Seq(
     organization := "com.malliina",
     version := "0.0.1",
-    scalaVersion := "3.7.4",
+    scalaVersion := versions.scala,
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit" % versions.munit % Test
     ),
