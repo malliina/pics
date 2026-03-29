@@ -184,16 +184,15 @@ class PicsService[F[_]: Async](
     case req @ DELETE -> Root / "pics" / KeyParam(key) =>
       removeKey(key, Reverse.drop, req)
     case req @ POST -> Root / "sync" =>
-      val adminUser = PicOwner.admin
       authed(req): user =>
-        if user.name == adminUser then
+        if user.isAdmin then
           handler.originals.storage
             .load(0, 1000000)
             .flatMap: keys =>
               log.info(s"Syncing ${keys.length} keys...")
               keys
                 .traverse: key =>
-                  db.putMetaIfNotExists(key.withUser(adminUser))
+                  db.putMetaIfNotExists(key.withUser(user.name))
                 .flatMap: changes =>
                   log.info(s"Sync complete. Upserted ${changes.sum} rows.")
                   seeOther(Reverse.drop)

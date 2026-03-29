@@ -1,15 +1,15 @@
 package com.malliina.pics.http4s
 
-import com.malliina.pics.{PicOwner, PicsAdded, PicsJson, PicsRemoved, ProfileInfo}
+import com.malliina.pics.{PicUsername, PicsAdded, PicsJson, PicsRemoved, ProfileInfo}
 import io.circe.syntax.EncoderOps
 import io.circe.{Encoder, Json}
 
 sealed trait PicMessage:
-  def forUser(user: PicOwner): Boolean
+  def forUser(user: PicUsername): Boolean
 
 sealed trait UnicastMessage extends PicMessage:
-  def target: PicOwner
-  override def forUser(user: PicOwner): Boolean = user == target
+  def target: PicUsername
+  override def forUser(user: PicUsername): Boolean = user == target
 
 object PicMessage:
   private val pingJson = Json.obj(PicsJson.EventKey -> "ping".asJson)
@@ -19,14 +19,14 @@ object PicMessage:
     case PingBroadcast           => pingJson
     case Welcome(info)           => info.asJson
   case object PingBroadcast extends PicMessage:
-    def forUser(user: PicOwner): Boolean = true
-  case class AddedMessage(pics: PicsAdded, owner: PicOwner) extends UnicastMessage:
-    override def target: PicOwner = owner
-  case class RemovedMessage(pics: PicsRemoved, owner: PicOwner) extends UnicastMessage:
-    override def target: PicOwner = owner
+    def forUser(user: PicUsername): Boolean = true
+  case class AddedMessage(pics: PicsAdded, owner: PicUsername) extends UnicastMessage:
+    override def target: PicUsername = owner
+  case class RemovedMessage(pics: PicsRemoved, owner: PicUsername) extends UnicastMessage:
+    override def target: PicUsername = owner
   case class Welcome(info: ProfileInfo) extends UnicastMessage:
-    override def target: PicOwner = info.user
+    override def target: PicUsername = info.user
 
   val ping = PingBroadcast
 
-  def welcome(user: PicOwner, readOnly: Boolean) = Welcome(ProfileInfo(user, readOnly))
+  def welcome(user: PicUsername, readOnly: Boolean) = Welcome(ProfileInfo(user, readOnly))

@@ -3,7 +3,7 @@ package com.malliina.pics
 import java.util.Date
 import com.malliina.http.FullUrl
 import com.malliina.values.Literals.err
-import com.malliina.values.{ErrorMessage, StringEnumCompanion, Username, ValidatedString}
+import com.malliina.values.{Email, ErrorMessage, StringEnumCompanion, Username, ValidatedString}
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.{Codec, Decoder, Encoder, Json}
 import io.circe.syntax.EncoderOps
@@ -19,18 +19,31 @@ object Access extends StringEnumCompanion[Access]:
   override def all: Seq[Access] = Seq(Public, Private)
   override def write(t: Access): String = t.name
 
-opaque type PicOwner = String
+enum Role(val name: String):
+  case Normal extends Role("normal")
+  case Admin extends Role("admin")
+  case ReadOnly extends Role("reader")
 
-object PicOwner extends ValidatedString[PicOwner]:
-  val anon: PicOwner = "anon"
-  val admin: PicOwner = "malliina123@gmail.com"
+  override def toString: String = name
 
-  override def build(input: String): Either[ErrorMessage, PicOwner] = Right(input)
-  override def write(t: PicOwner): String = t
-  extension (o: PicOwner) def name = write(o)
-  def fromUser(username: Username): PicOwner = username.name
+object Role extends StringEnumCompanion[Role]:
+  val FormKey = "role"
+  override def all: Seq[Role] = Seq(Normal, Admin)
+  override def write(t: Role): String = t.name
+  val default = Normal
 
-case class ProfileInfo(user: PicOwner, readOnly: Boolean)
+opaque type PicUsername = String
+
+object PicUsername extends ValidatedString[PicUsername]:
+  val anon: PicUsername = "anon"
+
+  override def build(input: String): Either[ErrorMessage, PicUsername] = Right(input)
+  override def write(t: PicUsername): String = t
+  extension (o: PicUsername) def name = write(o)
+  def fromUser(username: Username): PicUsername = username.name
+  def fromEmail(email: Email): PicUsername = email.email
+
+case class ProfileInfo(user: PicUsername, readOnly: Boolean)
 
 object ProfileInfo:
   val Welcome = "welcome"

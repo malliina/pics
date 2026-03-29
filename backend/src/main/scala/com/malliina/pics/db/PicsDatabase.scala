@@ -3,9 +3,9 @@ package com.malliina.pics.db
 import cats.implicits.*
 import com.malliina.database.DoobieDatabase
 import com.malliina.pics.db.PicsDatabase.log
-import com.malliina.pics.{Access, Key, KeyMeta, KeyNotFound, MetaSourceT, PicOwner, UserDatabase}
+import com.malliina.pics.{Access, Key, KeyMeta, KeyNotFound, Language, MetaSourceT, PicUsername, Role, UserDatabase}
 import com.malliina.util.AppLogger
-import com.malliina.values.{AccessToken, NonNeg, UserId, Username}
+import com.malliina.values.{AccessToken, NonNeg, UserId}
 import doobie.ConnectionIO
 import doobie.implicits.*
 import doobie.util.fragment.Fragment
@@ -18,24 +18,24 @@ class PicsDatabase[F[_]](db: DoobieDatabase[F]) extends MetaSourceT[F] with User
     keyQuery(key).option.flatMap: opt =>
       opt.map(pure).getOrElse(fail(KeyNotFound(key)))
 
-  def load(offset: NonNeg, limit: NonNeg, user: PicOwner): F[List[KeyMeta]] = db.run:
+  def load(offset: NonNeg, limit: NonNeg, user: PicUsername): F[List[KeyMeta]] = db.run:
     val frag = fr"""and u.username = $user
                     order by p.added desc limit $limit offset $offset
                  """
     metaQuery(frag)
       .to[List]
 
-  def saveMeta(key: Key, owner: PicOwner): F[KeyMeta] = db.run:
-    val access = if owner == PicOwner.anon then Access.Public else Access.Private
+  def saveMeta(key: Key, owner: PicUsername): F[KeyMeta] = db.run:
+    val access = if owner == PicUsername.anon then Access.Public else Access.Private
     for
-      userId <- fetchOrCreateUser(owner)
-      _ <- sql"insert into pics(`key`, user, access) values ($key, $userId, $access)".update.run
+      user <- fetchOrCreateUser(owner)
+      _ <- sql"insert into pics(`key`, user, access) values ($key, ${user.id}, $access)".update.run
       row <- metaQuery(fr"and p.`key` = $key and u.username = $owner").unique
     yield
       log.info(s"Inserted '$key' by '$owner'.")
       row
 
-  def remove(key: Key, user: PicOwner): F[Boolean] = db.run:
+  def remove(key: Key, user: PicUsername): F[Boolean] = db.run:
     sql"delete from pics where `key` = $key and user = (select id from users where username = $user)".update.run
       .map: deleted =>
         val wasDeleted = deleted > 0
@@ -43,7 +43,7 @@ class PicsDatabase[F[_]](db: DoobieDatabase[F]) extends MetaSourceT[F] with User
         else log.warn(s"Tried to remove '$key' by '$user' but found no matching rows.")
         wasDeleted
 
-  override def modify(key: Key, user: PicOwner, access: Access): F[KeyMeta] = db.run:
+  override def modify(key: Key, user: PicUsername, access: Access): F[KeyMeta] = db.run:
     val owns = sql"""select exists(select p.`key`
                                    from pics p, users u
                                    where p.user = u.id and p.`key` = $key and u.username = $user)"""
@@ -71,15 +71,32 @@ class PicsDatabase[F[_]](db: DoobieDatabase[F]) extends MetaSourceT[F] with User
       if exists then pure(0)
       else
         for
-          userId <- fetchOrCreateUser(meta.owner)
+          user <- fetchOrCreateUser(meta.owner)
           rows <-
-            sql"insert into pics(`key`, user, access, added) values(${meta.key}, $userId, ${meta.access}, ${meta.added})".update.run
+            sql"insert into pics(`key`, user, access, added) values(${meta.key}, ${user.id}, ${meta.access}, ${meta.added})".update.run
         yield rows
 
-  def userByToken(token: AccessToken): F[Option[Username]] = db.run:
-    sql"""select u.username from users u, tokens t where t.user = u.id and t.token = $token"""
-      .query[Username]
+  def userByToken(token: AccessToken): F[Option[UserRow]] = db.run:
+    sql"""select u.id, u.username, u.role, u.language, u.added
+          from users u, tokens t
+          where t.user = u.id and t.token = $token"""
+      .query[UserRow]
       .option
+
+  override def user(name: PicUsername): F[Option[UserRow]] = db.run:
+    userByName(name)
+
+  private def userByName(name: PicUsername) =
+    sql"""select u.id, u.username, u.role, u.language, u.added
+          from users u
+          where u.username = $name
+       """.query[UserRow].option
+
+  private def userById(id: UserId) =
+    sql"""select u.id, u.username, u.role, u.language, u.added
+          from users u
+          where u.id = $id
+       """.query[UserRow]
 
   private def metaRow(key: Key) = keyQuery(key).unique
 
@@ -90,15 +107,21 @@ class PicsDatabase[F[_]](db: DoobieDatabase[F]) extends MetaSourceT[F] with User
           from pics p, users u
           where p.user = u.id $fragment""".query[KeyMeta]
 
-  private def fetchOrCreateUser(name: PicOwner): ConnectionIO[UserId] = for
-    userRow <- sql"select id from users where username = $name".query[UserId].option
-    userId <- userRow
-      .map(pure)
-      .getOrElse(
-        sql"insert into users(username) values ($name)".update
-          .withUniqueGeneratedKeys[UserId]("id")
-      )
-  yield userId
+  private def fetchOrCreateUser(name: PicUsername): ConnectionIO[UserRow] =
+    for
+      userOpt <- userByName(name)
+      user <- userOpt
+        .map(pure)
+        .getOrElse(insertUserIO(name))
+    yield user
 
-  def pure[T](t: T): ConnectionIO[T] = t.pure[ConnectionIO]
-  def fail[A](e: Exception): ConnectionIO[A] = e.raiseError[ConnectionIO, A]
+  private def insertUserIO(name: PicUsername): ConnectionIO[UserRow] =
+    for
+      id <- sql"""insert into users(username, role, language)
+                  values ($name, ${Role.default}, ${Language.default})""".update
+        .withUniqueGeneratedKeys[UserId]("id")
+      row <- userById(id).unique
+    yield row
+
+  private def pure[T](t: T): ConnectionIO[T] = t.pure[ConnectionIO]
+  private def fail[A](e: Exception): ConnectionIO[A] = e.raiseError[ConnectionIO, A]

@@ -1,6 +1,6 @@
 package com.malliina.pics.db
 
-import com.malliina.pics.{Keys, PicOwner}
+import com.malliina.pics.{Keys, PicUsername}
 import com.malliina.values.Literals.nonNeg
 import tests.DoobieSuite
 
@@ -8,7 +8,7 @@ class PicsDatabaseTests extends munit.CatsEffectSuite with DoobieSuite:
   test("can CRUD pic meta"):
     val data = doobie()
     val picsDatabase = PicsDatabase(data)
-    val user = PicOwner.build("testuser").toOption.get
+    val user = PicUsername.build("testuser").toOption.get
     val key = Keys.randomish()
     for
       _ <- picsDatabase.saveMeta(key, user)

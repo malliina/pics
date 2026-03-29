@@ -3,8 +3,9 @@ package com.malliina.pics
 import cats.Monad
 import cats.effect.Sync
 import cats.syntax.all.{toFlatMapOps, toFunctorOps}
+import com.malliina.pics.db.UserRow
 import com.malliina.storage.{StorageLong, StorageSize}
-import com.malliina.values.{AccessToken, NonNeg, Username}
+import com.malliina.values.{AccessToken, NonNeg}
 import fs2.io.file.{Files, Path}
 
 sealed trait DataResponse:
@@ -54,11 +55,12 @@ trait DataSourceT[F[_]: Monad] extends ImageSourceLike[F]:
 
 trait MetaSourceT[F[_]] extends SourceLike[F]:
   def meta(key: Key): F[KeyMeta]
-  def load(from: NonNeg, until: NonNeg, user: PicOwner): F[List[KeyMeta]]
-  def saveMeta(key: Key, owner: PicOwner): F[KeyMeta]
+  def load(from: NonNeg, until: NonNeg, user: PicUsername): F[List[KeyMeta]]
+  def saveMeta(key: Key, owner: PicUsername): F[KeyMeta]
   def putMetaIfNotExists(meta: KeyMeta): F[Int]
-  def remove(key: Key, user: PicOwner): F[Boolean]
-  def modify(key: Key, user: PicOwner, access: Access): F[KeyMeta]
+  def remove(key: Key, user: PicUsername): F[Boolean]
+  def modify(key: Key, user: PicUsername, access: Access): F[KeyMeta]
 
 trait UserDatabase[F[_]]:
-  def userByToken(token: AccessToken): F[Option[Username]]
+  def userByToken(token: AccessToken): F[Option[UserRow]]
+  def user(name: PicUsername): F[Option[UserRow]]

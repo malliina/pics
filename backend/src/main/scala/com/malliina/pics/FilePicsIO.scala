@@ -55,10 +55,10 @@ class FilePicsIO[F[_]: {Sync, Files}](val dir: Path) extends DataSourceT[F]:
   override def get(key: Key): F[DataFile] = DataFile(fileAt(key))
   override def remove(key: Key): F[PicResult] =
     F.delete(fileAt(key))
-      .map(_ => PicSuccess)
+      .map(_ => PicResult.PicSuccess)
       .handleErrorWith:
         case _: NoSuchFileException =>
-          S.pure(PicNotFound(key))
+          S.pure(PicResult.PicNotFound(key))
         case other: Exception =>
           log.error("Pics operation failed.", other)
           S.raiseError(other)

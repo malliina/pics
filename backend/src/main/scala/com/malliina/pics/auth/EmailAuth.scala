@@ -1,6 +1,7 @@
 package com.malliina.pics.auth
 
 import cats.effect.IO
+import com.malliina.pics.PicUsername
 import com.malliina.values.{Email, Username}
 import com.malliina.web.JWTUser
 import io.circe.Codec
@@ -20,7 +21,7 @@ trait EmailAuth:
 case class EmailUser(email: Email) extends JWTUser:
   override val username = Username.unsafe(email.email)
 
-case class UserPayload(username: Username) derives Codec.AsObject
+case class UserPayload(username: PicUsername) derives Codec.AsObject
 
 object UserPayload:
-  def email(email: Email): UserPayload = apply(Username.unsafe(email.value))
+  def email(email: Email): UserPayload = apply(PicUsername.fromEmail(email))

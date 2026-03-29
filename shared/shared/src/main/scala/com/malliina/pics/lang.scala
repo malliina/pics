@@ -1,5 +1,17 @@
 package com.malliina.pics
 
+import com.malliina.values.StringEnumCompanion
+
+enum Language(val code: String):
+  case English extends Language("en-US")
+  case Finnish extends Language("fi-FI")
+  case Swedish extends Language("sv-SE")
+
+object Language extends StringEnumCompanion[Language]:
+  override def all: Seq[Language] = Seq(English, Swedish, Finnish)
+  override def write(t: Language): String = t.code
+  val default: Language = English
+
 case class NavLang(title: String, navigation: String, previous: String, next: String)
 
 case class LoginLang(

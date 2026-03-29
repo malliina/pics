@@ -2,7 +2,7 @@ package com.malliina.pics
 
 import com.malliina.http.{FullUrl, SingleError}
 import com.malliina.pics.http4s.{Reverse, Urls}
-import com.malliina.values.{NonNeg, Username}
+import com.malliina.values.NonNeg
 import fs2.io.file.Path
 import io.circe.Codec
 import org.apache.commons.io.FilenameUtils
@@ -13,29 +13,31 @@ import java.time.Instant
 import java.util.Date
 
 trait BaseRequest:
-  def name: PicOwner
+  def name: PicUsername
   def readOnly: Boolean
   def isAnon = readOnly
 
-case class PicRequest(name: PicOwner, readOnly: Boolean, rh: Headers) extends BaseRequest
+case class PicRequest(name: PicUsername, role: Role, rh: Headers) extends BaseRequest:
+  def readOnly = role == Role.ReadOnly
+  def isAdmin = role == Role.Admin
 
 object PicRequest:
-  def anon(headers: Headers): PicRequest = PicRequest(PicOwner.anon, true, headers)
-  def forUser(user: Username, headers: Headers): PicRequest =
-    apply(PicOwner.fromUser(user), headers)
-  def apply(user: PicOwner, headers: Headers): PicRequest =
-    apply(user, user == PicOwner.anon, headers)
+  def anon(headers: Headers): PicRequest =
+    PicRequest(PicUsername.anon, Role.ReadOnly, headers)
 
 case class ListRequest(limits: Limits, user: PicRequest) extends LimitsLike:
   override def limit: NonNeg = limits.limit
   override def offset: NonNeg = limits.offset
 
-sealed trait PicResult
+enum PicResult:
+  case PicNotFound(key: Key) extends PicResult
+  case PicSuccess extends PicResult
 
-case class PicNotFound(key: Key) extends PicResult
-case object PicSuccess extends PicResult
-
-sealed abstract class PicSize(val value: String)
+enum PicSize(val value: String):
+  case Small extends PicSize("s")
+  case Medium extends PicSize("m")
+  case Large extends PicSize("l")
+  case Original extends PicSize("o")
 
 object PicSize:
   val Key = "s"
@@ -49,11 +51,6 @@ object PicSize:
     case Large.value    => Right(Large)
     case Original.value => Right(Original)
     case other          => Left(SingleError.input(s"Invalid size: '$other'."))
-
-  case object Small extends PicSize("s")
-  case object Medium extends PicSize("m")
-  case object Large extends PicSize("l")
-  case object Original extends PicSize("o")
 
 case class PicBundle(small: Path, medium: Path, large: Path, original: Path)
 
@@ -71,9 +68,9 @@ object Keys:
   def randomish(): Key = Key.build(generator.generate(Key.Length).toLowerCase).toOption.get
 
 case class FlatMeta(key: Key, lastModified: Instant):
-  def withUser(user: PicOwner) = KeyMeta(key, user, Access.Private, lastModified)
+  def withUser(user: PicUsername) = KeyMeta(key, user, Access.Private, lastModified)
 
-case class KeyMeta(key: Key, owner: PicOwner, access: Access, added: Instant)
+case class KeyMeta(key: Key, owner: PicUsername, access: Access, added: Instant)
 
 object PicMetas:
   def from[F[_]](meta: KeyMeta, rh: Request[F]): PicMeta = fromHost(meta, Urls.hostOnly(rh))

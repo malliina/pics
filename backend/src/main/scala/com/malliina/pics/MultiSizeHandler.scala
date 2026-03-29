@@ -76,4 +76,4 @@ class MultiSizeHandler[F[_]: Sync](
         paths.head
 
   override def remove(key: Key): F[PicResult] =
-    handlers.traverse(_.remove(key)).map(_ => PicSuccess)
+    handlers.traverse(_.remove(key)).map(_ => PicResult.PicSuccess)

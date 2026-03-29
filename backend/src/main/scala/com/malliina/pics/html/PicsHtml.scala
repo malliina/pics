@@ -179,7 +179,7 @@ class PicsHtml(
     )
     basePage(PageConf("Goodbye!", inner = content))
 
-  private def baseIndex(tabName: String, user: Option[PicOwner], conf: PageConf, lang: Lang) =
+  private def baseIndex(tabName: String, user: Option[PicUsername], conf: PageConf, lang: Lang) =
     def navItem(thisTabName: String, tabId: String, url: Uri, faName: String) =
       val itemClass = if tabId == tabName then "nav-item active" else "nav-item"
       li(`class` := itemClass)(a(href := url, `class` := "nav-link")(fa(faName), s" $thisTabName"))

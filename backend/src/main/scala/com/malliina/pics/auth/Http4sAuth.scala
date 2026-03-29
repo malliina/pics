@@ -7,9 +7,9 @@ import com.malliina.pics.auth.CredentialsResult.{AccessTokenResult, IdTokenResul
 import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.http4s.PicsService.version10
 import com.malliina.pics.http4s.{PicsBasicService, PicsService, Reverse, Urls}
-import com.malliina.pics.{AppConf, PicRequest}
-import com.malliina.values.{AccessToken, ErrorMessage, IdToken, Username}
-import com.malliina.web.{CognitoAccessValidator, CognitoIdValidator, JWTUser, OAuthError}
+import com.malliina.pics.{AppConf, Language, PicRequest, PicUsername, Role}
+import com.malliina.values.{AccessToken, ErrorMessage, IdToken}
+import com.malliina.web.{CognitoAccessValidator, CognitoIdValidator, OAuthError}
 import io.circe.*
 import io.circe.syntax.EncoderOps
 import org.http4s.*
@@ -46,7 +46,7 @@ class Http4sAuth[F[_]: Sync](
 
   def authenticate(headers: Headers): F[Either[F[Response[F]], PicRequest]] =
     val rs = PicsService.ranges(headers)
-    if rs.exists(r => r.satisfiedBy(MediaType.text.html)) then F.pure(web(headers))
+    if rs.exists(r => r.satisfiedBy(MediaType.text.html)) then web(headers)
     else if rs.exists(m => m.satisfiedBy(version10) || m.satisfiedBy(MediaType.application.json))
     then jwt(headers)
     else F.pure(Left(NotAcceptable(Errors("Not acceptable.").asJson, noCache)))
@@ -58,12 +58,12 @@ class Http4sAuth[F[_]: Sync](
     *   request headers
     */
   def authenticateAll(headers: Headers): F[Either[F[Response[F]], PicRequest]] =
-    val userAuth: F[Either[IdentityError, Username]] = F
+    val userAuth: F[Either[IdentityError, PicUser]] = F
       .pure(user(headers))
       .flatMap: e =>
         e.fold(
-          _ => readJwt(headers).fold(l => F.pure(Left(l)), r => r.map(_.map(_.username))),
-          user => F.pure(Right(user))
+          _ => readJwt(headers).fold(l => F.pure(Left(l)), r => r.map(ra => ra)),
+          user => userOrDefault(user).map(u => Right(u))
         )
     userAuth.map: e =>
       e.fold(
@@ -73,18 +73,21 @@ class Http4sAuth[F[_]: Sync](
             Right(PicRequest.anon(headers))
           case _ => Left(onUnauthorized(headers))
         },
-        user => Right(PicRequest.forUser(user, headers))
+        user => Right(PicRequest(user.username, user.role, headers))
       )
 
-  private def web(headers: Headers): Either[F[Response[F]], PicRequest] = user(headers).fold(
-    {
-      case MissingCredentials(_, headers)
-          if !headers.get[Cookie].exists(_.values.exists(_.name == cookieNames.provider)) =>
-        Right(PicRequest.anon(headers))
-      case _ => Left(onUnauthorized(headers))
-    },
-    user => Right(PicRequest.forUser(user, headers))
-  )
+  private def web(headers: Headers): F[Either[F[Response[F]], PicRequest]] =
+    user(headers).fold(
+      {
+        case MissingCredentials(_, headers)
+            if !headers.get[Cookie].exists(_.values.exists(_.name == cookieNames.provider)) =>
+          F.pure(Right(PicRequest.anon(headers)))
+        case _ => F.pure(Left(onUnauthorized(headers)))
+      },
+      user =>
+        userOrDefault(user).map: u =>
+          Right(PicRequest(u.username, u.role, headers))
+    )
 
   private def jwt(headers: Headers) =
     readJwt(headers)
@@ -92,11 +95,11 @@ class Http4sAuth[F[_]: Sync](
         io.map: e =>
           e.fold(
             _ => Left(onUnauthorized(headers)),
-            user => Right(PicRequest.forUser(user.username, headers))
+            user => Right(PicRequest(user.username, user.role, headers))
           )
       .fold(_ => F.pure(Right(PicRequest.anon(headers))), identity)
 
-  private def readJwt(headers: Headers): Either[IdentityError, F[Either[TokenError, JWTUser]]] =
+  private def readJwt(headers: Headers): Either[IdentityError, F[Either[TokenError, PicUser]]] =
     token(headers) match
       case AccessTokenResult(token) =>
         val res = db
@@ -104,11 +107,11 @@ class Http4sAuth[F[_]: Sync](
           .map: opt =>
             opt
               .map: u =>
-                JWTUsers.user(u)
+                JWTUsers.user(u.username, u.role, u.language)
               .toRight(TokenError(OAuthError(ErrorMessage("Invalid access token.")), headers))
         Right(res)
       case IdTokenResult(token) =>
-        val res: F[Either[TokenError, JWTUser]] =
+        val res: F[Either[TokenError, PicUser]] =
           F.delay(
             AccessToken
               .build(token.value)
@@ -121,16 +124,28 @@ class Http4sAuth[F[_]: Sync](
               _ =>
                 google
                   .validate(token)
-                  .map: e =>
-                    e.map: email =>
-                      EmailUser(email),
-              user => F.pure(Right(user))
+                  .flatMap: e =>
+                    e.fold(
+                      err => F.pure(Left(err)),
+                      email => userOrDefault(PicUsername.fromEmail(email)).map(u => Right(u))
+                    ),
+              user =>
+                if user.email.exists(e => e.email == user.username.name) then
+                  userOrDefault(PicUsername.fromUser(user.username)).map(u => Right(u))
+                else F.pure(Left(OAuthError(ErrorMessage("Invalid Cognito user."))))
             )
           .map: e =>
               e.left.map: error =>
                 TokenError(error, headers)
         Right(res)
-      case NoCredentials(headers) => Left(MissingCredentials("Creds required.", headers))
+      case NoCredentials(headers) => Left(MissingCredentials("Credentials required.", headers))
+
+  private def userOrDefault(username: PicUsername): F[PicUser] =
+    db.user(username)
+      .map: userOpt =>
+        val lang = userOpt.map(_.language).getOrElse(Language.default)
+        val role = userOpt.map(_.role).getOrElse(Role.Normal)
+        JWTUsers.user(username, role, lang)
 
   def token(headers: Headers): CredentialsResult = headers
     .get[Authorization]
@@ -160,7 +175,7 @@ class Http4sAuth[F[_]: Sync](
       .removeCookie(removalCookie(cookieNames.provider, req))
       .addCookie(additionCookie(cookieNames.prompt, Social.SelectAccount, req))
 
-  private def user(headers: Headers): Either[IdentityError, Username] =
+  private def user(headers: Headers): Either[IdentityError, PicUsername] =
     readUser(cookieNames.user, headers)
 
   def withPicsUser(
@@ -208,7 +223,7 @@ class Http4sAuth[F[_]: Sync](
       domain = Option.when(top.nonEmpty)(top)
     )
 
-  private def readUser(cookieName: String, headers: Headers): Either[IdentityError, Username] =
+  private def readUser(cookieName: String, headers: Headers): Either[IdentityError, PicUsername] =
     read[UserPayload](cookieName, headers).map(_.username)
 
   private def read[T: Decoder](cookieName: String, headers: Headers): Either[IdentityError, T] =

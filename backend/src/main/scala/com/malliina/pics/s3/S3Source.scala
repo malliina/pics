@@ -4,7 +4,7 @@ import cats.effect.{Async, Sync}
 import cats.effect.kernel.Resource
 import cats.syntax.all.*
 import com.malliina.pics.s3.S3Source.log
-import com.malliina.pics.{BucketName, DataFile, DataSourceT, FilePicsIO, FlatMeta, Key, PicResult, PicSuccess, Util}
+import com.malliina.pics.{BucketName, DataFile, DataSourceT, FilePicsIO, FlatMeta, Key, PicResult, Util}
 import com.malliina.storage.{StorageLong, StorageSize}
 import com.malliina.util.AppLogger
 import com.malliina.web.Utils.randomString
@@ -95,7 +95,7 @@ class S3Source[F[_]: Async](bucket: BucketName, client: S3AsyncClient, downloads
 
   def remove(key: Key): F[PicResult] =
     val req = DeleteObjectRequest.builder().bucket(bucketName).key(key.key).build()
-    client.deleteObject(req).io.map(_ => PicSuccess)
+    client.deleteObject(req).io.map(_ => PicResult.PicSuccess)
 
   def saveBody(key: Key, file: Path): F[StorageSize] =
     Util
