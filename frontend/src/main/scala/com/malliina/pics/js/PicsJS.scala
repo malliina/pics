@@ -45,7 +45,6 @@ object PicsJS extends BasicHtml:
     if has(LoginClass) then Login(log)
     if has(SignUpClass) then SignUp(log)
     if has(ProfileClass) then Profile(log)
-    throw Exception("this is a test")
 
   private def has(feature: String) = dom.document.body.classList.contains(feature)
 
