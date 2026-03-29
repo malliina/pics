@@ -124,7 +124,8 @@ class PicsService[F[_]: Async](
                   json = ok(Pics(entries)),
                   html = csrfOk: token =>
                     val feedback = req.feedbackAs[UserFeedback]
-                    html.pics(entries, feedback, listRequest.user, listRequest.limits, token)
+                    html
+                      .pics(entries, feedback, listRequest.user, listRequest.limits, token, Lang.en)
                 ).clearFeedback
         .flatMap(_.fold(identity, identity))
     case req @ POST -> Root / "pics" =>
@@ -221,7 +222,7 @@ class PicsService[F[_]: Async](
         val created: Option[PicMeta] = None
         val feedback = req.feedbackAs[UserFeedback]
         csrfOk: token =>
-          html.drop(created, feedback, user, token)
+          html.drop(created, feedback, user, token, Lang.en)
         .clearFeedback
     case GET -> Root / "sign-up" =>
       ok(html.signUp(Lang.en))

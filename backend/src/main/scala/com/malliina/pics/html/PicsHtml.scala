@@ -63,14 +63,16 @@ class PicsHtml(
     created: Option[PicMeta],
     feedback: Option[UserFeedback],
     user: BaseRequest,
-    csrfToken: CSRFToken
+    csrfToken: CSRFToken,
+    lang: Lang
   ) =
+    val dlang = lang.drop
     val content =
       divContainer(
         renderFeedback(feedback),
         fullRow(
           postableForm(reverse.sync.renderString, `class` := "drop-row form-inline")(
-            submitButton(`class` := btn.info)("Sync")
+            submitButton(`class` := btn.info)(dlang.sync)
           )
         ),
         fullRow(
@@ -86,13 +88,13 @@ class PicsHtml(
               ),
               input(`type` := "text", `class` := FormControl, name := KeyKey, placeholder := "key"),
               divClass("input-group-append")(
-                submitButton(`class` := btnOutline.danger)("Delete")
+                submitButton(`class` := btnOutline.danger)(dlang.delete)
               )
             )
           )
         ),
         div(`class` := "upload-drop-zone", id := "drop-zone")(
-          strong("Drag files here")
+          strong(dlang.dragFilesHere)
         ),
         tag("progress")(id := "progress", min := "0", max := "100", value := "0")(0),
         div(id := "feedback"),
@@ -100,33 +102,34 @@ class PicsHtml(
           Seq[Modifier]("Saved ", a(href := key.url)(key.key.key))
       )
     val conf = PageConf("Pics - Drop", bodyClass = DropClass, inner = content)
-    baseIndex("drop", if user.readOnly then None else Option(user.name), conf)
+    baseIndex("drop", if user.readOnly then None else Option(user.name), conf, lang)
 
   def pics(
     urls: Seq[PicMeta],
     feedback: Option[UserFeedback],
     user: BaseRequest,
     limits: Limits,
-    csrfToken: CSRFToken
+    csrfToken: CSRFToken,
+    lang: Lang
   ) =
     val content = Seq(
       divClass("pics")(renderFeedback(feedback)),
       picsContent(urls, user.readOnly, csrfToken),
-      pageNav(limits)
+      pageNav(limits, lang.nav)
     )
-    val conf = PageConf("Pics", bodyClass = PicsClass, inner = content)
-    baseIndex("pics", if user.readOnly then None else Option(user.name), conf)
+    val conf = PageConf(lang.nav.title, bodyClass = PicsClass, inner = content)
+    baseIndex("pics", if user.readOnly then None else Option(user.name), conf, lang)
 
-  private def pageNav(current: Limits) =
+  private def pageNav(current: Limits, lang: NavLang) =
     val prev = current.prev.map(l => move(l.offset))
     val next = move(current.next.offset)
     val prevExtra = if prev.isRight then "" else " disabled"
-    nav(aria.label := "Navigation", `class` := "d-flex justify-content-center py-3")(
+    nav(aria.label := lang.navigation, `class` := "d-flex justify-content-center py-3")(
       ul(`class` := "pagination")(
         li(`class` := s"page-item $prevExtra")(
-          a(`class` := "page-link", prev.map(p => href := p).getOrElse(href := "#"))("Previous")
+          a(`class` := "page-link", prev.map(p => href := p).getOrElse(href := "#"))(lang.previous)
         ),
-        li(`class` := "page-item")(a(`class` := "page-link", href := next)("Next"))
+        li(`class` := "page-item")(a(`class` := "page-link", href := next)(lang.next))
       )
     )
 
@@ -176,7 +179,7 @@ class PicsHtml(
     )
     basePage(PageConf("Goodbye!", inner = content))
 
-  private def baseIndex(tabName: String, user: Option[PicOwner], conf: PageConf) =
+  private def baseIndex(tabName: String, user: Option[PicOwner], conf: PageConf, lang: Lang) =
     def navItem(thisTabName: String, tabId: String, url: Uri, faName: String) =
       val itemClass = if tabId == tabName then "nav-item active" else "nav-item"
       li(`class` := itemClass)(a(href := url, `class` := "nav-link")(fa(faName), s" $thisTabName"))
@@ -185,8 +188,8 @@ class PicsHtml(
       .map: u =>
         modifier(
           ulClass(s"${navbars.Nav} $MrAuto")(
-            navItem("Pics", "pics", reverse.list, "image"),
-            navItem("Drop", "drop", reverse.drop, "upload")
+            navItem(lang.pics.title, "pics", reverse.list, "image"),
+            navItem(lang.drop.title, "drop", reverse.drop, "upload")
           ),
           ulClass(s"${navbars.Nav}")(
             li(`class` := s"nav-item $Dropdown")(
@@ -206,7 +209,7 @@ class PicsHtml(
                 li(
                   a(href := reverse.signOut, `class` := "nav-link")(
                     fa("arrow-right-from-bracket"),
-                    " Sign Out"
+                    s" ${lang.login.signOut}"
                   )
                 )
               )
@@ -217,18 +220,18 @@ class PicsHtml(
         modifier(
           ulClass(s"${navbars.Nav} $MrAuto")(),
           ulClass(navbars.Nav)(
-            navItem("Sign In", "signin", reverse.signIn, "arrow-right-to-bracket")
+            navItem(lang.login.signIn, "signin", reverse.signIn, "arrow-right-to-bracket")
           )
         )
-    basePage(conf.copy(inner = modifier(withNavbar(navContent), conf.inner)))
+    basePage(conf.copy(inner = modifier(withNavbar(lang.nav, navContent), conf.inner)))
 
   private def fa(faName: String) =
     i(`class` := s"nav-icon $faName", title := faName, aria.hidden := tags.True)
 
-  private def withNavbar(navLinks: Modifier*) =
+  private def withNavbar(lang: NavLang, navLinks: Modifier*) =
     navbar.basic(
       reverse.list,
-      "Pics",
+      lang.title,
       navLinks,
       navClass = s"${navbars.Navbar} navbar-expand-sm ${navbars.Light} ${navbars.BgLight}"
     )
