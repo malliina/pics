@@ -1,6 +1,7 @@
 package com.malliina.pics.js
 
 import com.malliina.http.CSRFConf
+import com.malliina.pics.{Lang, Language}
 import org.scalajs.dom
 import org.scalajs.dom.ErrorEvent
 
@@ -31,13 +32,14 @@ object PicsJS extends BasicHtml:
   val fontsCss = FontsCss
 
   def main(args: Array[String]): Unit =
+    val language = Cookies.readCookie[Language](Lang.cookieName).getOrElse(Language.default)
     dom.window
       .addEventListener[ExceptionEvent](
         "error",
         ee => log.info(s"${ee.error} at ${ee.filename}:${ee.lineno}:${ee.colno}")
       )
     if has(PicsClass) then
-      PicsSocket(csrf, csrfConf, log)
+      PicsSocket(csrf, csrfConf, Lang(language), log)
       LazyLoader()
     if has(DropClass) then PicDrop(csrfConf)
     if has(LoginClass) then Login(log)

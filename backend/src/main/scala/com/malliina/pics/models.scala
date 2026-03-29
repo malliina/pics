@@ -1,6 +1,7 @@
 package com.malliina.pics
 
 import com.malliina.http.{FullUrl, SingleError}
+import com.malliina.pics.auth.PicUser
 import com.malliina.pics.http4s.{Reverse, Urls}
 import com.malliina.values.NonNeg
 import fs2.io.file.Path
@@ -14,16 +15,21 @@ import java.util.Date
 
 trait BaseRequest:
   def name: PicUsername
-  def readOnly: Boolean
-  def isAnon = readOnly
-
-case class PicRequest(name: PicUsername, role: Role, rh: Headers) extends BaseRequest:
+  def role: Role
+  def language: Language
   def readOnly = role == Role.ReadOnly
   def isAdmin = role == Role.Admin
+  def lang = Lang(language)
+
+case class PicRequest(name: PicUsername, role: Role, language: Language, rh: Headers)
+  extends BaseRequest
 
 object PicRequest:
   def anon(headers: Headers): PicRequest =
-    PicRequest(PicUsername.anon, Role.ReadOnly, headers)
+    PicRequest(PicUsername.anon, Role.ReadOnly, Language.default, headers)
+
+  def user(user: PicUser, headers: Headers) =
+    PicRequest(user.username, user.role, user.language, headers)
 
 case class ListRequest(limits: Limits, user: PicRequest) extends LimitsLike:
   override def limit: NonNeg = limits.limit

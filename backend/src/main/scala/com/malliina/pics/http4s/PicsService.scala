@@ -122,10 +122,13 @@ class PicsService[F[_]: Async](
                   PicMetas.from(key, req)
                 renderRanged(req)(
                   json = ok(Pics(entries)),
-                  html = csrfOk: token =>
-                    val feedback = req.feedbackAs[UserFeedback]
-                    html
-                      .pics(entries, feedback, listRequest.user, listRequest.limits, token, Lang.en)
+                  html =
+                    val page = csrfOk: token =>
+                      val feedback = req.feedbackAs[UserFeedback]
+                      html
+                        .pics(entries, feedback, listRequest.user, listRequest.limits, token)
+                    page.map: res =>
+                      res.addCookie(languageCookie(listRequest.user.language, req))
                 ).clearFeedback
         .flatMap(_.fold(identity, identity))
     case req @ POST -> Root / "pics" =>
@@ -221,7 +224,7 @@ class PicsService[F[_]: Async](
         val created: Option[PicMeta] = None
         val feedback = req.feedbackAs[UserFeedback]
         csrfOk: token =>
-          html.drop(created, feedback, user, token, Lang.en)
+          html.drop(created, feedback, user, token)
         .clearFeedback
     case GET -> Root / "sign-up" =>
       ok(html.signUp(Lang.en))
@@ -593,6 +596,13 @@ class PicsService[F[_]: Async](
     case ImageFailure.ResizeException(ipa) =>
       log.error(s"Unable to parse image by '${by.name}'.", ipa)
       badRequestWith("Unable to parse image.")
+
+  def languageCookie(language: Language, req: Request[?]) = ResponseCookie(
+    Lang.cookieName,
+    language.code,
+    secure = Urls.isSecure(req),
+    httpOnly = false
+  )
 
   private def jsonOrForm[T: Decoder](req: Request[F])(
     code: (T, PicRequest) => F[Response[F]]

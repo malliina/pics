@@ -63,9 +63,9 @@ class PicsHtml(
     created: Option[PicMeta],
     feedback: Option[UserFeedback],
     user: BaseRequest,
-    csrfToken: CSRFToken,
-    lang: Lang
+    csrfToken: CSRFToken
   ) =
+    val lang = Lang(user.language)
     val dlang = lang.drop
     val content =
       divContainer(
@@ -86,7 +86,12 @@ class PicsHtml(
               divClass("input-group-prepend")(
                 spanClass("input-group-text")("pics/")
               ),
-              input(`type` := "text", `class` := FormControl, name := KeyKey, placeholder := "key"),
+              input(
+                `type` := "text",
+                `class` := FormControl,
+                name := KeyKey,
+                placeholder := dlang.keyPlaceholder
+              ),
               divClass("input-group-append")(
                 submitButton(`class` := btnOutline.danger)(dlang.delete)
               )
@@ -107,14 +112,14 @@ class PicsHtml(
   def pics(
     urls: Seq[PicMeta],
     feedback: Option[UserFeedback],
-    user: BaseRequest,
+    user: PicRequest,
     limits: Limits,
-    csrfToken: CSRFToken,
-    lang: Lang
+    csrfToken: CSRFToken
   ) =
+    val lang = user.lang
     val content = Seq(
       divClass("pics")(renderFeedback(feedback)),
-      picsContent(urls, user.readOnly, csrfToken),
+      picsContent(urls, user.readOnly, csrfToken, lang),
       pageNav(limits, lang.nav)
     )
     val conf = PageConf(lang.nav.title, bodyClass = PicsClass, inner = content)

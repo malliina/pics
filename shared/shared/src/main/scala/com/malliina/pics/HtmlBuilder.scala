@@ -45,11 +45,16 @@ abstract class HtmlBuilder[Builder, Output <: FragT, FragT](
 
   given Conversion[Key, Frag] = (key) => stringFrag(key.key)
 
-  def noPictures = p(`class` := s"$Lead pics-feedback")("No pictures.")
+  def noPictures(lang: PicsLang) = p(`class` := s"$Lead pics-feedback")(lang.noPictures)
 
-  def picsContent(urls: Seq[PicMeta], readOnly: Boolean, csrfToken: CSRFToken): Modifier =
+  def picsContent(
+    urls: Seq[PicMeta],
+    readOnly: Boolean,
+    csrfToken: CSRFToken,
+    lang: Lang
+  ): Modifier =
     divClass("pics-container", id := picsId)(
-      if urls.isEmpty then noPictures
+      if urls.isEmpty then noPictures(lang.pics)
       else gallery(urls, readOnly, lazyLoaded = true, csrfToken = csrfToken)
     )
 

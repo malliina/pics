@@ -73,7 +73,7 @@ class Http4sAuth[F[_]: Sync](
             Right(PicRequest.anon(headers))
           case _ => Left(onUnauthorized(headers))
         },
-        user => Right(PicRequest(user.username, user.role, headers))
+        user => Right(PicRequest.user(user, headers))
       )
 
   private def web(headers: Headers): F[Either[F[Response[F]], PicRequest]] =
@@ -86,7 +86,7 @@ class Http4sAuth[F[_]: Sync](
       },
       user =>
         userOrDefault(user).map: u =>
-          Right(PicRequest(u.username, u.role, headers))
+          Right(PicRequest.user(u, headers))
     )
 
   private def jwt(headers: Headers) =
@@ -95,7 +95,7 @@ class Http4sAuth[F[_]: Sync](
         io.map: e =>
           e.fold(
             _ => Left(onUnauthorized(headers)),
-            user => Right(PicRequest(user.username, user.role, headers))
+            user => Right(PicRequest.user(user, headers))
           )
       .fold(_ => F.pure(Right(PicRequest.anon(headers))), identity)
 

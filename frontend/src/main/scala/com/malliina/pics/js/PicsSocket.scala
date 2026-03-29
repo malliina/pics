@@ -9,7 +9,7 @@ import org.scalajs.dom.*
 import scala.concurrent.duration.DurationDouble
 import scala.scalajs.js.timers.*
 
-class PicsSocket(csrf: CSRFUtils, csrfConf: CSRFConf, log: BaseLogger)
+class PicsSocket(csrf: CSRFUtils, csrfConf: CSRFConf, lang: Lang, log: BaseLogger)
   extends BaseSocket("/sockets", log):
   val jsHtml = BaseHtml(csrfConf)
   val document = dom.document
@@ -124,7 +124,7 @@ class PicsSocket(csrf: CSRFUtils, csrfConf: CSRFConf, log: BaseLogger)
       thumb <- Option(gallery.querySelector(s"[data-id='$key']"))
     yield
       gallery.removeChild(thumb)
-      if Option(gallery.firstChild).isEmpty then fill(jsHtml.picsId, jsHtml.noPictures)
+      if Option(gallery.firstChild).isEmpty then fill(jsHtml.picsId, jsHtml.noPictures(lang.pics))
 
   def onProfile(info: ProfileInfo): Unit =
     isReadOnly = info.readOnly
