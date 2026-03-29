@@ -103,6 +103,13 @@ class PicsService[F[_]: Async](
     case req @ GET -> Root / "version" =>
       val res = ok(AppMeta.default.asJson)
       renderRanged(req)(res, res)
+    case req @ GET -> Root / "users" / "me" =>
+      auth
+        .authenticate(req.headers)
+        .flatMap: result =>
+          result.fold(res => res, user => ok(user.toUser))
+    case GET -> Root / "conf" =>
+      ok(Conf.default)
     case req @ GET -> Root / "pics" =>
       auth
         .authenticate(req.headers)

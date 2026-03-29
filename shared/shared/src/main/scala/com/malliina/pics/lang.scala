@@ -1,6 +1,7 @@
 package com.malliina.pics
 
 import com.malliina.values.StringEnumCompanion
+import io.circe.Codec
 
 enum Language(val code: String):
   case English extends Language("en-US")
@@ -13,6 +14,7 @@ object Language extends StringEnumCompanion[Language]:
   val default: Language = English
 
 case class NavLang(title: String, navigation: String, previous: String, next: String)
+  derives Codec.AsObject
 
 case class LoginLang(
   title: String,
@@ -30,7 +32,7 @@ case class LoginLang(
   reset: String,
   submit: String,
   signOut: String
-)
+) derives Codec.AsObject
 
 case class PicsLang(
   title: String,
@@ -39,15 +41,15 @@ case class PicsLang(
   makePublic: String,
   delete: String,
   copied: String
-)
+) derives Codec.AsObject
 case class DropLang(
   title: String,
   dragFilesHere: String,
   sync: String,
   delete: String,
   keyPlaceholder: String
-)
-case class ProfileLang(title: String)
+) derives Codec.AsObject
+case class ProfileLang(title: String) derives Codec.AsObject
 
 case class Lang(
   language: Language,
@@ -56,7 +58,7 @@ case class Lang(
   drop: DropLang,
   login: LoginLang,
   profile: ProfileLang
-)
+) derives Codec.AsObject
 
 object Lang:
   val cookieName = "pics-lang"

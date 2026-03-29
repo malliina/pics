@@ -22,7 +22,8 @@ trait BaseRequest:
   def lang = Lang(language)
 
 case class PicRequest(name: PicUsername, role: Role, language: Language, rh: Headers)
-  extends BaseRequest
+  extends BaseRequest:
+  def toUser: PicUser = PicUser(name, role, language)
 
 object PicRequest:
   def anon(headers: Headers): PicRequest =
@@ -128,3 +129,8 @@ object ContentType:
       case "gif"  => ImageGif
       case "bmp"  => ImageBmp
     attempt.lift(FilenameUtils.getExtension(name))
+
+case class Conf(languages: Seq[Lang]) derives Codec.AsObject
+
+object Conf:
+  val default = Conf(Seq(Lang.en, Lang.se))

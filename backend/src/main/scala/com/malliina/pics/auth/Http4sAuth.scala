@@ -107,7 +107,7 @@ class Http4sAuth[F[_]: Sync](
           .map: opt =>
             opt
               .map: u =>
-                JWTUsers.user(u.username, u.role, u.language)
+                PicUser.user(u.username, u.role, u.language)
               .toRight(TokenError(OAuthError(ErrorMessage("Invalid access token.")), headers))
         Right(res)
       case IdTokenResult(token) =>
@@ -145,7 +145,7 @@ class Http4sAuth[F[_]: Sync](
       .map: userOpt =>
         val lang = userOpt.map(_.language).getOrElse(Language.default)
         val role = userOpt.map(_.role).getOrElse(Role.Normal)
-        JWTUsers.user(username, role, lang)
+        PicUser.user(username, role, lang)
 
   def token(headers: Headers): CredentialsResult = headers
     .get[Authorization]
