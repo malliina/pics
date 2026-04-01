@@ -54,7 +54,7 @@ trait AppResources:
         .withHost(host"0.0.0.0")
         .withPort(serverPort)
         .withHttpWebSocketApp(sockets =>
-          app[F](picsApp, sockets, csrf.validate(req => shouldCheckCSRF(req, csrfConf)))
+          app[F](picsApp, sockets, csrf.validate(req => noCsrfCheck(req, csrfConf)))
         )
         .withErrorHandler(ErrorHandler[F].partial)
         .withIdleTimeout(60.minutes)
@@ -63,15 +63,13 @@ trait AppResources:
         .build
     yield server
 
-  private def shouldCheckCSRF[F[_]](req: Request[F], conf: CSRFConf): Boolean =
+  private def noCsrfCheck[F[_]](req: Request[F], conf: CSRFConf): Boolean =
     val nocheck =
       req.headers
         .get(conf.headerName)
         .map(_.head.value)
         .contains(conf.noCheck)
-    val safe =
-      req.method.isSafe || nocheck || req.uri.path.renderString == "/sign-in/callbacks/apple"
-    !safe
+    req.method.isSafe || nocheck || req.uri.path.renderString == "/sign-in/callbacks/apple"
 
   private def appResource[F[_]: Async](
     conf: => PicsConf,
