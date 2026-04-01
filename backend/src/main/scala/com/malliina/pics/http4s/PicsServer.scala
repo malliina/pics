@@ -53,9 +53,7 @@ trait AppResources:
         .default[F]
         .withHost(host"0.0.0.0")
         .withPort(serverPort)
-        .withHttpWebSocketApp(sockets =>
-          app[F](picsApp, sockets, csrf.validate(req => looksSafe(req, csrfConf)))
-        )
+        .withHttpWebSocketApp(sockets => app[F](picsApp, sockets, csrfUtils.middleware(csrf)))
         .withErrorHandler(ErrorHandler[F].partial)
         .withIdleTimeout(60.minutes)
         .withRequestHeaderReceiveTimeout(30.minutes)
