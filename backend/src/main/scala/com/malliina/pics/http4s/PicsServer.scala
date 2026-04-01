@@ -54,7 +54,7 @@ trait AppResources:
         .withHost(host"0.0.0.0")
         .withPort(serverPort)
         .withHttpWebSocketApp(sockets =>
-          app[F](picsApp, sockets, csrf.validate(req => !avoidCsrf(req, csrfConf)))
+          app[F](picsApp, sockets, csrf.validate(req => looksSafe(req, csrfConf)))
         )
         .withErrorHandler(ErrorHandler[F].partial)
         .withIdleTimeout(60.minutes)
@@ -63,7 +63,7 @@ trait AppResources:
         .build
     yield server
 
-  private def avoidCsrf[F[_]](req: Request[F], conf: CSRFConf): Boolean =
+  private def looksSafe[F[_]](req: Request[F], conf: CSRFConf): Boolean =
     val nocheck =
       req.headers
         .get(conf.headerName)
