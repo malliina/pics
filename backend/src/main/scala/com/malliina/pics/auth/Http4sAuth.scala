@@ -2,25 +2,30 @@ package com.malliina.pics.auth
 
 import cats.effect.Sync
 import cats.syntax.all.*
-import com.malliina.http.{Errors, HttpClient}
+import com.malliina.http.{Errors, HttpClient, SingleError}
 import com.malliina.pics.auth.CredentialsResult.{AccessTokenResult, IdTokenResult, NoCredentials}
 import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.http4s.PicsService.version10
 import com.malliina.pics.http4s.{PicsBasicService, PicsService, Reverse, Urls}
 import com.malliina.pics.{AppConf, Language, PicRequest, PicUsername, Role}
+import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, ErrorMessage, IdToken}
 import com.malliina.web.{CognitoAccessValidator, CognitoIdValidator, OAuthError}
 import io.circe.*
 import io.circe.syntax.EncoderOps
 import org.http4s.*
 import org.http4s.Credentials.Token
-import org.http4s.headers.{Authorization, Cookie, Location}
+import org.http4s.headers.{Authorization, Cookie, Location, `WWW-Authenticate`}
 import org.typelevel.ci.CIStringSyntax
+import Http4sAuth.log
+import cats.data.NonEmptyList
 
 import scala.annotation.unused
 import scala.concurrent.duration.DurationInt
 
 object Http4sAuth:
+  private val log = AppLogger(getClass)
+
   def default[F[_]: Sync](conf: AppConf, db: PicsDatabase[F], http: HttpClient[F]): Http4sAuth[F] =
     Http4sAuth(
       JWT(conf.secret),
@@ -89,12 +94,16 @@ class Http4sAuth[F[_]: Sync](
           Right(PicRequest.user(u, headers))
     )
 
-  private def jwt(headers: Headers) =
+  private def jwt(headers: Headers): F[Either[F[Response[F]], PicRequest]] =
     readJwt(headers)
       .map: io =>
         io.map: e =>
           e.fold(
-            _ => Left(onUnauthorized(headers)),
+            err =>
+              val error = err.error
+              log.warn(s"Unauthorized request errored with $error, headers $headers")
+              Left(unauthorized(Errors(SingleError(error.message, error.key))))
+            ,
             user => Right(PicRequest.user(user, headers))
           )
       .fold(_ => F.pure(Right(PicRequest.anon(headers))), identity)
@@ -244,3 +253,8 @@ class Http4sAuth[F[_]: Sync](
 
   private def onUnauthorized(@unused headers: Headers) =
     SeeOther(Location(Reverse.signIn))
+
+  private def unauthorized(errors: Errors): F[Response[F]] = Unauthorized(
+    `WWW-Authenticate`(NonEmptyList.of(Challenge("myscheme", "myrealm"))),
+    errors.asJson
+  )
