@@ -7,6 +7,7 @@ import com.comcast.ip4s.{Port, host, port}
 import com.malliina.database.DoobieDatabase
 import com.malliina.http.{CSRFConf, HttpClient}
 import com.malliina.http4s.CSRFUtils
+import com.malliina.http4s.CSRFUtils.CSRFChecker
 import com.malliina.logback.AppLogging
 import com.malliina.pics.db.PicsDatabase
 import com.malliina.pics.{BuildInfo, MultiSizeHandler, PicsConf}
@@ -53,13 +54,17 @@ trait AppResources:
         .default[F]
         .withHost(host"0.0.0.0")
         .withPort(serverPort)
-        .withHttpWebSocketApp(sockets => app[F](picsApp, sockets, csrfUtils.middleware(csrf)))
+        .withHttpWebSocketApp(sockets => app[F](picsApp, sockets, configureCsrf(csrf, csrfUtils)))
         .withErrorHandler(ErrorHandler[F].partial)
         .withIdleTimeout(60.minutes)
         .withRequestHeaderReceiveTimeout(30.minutes)
         .withShutdownTimeout(1.millis)
         .build
     yield server
+
+  def configureCsrf[F[_]: Async](csrf: CSRF[F, F], utils: CSRFUtils): CSRFChecker[F] =
+    middlewareCustom(csrf): req =>
+      looksSafe(req, utils.conf)
 
   private def looksSafe[F[_]](req: Request[F], conf: CSRFConf): Boolean =
     val nocheck =
@@ -68,6 +73,12 @@ trait AppResources:
         .map(_.head.value)
         .contains(conf.noCheck)
     req.method.isSafe || nocheck || req.uri.path.renderString == "/sign-in/callbacks/apple"
+
+  def middlewareCustom[F[_]](csrf: CSRF[F, F])(safe: Request[F] => Boolean): CSRFChecker[F] =
+    http =>
+      Kleisli: (r: Request[F]) =>
+        val response = http(r)
+        if safe(r) then response else csrf.checkCSRF(r, response)
 
   private def appResource[F[_]: Async](
     conf: => PicsConf,
