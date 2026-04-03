@@ -138,10 +138,7 @@ class Http4sAuth[F[_]: Sync](
                       err => F.pure(Left(err)),
                       email => userOrDefault(PicUsername.fromEmail(email)).map(u => Right(u))
                     ),
-              user =>
-                if user.email.exists(e => e.email == user.username.name) then
-                  userOrDefault(PicUsername.fromUser(user.username)).map(u => Right(u))
-                else F.pure(Left(OAuthError(ErrorMessage("Invalid Cognito user."))))
+              cognito => userOrDefault(PicUsername.fromUser(cognito.username)).map(u => Right(u))
             )
           .map: e =>
               e.left.map: error =>
