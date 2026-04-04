@@ -123,7 +123,7 @@ class PicsService[F[_]: Async](
                 badRequest(errors)
         .map: e =>
           e.map: listRequest =>
-            db.load(listRequest.offset, listRequest.limit, listRequest.user.name)
+            db.load(listRequest.offset, listRequest.limit, listRequest.user.user)
               .flatMap: keys =>
                 val entries = keys.map: key =>
                   PicMetas.from(key, req)
@@ -202,7 +202,7 @@ class PicsService[F[_]: Async](
               log.info(s"Syncing ${keys.length} keys...")
               keys
                 .traverse: key =>
-                  db.putMetaIfNotExists(key.withUser(user.name))
+                  db.putMetaIfNotExists(key.withUser(user.user))
                 .flatMap: changes =>
                   log.info(s"Sync complete. Upserted ${changes.sum} rows.")
                   seeOther(Reverse.drop)
@@ -394,7 +394,7 @@ class PicsService[F[_]: Async](
       ).flatMap: _ =>
         unauthorized(Errors(s"Unauthorized."), req)
     else
-      db.modify(key, user.name, to)
+      db.modify(key, user.user, to)
         .flatMap: _ =>
           renderRanged(req)(
             json = Accepted(Json.obj("message" -> "ok".asJson), noCache),
@@ -407,7 +407,7 @@ class PicsService[F[_]: Async](
         delay(log.warn(s"User '${user.name}' is not authorized to delete '$key'.")).flatMap: _ =>
           unauthorized(Errors(s"Unauthorized."), req)
       else
-        db.remove(key, user.name)
+        db.remove(key, user.user)
           .flatMap: wasDeleted =>
             if wasDeleted then
               log.info(s"Key '$key' removed by '${user.name}' from '${req.uri}'.")

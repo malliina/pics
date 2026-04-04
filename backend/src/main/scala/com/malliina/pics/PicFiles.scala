@@ -3,6 +3,7 @@ package com.malliina.pics
 import cats.Monad
 import cats.effect.Sync
 import cats.syntax.all.{toFlatMapOps, toFunctorOps}
+import com.malliina.pics.auth.UserPayload
 import com.malliina.pics.db.UserRow
 import com.malliina.storage.{StorageLong, StorageSize}
 import com.malliina.values.{AccessToken, NonNeg}
@@ -55,12 +56,12 @@ trait DataSourceT[F[_]: Monad] extends ImageSourceLike[F]:
 
 trait MetaSourceT[F[_]] extends SourceLike[F]:
   def meta(key: Key): F[KeyMeta]
-  def load(from: NonNeg, until: NonNeg, user: PicUsername): F[List[KeyMeta]]
-  def saveMeta(key: Key, owner: PicUsername): F[KeyMeta]
+  def load(from: NonNeg, until: NonNeg, user: UserPayload): F[List[KeyMeta]]
+  def saveMeta(key: Key, owner: UserPayload): F[KeyMeta]
   def putMetaIfNotExists(meta: KeyMeta): F[Int]
-  def remove(key: Key, user: PicUsername): F[Boolean]
-  def modify(key: Key, user: PicUsername, access: Access): F[KeyMeta]
+  def remove(key: Key, user: UserPayload): F[Boolean]
+  def modify(key: Key, user: UserPayload, access: Access): F[KeyMeta]
 
 trait UserDatabase[F[_]]:
   def userByToken(token: AccessToken): F[Option[UserRow]]
-  def user(name: PicUsername): F[Option[UserRow]]
+  def loadUser(user: UserPayload): F[Option[UserRow]]

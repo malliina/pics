@@ -36,5 +36,5 @@ class PicService[F[_]: {Sync, Files}](val db: MetaSourceT[F], handler: MultiSize
         )
       )
       _ <- handler.handle(renamedFile, key)
-      meta <- db.saveMeta(key, by.name)
+      meta <- db.saveMeta(key, by.user)
     yield meta

@@ -2,10 +2,11 @@ package com.malliina.pics.db
 
 import cats.implicits.*
 import com.malliina.database.DoobieDatabase
+import com.malliina.pics.auth.{Cognito, SocialEmail, SpecialUser, UserPayload, UserSubject}
 import com.malliina.pics.db.PicsDatabase.log
-import com.malliina.pics.{Access, Key, KeyMeta, KeyNotFound, Language, MetaSourceT, PicUsername, Role, UserDatabase}
+import com.malliina.pics.{Access, AlreadyExists, Key, KeyMeta, KeyMetaRow, KeyNotFound, Language, MetaSourceT, PicUsername, Role, UserDatabase}
 import com.malliina.util.AppLogger
-import com.malliina.values.{AccessToken, NonNeg, UserId}
+import com.malliina.values.{AccessToken, ErrorMessage, NonNeg, UserId}
 import doobie.ConnectionIO
 import doobie.implicits.*
 import doobie.util.fragment.Fragment
@@ -16,48 +17,55 @@ object PicsDatabase:
 class PicsDatabase[F[_]](db: DoobieDatabase[F]) extends MetaSourceT[F] with UserDatabase[F]:
   override def meta(key: Key): F[KeyMeta] = db.run:
     keyQuery(key).option.flatMap: opt =>
-      opt.map(pure).getOrElse(fail(KeyNotFound(key)))
+      opt.flatMap(r => r.toMeta.toOption).map(pure).getOrElse(fail(KeyNotFound(key)))
 
-  def load(offset: NonNeg, limit: NonNeg, user: PicUsername): F[List[KeyMeta]] = db.run:
-    val frag = fr"""and u.username = $user
-                    order by p.added desc limit $limit offset $offset
-                 """
-    metaQuery(frag)
-      .to[List]
+  def load(offset: NonNeg, limit: NonNeg, user: UserPayload): F[List[KeyMeta]] = db.run:
+    userIO(user).flatMap: uOpt =>
+      uOpt
+        .map: row =>
+          val frag = fr"""and u.id = ${row.id}
+                          order by p.added desc limit $limit offset $offset
+                         """
+          metaQuery(frag).to[List].map(_.flatMap(_.toMeta.toOption))
+        .getOrElse:
+          pure(Nil)
 
-  def saveMeta(key: Key, owner: PicUsername): F[KeyMeta] = db.run:
+  def saveMeta(key: Key, owner: UserPayload): F[KeyMeta] = db.run:
     val access = if owner == PicUsername.anon then Access.Public else Access.Private
     for
       user <- fetchOrCreateUser(owner)
       _ <- sql"insert into pics(`key`, user, access) values ($key, ${user.id}, $access)".update.run
-      row <- metaQuery(fr"and p.`key` = $key and u.username = $owner").unique
+      row <- metaQuery(fr"and p.`key` = $key and u.id = ${user.id}").unique
+      meta <- row.toMeta.fold(err => failErr(err), ok => pure(ok))
     yield
-      log.info(s"Inserted '$key' by '$owner'.")
-      row
+      log.info(s"Inserted '$key' by '${user.username}'.")
+      meta
 
-  def remove(key: Key, user: PicUsername): F[Boolean] = db.run:
-    sql"delete from pics where `key` = $key and user = (select id from users where username = $user)".update.run
-      .map: deleted =>
-        val wasDeleted = deleted > 0
-        if wasDeleted then log.info(s"Deleted '$key' by '$user'.")
-        else log.warn(s"Tried to remove '$key' by '$user' but found no matching rows.")
-        wasDeleted
+  def remove(key: Key, user: UserPayload): F[Boolean] = db.run:
+    existingUser(user).flatMap: row =>
+      sql"delete from pics where `key` = $key and user = (select id from users where id = ${row.id})".update.run
+        .map: deleted =>
+          val wasDeleted = deleted > 0
+          if wasDeleted then log.info(s"Deleted '$key' by '${user.username}'.")
+          else log.warn(s"Tried to remove '$key' by '${user.username}' but found no matching rows.")
+          wasDeleted
 
-  override def modify(key: Key, user: PicUsername, access: Access): F[KeyMeta] = db.run:
-    val owns = sql"""select exists(select p.`key`
-                                   from pics p, users u
-                                   where p.user = u.id and p.`key` = $key and u.username = $user)"""
-      .query[Boolean]
-      .unique
-    for
-      ownsPic <- owns
-      _ <- if !ownsPic then fail(KeyNotFound(key)) else pure(())
-      _ <-
-        sql"update pics set access = $access where `key` = $key and user = (select id from users where username = $user)".update.run
-      row <- metaRow(key)
-    yield
-      log.info(s"User $user changed access of $key to $access.")
-      row
+  override def modify(key: Key, user: UserPayload, access: Access): F[KeyMeta] = db.run:
+    existingUser(user).flatMap: row =>
+      val owns = sql"""select exists(select p.`key`
+                                     from pics p, users u
+                                     where p.user = u.id and p.`key` = $key and u.id = ${row.id})"""
+        .query[Boolean]
+        .unique
+      for
+        ownsPic <- owns
+        _ <- if !ownsPic then fail(KeyNotFound(key)) else pure(())
+        _ <-
+          sql"update pics set access = $access where `key` = $key and user = ${row.id}".update.run
+        row <- metaRow(key)
+      yield
+        log.info(s"User $user changed access of $key to $access.")
+        row
 
   def contains(key: Key): F[Boolean] = db.run:
     existsQuery(key)
@@ -77,51 +85,63 @@ class PicsDatabase[F[_]](db: DoobieDatabase[F]) extends MetaSourceT[F] with User
         yield rows
 
   def userByToken(token: AccessToken): F[Option[UserRow]] = db.run:
-    sql"""select u.id, u.username, u.role, u.language, u.added
-          from users u, tokens t
+    sql"""$selectUsers, tokens t
           where t.user = u.id and t.token = $token"""
       .query[UserRow]
       .option
 
-  override def user(name: PicUsername): F[Option[UserRow]] = db.run:
-    userByName(name)
+  override def loadUser(user: UserPayload): F[Option[UserRow]] = db.run:
+    userIO(user)
 
-  private def userByName(name: PicUsername) =
-    sql"""select u.id, u.username, u.role, u.language, u.added
-          from users u
-          where u.username = $name
-       """.query[UserRow].option
+  private def existingUser(user: UserPayload) = userQuery(user.subject).unique
+  private def userIO(user: UserPayload) = userQuery(user.subject).option
+
+  private def userQuery(subject: UserSubject) =
+    val q = subject match
+      case SocialEmail(email) => sql"""$selectUsers where u.email = $email"""
+      case Cognito(id)        => sql"""$selectUsers where u.cognito_sub = $id"""
+      case SpecialUser(name)  => sql"""$selectUsers where u.username = $name"""
+    q.query[UserRow]
 
   private def userById(id: UserId) =
-    sql"""select u.id, u.username, u.role, u.language, u.added
-          from users u
-          where u.id = $id
-       """.query[UserRow]
+    sql"""$selectUsers where u.id = $id""".query[UserRow]
 
-  private def metaRow(key: Key) = keyQuery(key).unique
+  private def selectUsers =
+    sql"""select u.id, u.username, u.email, u.cognito_sub, u.role, u.language, u.added
+          from users u"""
+
+  private def metaRow(key: Key) =
+    keyQuery(key).unique.flatMap(row => row.toMeta.fold(err => failErr(err), ok => pure(ok)))
 
   private def keyQuery(key: Key) = metaQuery(fr"and p.`key` = $key")
 
   private def metaQuery(fragment: Fragment) =
-    sql"""select p.`key`, u.username, p.access, p.added
+    sql"""select p.`key`, u.username, u.email, u.cognito_sub, p.access, p.added
           from pics p, users u
-          where p.user = u.id $fragment""".query[KeyMeta]
+          where p.user = u.id $fragment""".query[KeyMetaRow]
 
-  private def fetchOrCreateUser(name: PicUsername): ConnectionIO[UserRow] =
+  private def fetchOrCreateUser(user: UserPayload): ConnectionIO[UserRow] =
     for
-      userOpt <- userByName(name)
+      userOpt <- userIO(user)
       user <- userOpt
         .map(pure)
-        .getOrElse(insertUserIO(name))
+        .getOrElse(insertUserIO(user))
     yield user
 
-  private def insertUserIO(name: PicUsername): ConnectionIO[UserRow] =
+  private def insertUserIO(user: UserPayload): ConnectionIO[UserRow] =
     for
-      id <- sql"""insert into users(username, role, language)
-                  values ($name, ${Role.default}, ${Language.default})""".update
+      exists <-
+        sql"""select exists(select username from users u where u.username = ${user.username})"""
+          .query[Boolean]
+          .unique
+      _ <- if exists then fail(AlreadyExists(user.username)) else pure(())
+      id <- sql"""insert into users(username, email, cognito_sub, role, language)
+                  values (${user.username}, ${user.email}, ${user.cognito}, ${Role.default}, ${Language.default})""".update
         .withUniqueGeneratedKeys[UserId]("id")
       row <- userById(id).unique
     yield row
 
   private def pure[T](t: T): ConnectionIO[T] = t.pure[ConnectionIO]
+
+  private def failErr[A](error: ErrorMessage): ConnectionIO[A] = fail(Exception(error.message))
   private def fail[A](e: Exception): ConnectionIO[A] = e.raiseError[ConnectionIO, A]

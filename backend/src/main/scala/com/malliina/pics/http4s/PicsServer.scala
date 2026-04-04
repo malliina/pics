@@ -62,7 +62,7 @@ trait AppResources:
         .build
     yield server
 
-  def configureCsrf[F[_]: Async](csrf: CSRF[F, F], utils: CSRFUtils): CSRFChecker[F] =
+  def configureCsrf[F[_]](csrf: CSRF[F, F], utils: CSRFUtils): CSRFChecker[F] =
     middlewareCustom(csrf): req =>
       looksSafe(req, utils.conf)
 

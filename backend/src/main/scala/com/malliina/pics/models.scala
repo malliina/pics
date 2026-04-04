@@ -1,9 +1,10 @@
 package com.malliina.pics
 
 import com.malliina.http.{FullUrl, SingleError}
-import com.malliina.pics.auth.PicUser
+import com.malliina.pics.auth.{Cognito, PicUser, SocialEmail, UserPayload}
 import com.malliina.pics.http4s.{Reverse, Urls}
-import com.malliina.values.NonNeg
+import com.malliina.values.Literals.err
+import com.malliina.values.{Email, ErrorMessage, NonNeg}
 import fs2.io.file.Path
 import io.circe.Codec
 import org.apache.commons.io.FilenameUtils
@@ -14,23 +15,28 @@ import java.time.Instant
 import java.util.Date
 
 trait BaseRequest:
-  def name: PicUsername
+  def user: UserPayload
   def role: Role
   def language: Language
   def readOnly = role == Role.ReadOnly
   def isAdmin = role == Role.Admin
   def lang = Lang(language)
+  def name = user.username
 
-case class PicRequest(name: PicUsername, role: Role, language: Language, rh: Headers)
-  extends BaseRequest:
-  def toUser: PicUser = PicUser(name, role, language)
+case class PicRequest(
+  user: UserPayload,
+  role: Role,
+  language: Language,
+  rh: Headers
+) extends BaseRequest:
+  def toUser: PicUser = PicUser(user, role, language)
 
 object PicRequest:
   def anon(headers: Headers): PicRequest =
-    PicRequest(PicUsername.anon, Role.ReadOnly, Language.default, headers)
+    PicRequest(UserPayload.anon, Role.ReadOnly, Language.default, headers)
 
   def user(user: PicUser, headers: Headers) =
-    PicRequest(user.username, user.role, user.language, headers)
+    PicRequest(user.user, user.role, user.language, headers)
 
 case class ListRequest(limits: Limits, user: PicRequest) extends LimitsLike:
   override def limit: NonNeg = limits.limit
@@ -75,9 +81,25 @@ object Keys:
   def randomish(): Key = Key.build(generator.generate(Key.Length).toLowerCase).toOption.get
 
 case class FlatMeta(key: Key, lastModified: Instant):
-  def withUser(user: PicUsername) = KeyMeta(key, user, Access.Private, lastModified)
+  def withUser(user: UserPayload) = KeyMeta(key, user, Access.Private, lastModified)
 
-case class KeyMeta(key: Key, owner: PicUsername, access: Access, added: Instant)
+case class KeyMetaRow(
+  key: Key,
+  username: PicUsername,
+  email: Option[Email],
+  cognito: Option[CognitoUserId],
+  access: Access,
+  added: Instant
+):
+  def toMeta: Either[ErrorMessage, KeyMeta] =
+    email
+      .map(SocialEmail(_))
+      .orElse(cognito.map(Cognito(_)))
+      .map: sub =>
+        KeyMeta(key, UserPayload(username, sub), access, added)
+      .toRight(err"Missing both email and cognito identifier.")
+
+case class KeyMeta(key: Key, owner: UserPayload, access: Access, added: Instant)
 
 object PicMetas:
   def from[F[_]](meta: KeyMeta, rh: Request[F]): PicMeta = fromHost(meta, Urls.hostOnly(rh))

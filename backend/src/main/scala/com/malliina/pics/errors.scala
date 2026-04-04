@@ -13,6 +13,8 @@ enum ImageFailure:
   case ResizeException(ipe: ImageParseException) extends ImageFailure
 
 class KeyNotFound(val key: Key) extends Exception(s"Key not found: '$key'.")
+class AlreadyExists(val username: PicUsername)
+  extends Exception(s"User already exists: '$username'.")
 
 class ErrorsException(val errors: Errors) extends Exception(errors.message.message):
   def message = errors.message

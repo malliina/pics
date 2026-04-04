@@ -1,24 +1,24 @@
 package com.malliina.pics.auth
 
+import cats.data.NonEmptyList
 import cats.effect.Sync
 import cats.syntax.all.*
 import com.malliina.http.{Errors, HttpClient, SingleError}
 import com.malliina.pics.auth.CredentialsResult.{AccessTokenResult, IdTokenResult, NoCredentials}
-import com.malliina.pics.db.PicsDatabase
+import com.malliina.pics.auth.Http4sAuth.log
+import com.malliina.pics.db.{PicsDatabase, UserRow}
 import com.malliina.pics.http4s.PicsService.version10
 import com.malliina.pics.http4s.{PicsBasicService, PicsService, Reverse, Urls}
-import com.malliina.pics.{AppConf, Language, PicRequest, PicUsername, Role}
+import com.malliina.pics.{AppConf, CognitoUserId, CognitoUserRef, Language, PicRequest, Role}
 import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, ErrorMessage, IdToken}
-import com.malliina.web.{CognitoAccessValidator, CognitoIdValidator, OAuthError}
+import com.malliina.web.{AuthError, CognitoAccessValidator, CognitoIdValidator, OAuthError}
 import io.circe.*
 import io.circe.syntax.EncoderOps
 import org.http4s.*
 import org.http4s.Credentials.Token
 import org.http4s.headers.{Authorization, Cookie, Location, `WWW-Authenticate`}
 import org.typelevel.ci.CIStringSyntax
-import Http4sAuth.log
-import cats.data.NonEmptyList
 
 import scala.annotation.unused
 import scala.concurrent.duration.DurationInt
@@ -63,13 +63,11 @@ class Http4sAuth[F[_]: Sync](
     *   request headers
     */
   def authenticateAll(headers: Headers): F[Either[F[Response[F]], PicRequest]] =
-    val userAuth: F[Either[IdentityError, PicUser]] = F
-      .pure(user(headers))
-      .flatMap: e =>
-        e.fold(
-          _ => readJwt(headers).fold(l => F.pure(Left(l)), r => r.map(ra => ra)),
-          user => userOrDefault(user).map(u => Right(u))
-        )
+    val userAuth: F[Either[IdentityError, PicUser]] =
+      user(headers).fold(
+        _ => readJwt(headers),
+        user => userOrDefault(user).map(u => Right(u))
+      )
     userAuth.map: e =>
       e.fold(
         {
@@ -95,63 +93,77 @@ class Http4sAuth[F[_]: Sync](
     )
 
   private def jwt(headers: Headers): F[Either[F[Response[F]], PicRequest]] =
-    readJwt(headers)
-      .map: io =>
-        io.map: e =>
-          e.fold(
-            err =>
-              val error = err.error
-              log.warn(s"Unauthorized request errored with $error, headers $headers")
-              Left(unauthorized(Errors(SingleError(error.message, error.key))))
-            ,
-            user => Right(PicRequest.user(user, headers))
-          )
-      .fold(_ => F.pure(Right(PicRequest.anon(headers))), identity)
+    readJwt(headers).map: e =>
+      e.fold(
+        {
+          case MissingCredentials(message, headers) =>
+            Right(PicRequest.anon(headers))
+          case TokenError(error, headers) =>
+            log.warn(s"Unauthorized request errored with $error, headers $headers")
+            Left(unauthorized(Errors(SingleError(error.message, error.key))))
+        },
+        user => Right(PicRequest.user(user, headers))
+      )
 
-  private def readJwt(headers: Headers): Either[IdentityError, F[Either[TokenError, PicUser]]] =
+  private def readJwt(headers: Headers): F[Either[IdentityError, PicUser]] =
     token(headers) match
       case AccessTokenResult(token) =>
-        val res = db
+        db
           .userByToken(token)
           .map: opt =>
             opt
-              .map: u =>
-                PicUser.user(u.username, u.role, u.language)
-              .toRight(TokenError(OAuthError(ErrorMessage("Invalid access token.")), headers))
-        Right(res)
+              .flatMap: u =>
+                u.cognito
+                  .map(id => Cognito(id))
+                  .orElse(u.email.map(e => SocialEmail(e)))
+                  .map: sub =>
+                    PicUser(UserPayload(u.username, sub), u.role, u.language)
+              .toRight[IdentityError]:
+                TokenError(OAuthError(ErrorMessage("Invalid access token.")), headers)
       case IdTokenResult(token) =>
-        val res: F[Either[TokenError, PicUser]] =
-          F.delay(
-            AccessToken
-              .build(token.value)
-              .left
-              .map(err => OAuthError(err))
-              .flatMap(at => ios.validate(at))
-              .orElse(android.validate(token))
-          ).flatMap: e =>
+        cognitoUser(token)
+          .fold(
+            _ => googleUser(token),
+            cognito => F.pure(Right(cognito))
+          )
+          .flatMap: e =>
             e.fold(
-              _ =>
-                google
-                  .validate(token)
-                  .flatMap: e =>
-                    e.fold(
-                      err => F.pure(Left(err)),
-                      email => userOrDefault(PicUsername.fromEmail(email)).map(u => Right(u))
-                    ),
-              cognito => userOrDefault(PicUsername.fromUser(cognito.username)).map(u => Right(u))
+              error => F.pure(Left(TokenError(error, headers))),
+              user => userOrDefault(user).map(u => Right(u))
             )
-          .map: e =>
-              e.left.map: error =>
-                TokenError(error, headers)
-        Right(res)
-      case NoCredentials(headers) => Left(MissingCredentials("Credentials required.", headers))
+      case NoCredentials(headers) =>
+        F.pure(Left(MissingCredentials("Credentials required.", headers)))
 
-  private def userOrDefault(username: PicUsername): F[PicUser] =
-    db.user(username)
+  private def cognitoUser(token: IdToken): Either[AuthError, UserPayload] =
+    cognitoAuth(token).map(u => UserPayload.cognito(u))
+
+  private def cognitoAuth(token: IdToken): Either[AuthError, CognitoUserRef] =
+    AccessToken
+      .build(token.value)
+      .left
+      .map(err => OAuthError(err))
+      .flatMap(at => ios.validate(at))
+      .orElse(android.validate(token))
+      .flatMap: cu =>
+        cu.verified
+          .read[CognitoUserId]("sub")
+          .map: cognitoId =>
+            CognitoUserRef(cognitoId, cu.username)
+
+  private def googleUser(token: IdToken): F[Either[AuthError, UserPayload]] =
+    google
+      .validate(token)
+      .map(e => e.map(email => UserPayload.email(email)))
+
+  private def userOrDefault(user: UserPayload): F[PicUser] =
+    db.loadUser(user)
       .map: userOpt =>
-        val lang = userOpt.map(_.language).getOrElse(Language.default)
-        val role = userOpt.map(_.role).getOrElse(Role.Normal)
-        PicUser.user(username, role, lang)
+        orDefault(user, userOpt)
+
+  private def orDefault(user: UserPayload, userOpt: Option[UserRow]): PicUser =
+    val lang = userOpt.map(_.language).getOrElse(Language.default)
+    val role = userOpt.map(_.role).getOrElse(Role.Normal)
+    PicUser(user, role, lang)
 
   def token(headers: Headers): CredentialsResult = headers
     .get[Authorization]
@@ -181,7 +193,7 @@ class Http4sAuth[F[_]: Sync](
       .removeCookie(removalCookie(cookieNames.provider, req))
       .addCookie(additionCookie(cookieNames.prompt, Social.SelectAccount, req))
 
-  private def user(headers: Headers): Either[IdentityError, PicUsername] =
+  private def user(headers: Headers): Either[IdentityError, UserPayload] =
     readUser(cookieNames.user, headers)
 
   def withPicsUser(
@@ -229,8 +241,8 @@ class Http4sAuth[F[_]: Sync](
       domain = Option.when(top.nonEmpty)(top)
     )
 
-  private def readUser(cookieName: String, headers: Headers): Either[IdentityError, PicUsername] =
-    read[UserPayload](cookieName, headers).map(_.username)
+  private def readUser(cookieName: String, headers: Headers): Either[IdentityError, UserPayload] =
+    read[UserPayload](cookieName, headers)
 
   private def read[T: Decoder](cookieName: String, headers: Headers): Either[IdentityError, T] =
     for
