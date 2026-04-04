@@ -202,7 +202,7 @@ class PicsService[F[_]: Async](
               log.info(s"Syncing ${keys.length} keys...")
               keys
                 .traverse: key =>
-                  db.putMetaIfNotExists(key.withUser(user.user))
+                  db.putMetaIfNotExists(key, user.user)
                 .flatMap: changes =>
                   log.info(s"Sync complete. Upserted ${changes.sum} rows.")
                   seeOther(Reverse.drop)
@@ -363,34 +363,26 @@ class PicsService[F[_]: Async](
           badRequest(Errors(NonEmptyList.of(err)))
 
   private def sendPic(key: Key, size: PicSize, req: Request[F]) =
-    val sendPic = handler(size).storage
-      .find(key)
-      .flatMap: maybeFile =>
-        maybeFile
-          .map: file =>
-            StaticFile
-              .fromPath(file.file, Option(req))
-              .map(_.putHeaders(cached(365.days)))
-              .getOrElseF(notFound(req))
-          .getOrElse:
-            notFoundWith(s"Not found: '$key'.")
-    service.db
-      .meta(key)
-      .flatMap: meta =>
-        if meta.access == Access.Public then sendPic
-        else
-          authed(req): user =>
-            if meta.owner == user.name then sendPic
-            else
-              log.warn(
-                s"User '${user.name}' not authorized to view '$key' owned by '${meta.owner}'."
-              )
-              unauthorized(Errors(s"Unauthorized."), req)
+    authed(req): user =>
+      service.db
+        .meta(key, user.user)
+        .flatMap: _ =>
+          handler(size).storage
+            .find(key)
+            .flatMap: maybeFile =>
+              maybeFile
+                .map: file =>
+                  StaticFile
+                    .fromPath(file.file, Option(req))
+                    .map(_.putHeaders(cached(365.days)))
+                    .getOrElseF(notFound(req))
+                .getOrElse:
+                  notFoundWith(s"Not found: '$key'.")
 
   private def changeAccess(key: Key, to: Access, user: PicRequest, req: Request[F]) =
     if user.readOnly then
       delay(
-        log.warn(s"User '${user.name}' is nota authorized to change access of any images.")
+        log.warn(s"User '${user.name}' is not authorized to change access of any images.")
       ).flatMap: _ =>
         unauthorized(Errors(s"Unauthorized."), req)
     else

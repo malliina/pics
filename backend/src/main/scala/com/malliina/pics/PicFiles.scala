@@ -55,10 +55,10 @@ trait DataSourceT[F[_]: Monad] extends ImageSourceLike[F]:
       else Monad[F].pure(None)
 
 trait MetaSourceT[F[_]] extends SourceLike[F]:
-  def meta(key: Key): F[KeyMeta]
+  def meta(key: Key, user: UserPayload): F[KeyMeta]
   def load(from: NonNeg, until: NonNeg, user: UserPayload): F[List[KeyMeta]]
   def saveMeta(key: Key, owner: UserPayload): F[KeyMeta]
-  def putMetaIfNotExists(meta: KeyMeta): F[Int]
+  def putMetaIfNotExists(meta: FlatMeta, user: UserPayload): F[Int]
   def remove(key: Key, user: UserPayload): F[Boolean]
   def modify(key: Key, user: UserPayload, access: Access): F[KeyMeta]
 

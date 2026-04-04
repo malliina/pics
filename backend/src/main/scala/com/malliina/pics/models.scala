@@ -1,10 +1,9 @@
 package com.malliina.pics
 
 import com.malliina.http.{FullUrl, SingleError}
-import com.malliina.pics.auth.{Cognito, PicUser, SocialEmail, UserPayload}
+import com.malliina.pics.auth.{PicUser, UserPayload}
 import com.malliina.pics.http4s.{Reverse, Urls}
-import com.malliina.values.Literals.err
-import com.malliina.values.{Email, ErrorMessage, NonNeg}
+import com.malliina.values.{Email, NonNeg}
 import fs2.io.file.Path
 import io.circe.Codec
 import org.apache.commons.io.FilenameUtils
@@ -80,26 +79,16 @@ object Keys:
 
   def randomish(): Key = Key.build(generator.generate(Key.Length).toLowerCase).toOption.get
 
-case class FlatMeta(key: Key, lastModified: Instant):
-  def withUser(user: UserPayload) = KeyMeta(key, user, Access.Private, lastModified)
+case class FlatMeta(key: Key, lastModified: Instant)
 
-case class KeyMetaRow(
+case class KeyMeta(
   key: Key,
   username: PicUsername,
   email: Option[Email],
   cognito: Option[CognitoUserId],
   access: Access,
   added: Instant
-):
-  def toMeta: Either[ErrorMessage, KeyMeta] =
-    email
-      .map(SocialEmail(_))
-      .orElse(cognito.map(Cognito(_)))
-      .map: sub =>
-        KeyMeta(key, UserPayload(username, sub), access, added)
-      .toRight(err"Missing both email and cognito identifier.")
-
-case class KeyMeta(key: Key, owner: UserPayload, access: Access, added: Instant)
+)
 
 object PicMetas:
   def from[F[_]](meta: KeyMeta, rh: Request[F]): PicMeta = fromHost(meta, Urls.hostOnly(rh))

@@ -48,6 +48,11 @@ case class UserPayload(
   def cognito: Option[CognitoUserId] = subject match
     case Cognito(id) => Option(id)
     case _           => None
+  def describe: String =
+    val emailStr = email.fold("")(e => s" (email $e)")
+    val cognitoStr = cognito.fold("")(id => s" (id $id)")
+    s"$username$emailStr$cognitoStr"
+  override def toString = describe
 
 object UserPayload:
   val anon = user(PicUsername.anon)

@@ -4,9 +4,9 @@ import cats.implicits.*
 import com.malliina.database.DoobieDatabase
 import com.malliina.pics.auth.{Cognito, SocialEmail, SpecialUser, UserPayload, UserSubject}
 import com.malliina.pics.db.PicsDatabase.log
-import com.malliina.pics.{Access, AlreadyExists, Key, KeyMeta, KeyMetaRow, KeyNotFound, Language, MetaSourceT, PicUsername, Role, UserDatabase}
+import com.malliina.pics.{Access, AlreadyExists, FlatMeta, Key, KeyMeta, KeyNotFound, Language, MetaSourceT, PicUsername, Role, UserDatabase}
 import com.malliina.util.AppLogger
-import com.malliina.values.{AccessToken, ErrorMessage, NonNeg, UserId}
+import com.malliina.values.{AccessToken, NonNeg, UserId}
 import doobie.ConnectionIO
 import doobie.implicits.*
 import doobie.util.fragment.Fragment
@@ -15,9 +15,22 @@ object PicsDatabase:
   private val log = AppLogger(getClass)
 
 class PicsDatabase[F[_]](db: DoobieDatabase[F]) extends MetaSourceT[F] with UserDatabase[F]:
-  override def meta(key: Key): F[KeyMeta] = db.run:
-    keyQuery(key).option.flatMap: opt =>
-      opt.flatMap(r => r.toMeta.toOption).map(pure).getOrElse(fail(KeyNotFound(key)))
+  override def meta(key: Key, user: UserPayload): F[KeyMeta] = db.run:
+    keyQuery(key).option.flatMap: metaOpt =>
+      metaOpt
+        .map: meta =>
+          if meta.access == Access.Public then pure(meta)
+          else
+            existingUser(user).flatMap: u =>
+              ownsKey(key, u).flatMap: owns =>
+                if owns then pure(meta)
+                else
+                  log.warn(
+                    s"User '$user' not authorized to view ${meta.access} '$key' owned by '${meta.username}'."
+                  )
+                  fail(KeyNotFound(key))
+        .getOrElse:
+          fail(KeyNotFound(key))
 
   def load(offset: NonNeg, limit: NonNeg, user: UserPayload): F[List[KeyMeta]] = db.run:
     userIO(user).flatMap: uOpt =>
@@ -26,7 +39,7 @@ class PicsDatabase[F[_]](db: DoobieDatabase[F]) extends MetaSourceT[F] with User
           val frag = fr"""and u.id = ${row.id}
                           order by p.added desc limit $limit offset $offset
                          """
-          metaQuery(frag).to[List].map(_.flatMap(_.toMeta.toOption))
+          metaQuery(frag).to[List]
         .getOrElse:
           pure(Nil)
 
@@ -36,10 +49,9 @@ class PicsDatabase[F[_]](db: DoobieDatabase[F]) extends MetaSourceT[F] with User
       user <- fetchOrCreateUser(owner)
       _ <- sql"insert into pics(`key`, user, access) values ($key, ${user.id}, $access)".update.run
       row <- metaQuery(fr"and p.`key` = $key and u.id = ${user.id}").unique
-      meta <- row.toMeta.fold(err => failErr(err), ok => pure(ok))
     yield
       log.info(s"Inserted '$key' by '${user.username}'.")
-      meta
+      row
 
   def remove(key: Key, user: UserPayload): F[Boolean] = db.run:
     existingUser(user).flatMap: row =>
@@ -52,13 +64,8 @@ class PicsDatabase[F[_]](db: DoobieDatabase[F]) extends MetaSourceT[F] with User
 
   override def modify(key: Key, user: UserPayload, access: Access): F[KeyMeta] = db.run:
     existingUser(user).flatMap: row =>
-      val owns = sql"""select exists(select p.`key`
-                                     from pics p, users u
-                                     where p.user = u.id and p.`key` = $key and u.id = ${row.id})"""
-        .query[Boolean]
-        .unique
       for
-        ownsPic <- owns
+        ownsPic <- ownsKey(key, row)
         _ <- if !ownsPic then fail(KeyNotFound(key)) else pure(())
         _ <-
           sql"update pics set access = $access where `key` = $key and user = ${row.id}".update.run
@@ -67,21 +74,29 @@ class PicsDatabase[F[_]](db: DoobieDatabase[F]) extends MetaSourceT[F] with User
         log.info(s"User $user changed access of $key to $access.")
         row
 
+  private def ownsKey(key: Key, user: UserRow): ConnectionIO[Boolean] =
+    sql"""select exists(select p.`key`
+                        from pics p, users u
+                        where p.user = u.id and p.`key` = $key and u.id = ${user.id})"""
+      .query[Boolean]
+      .unique
+
   def contains(key: Key): F[Boolean] = db.run:
     existsQuery(key)
 
   private def existsQuery(key: Key) =
     sql"select exists(select `key` from pics where `key` = $key)".query[Boolean].unique
 
-  def putMetaIfNotExists(meta: KeyMeta): F[Int] = db.run:
+  def putMetaIfNotExists(meta: FlatMeta, user: UserPayload): F[Int] = db.run:
     val q = existsQuery(meta.key)
     q.flatMap: exists =>
       if exists then pure(0)
       else
         for
-          user <- fetchOrCreateUser(meta.owner)
+          user <- fetchOrCreateUser(user)
           rows <-
-            sql"insert into pics(`key`, user, access, added) values(${meta.key}, ${user.id}, ${meta.access}, ${meta.added})".update.run
+            sql"""insert into pics(`key`, user, access, added)
+                  values(${meta.key}, ${user.id}, ${Access.Private}, ${meta.lastModified})""".update.run
         yield rows
 
   def userByToken(token: AccessToken): F[Option[UserRow]] = db.run:
@@ -110,15 +125,14 @@ class PicsDatabase[F[_]](db: DoobieDatabase[F]) extends MetaSourceT[F] with User
     sql"""select u.id, u.username, u.email, u.cognito_sub, u.role, u.language, u.added
           from users u"""
 
-  private def metaRow(key: Key) =
-    keyQuery(key).unique.flatMap(row => row.toMeta.fold(err => failErr(err), ok => pure(ok)))
+  private def metaRow(key: Key) = keyQuery(key).unique
 
   private def keyQuery(key: Key) = metaQuery(fr"and p.`key` = $key")
 
   private def metaQuery(fragment: Fragment) =
     sql"""select p.`key`, u.username, u.email, u.cognito_sub, p.access, p.added
           from pics p, users u
-          where p.user = u.id $fragment""".query[KeyMetaRow]
+          where p.user = u.id $fragment""".query[KeyMeta]
 
   private def fetchOrCreateUser(user: UserPayload): ConnectionIO[UserRow] =
     for
@@ -143,5 +157,4 @@ class PicsDatabase[F[_]](db: DoobieDatabase[F]) extends MetaSourceT[F] with User
 
   private def pure[T](t: T): ConnectionIO[T] = t.pure[ConnectionIO]
 
-  private def failErr[A](error: ErrorMessage): ConnectionIO[A] = fail(Exception(error.message))
   private def fail[A](e: Exception): ConnectionIO[A] = e.raiseError[ConnectionIO, A]
