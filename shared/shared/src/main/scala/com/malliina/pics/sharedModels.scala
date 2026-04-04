@@ -28,7 +28,7 @@ enum Role(val name: String):
 
 object Role extends StringEnumCompanion[Role]:
   val FormKey = "role"
-  override def all: Seq[Role] = Seq(Normal, Admin)
+  override def all: Seq[Role] = Seq(Normal, Admin, ReadOnly)
   override def write(t: Role): String = t.name
   val default = Normal
 
