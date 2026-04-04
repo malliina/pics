@@ -1,5 +1,6 @@
 package com.malliina.pics.auth
 
+import cats.syntax.all.toShow
 import com.malliina.pics.auth.AppleTokenValidator.appleIssuer
 import com.malliina.pics.auth.SignInWithApple.{Conf, log}
 import com.malliina.util.AppLogger
@@ -48,9 +49,9 @@ class SignInWithApple(conf: Conf):
       .issuer(conf.teamId)
       .issueTime(issuedAt)
       .expirationTime(exp)
-      .audience(appleIssuer.value)
-      .subject(conf.clientId.value)
+      .audience(appleIssuer.show)
+      .subject(conf.clientId.show)
       .build()
     val signable = new SignedJWT(header, claims)
     signable.sign(signer)
-    ClientSecret(signable.serialize())
+    ClientSecret.unsafe(signable.serialize())

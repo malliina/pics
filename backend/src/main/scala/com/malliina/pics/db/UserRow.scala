@@ -1,7 +1,8 @@
 package com.malliina.pics.db
 
-import com.malliina.pics.{CognitoUserId, Language, PicUsername, Role}
+import com.malliina.pics.{Language, PicUsername, Role}
 import com.malliina.values.Email
+import com.malliina.web.CognitoUserId
 
 import java.time.Instant
 

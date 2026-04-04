@@ -4,25 +4,25 @@ import java.time.Instant
 import cats.effect.Sync
 import cats.syntax.all.*
 import com.malliina.http.{FullUrl, HttpClient}
+import com.malliina.http4s.FormReadableT
 import com.malliina.oauth.TokenResponse
 import com.malliina.pics.auth.AppleAuthFlow.staticConf
-import com.malliina.values.{Email, ErrorMessage}
+import com.malliina.values.Email
 import com.malliina.web.OAuthKeys.*
 import com.malliina.web.*
-import org.http4s.UrlForm
+import com.malliina.web.WebLiterals.issuer
 
 case class AppleResponse(code: Code, state: String)
 
 object AppleResponse:
-  def apply(form: UrlForm): Either[ErrorMessage, AppleResponse] =
-    def read(key: String) = form.getFirst(key).toRight(ErrorMessage(s"Not found: '$key' in $form."))
+  given FormReadableT[AppleResponse] = FormReadableT.reader.emap: reader =>
     for
-      code <- read(CodeKey).map(Code.apply)
-      state <- read(State)
+      code <- reader.read[Code](CodeKey)
+      state <- reader.read[String](State)
     yield AppleResponse(code, state)
 
 object AppleTokenValidator:
-  val appleIssuer = Issuer("https://appleid.apple.com")
+  val appleIssuer = issuer"https://appleid.apple.com"
 
   def apply(clientIds: Seq[ClientId]) = new AppleTokenValidator(clientIds, Seq(appleIssuer))
 
@@ -32,7 +32,7 @@ class AppleTokenValidator(clientIds: Seq[ClientId], issuers: Seq[Issuer])
     parsed: ParsedJWT,
     now: Instant
   ): Either[JWTError, ParsedJWT] =
-    checkContains(Aud, clientIds.map(_.value), parsed).map: _ =>
+    checkContains(Aud, clientIds.map(_.show), parsed).map: _ =>
       parsed
 
 object AppleAuthFlow:
@@ -77,9 +77,9 @@ class AppleAuthFlow[F[_]: Sync](
     Map(ResponseType -> CodeKey, "response_mode" -> "form_post")
 
   private def tokenParameters(code: Code, redirUrl: FullUrl) = Map(
-    ClientIdKey -> authConf.clientId.value,
-    ClientSecretKey -> authConf.clientSecret.value,
+    ClientIdKey -> authConf.clientId.show,
+    ClientSecretKey -> authConf.clientSecret.show,
     GrantType -> AuthorizationCode,
-    CodeKey -> code.code,
+    CodeKey -> code.show,
     RedirectUri -> redirUrl.url
   )

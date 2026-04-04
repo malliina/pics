@@ -32,8 +32,6 @@ object Role extends StringEnumCompanion[Role]:
   override def write(t: Role): String = t.name
   val default = Normal
 
-case class CognitoUser(id: CognitoUserId, username: Username)
-
 opaque type PicUsername = String
 
 object PicUsername extends ValidatedString[PicUsername]:
@@ -44,17 +42,6 @@ object PicUsername extends ValidatedString[PicUsername]:
   extension (o: PicUsername) def name = write(o)
   def fromUser(username: Username): PicUsername = username.name
   def fromEmail(email: Email): PicUsername = email.email
-
-opaque type CognitoUserId = String
-
-object CognitoUserId extends ValidatedString[CognitoUserId]:
-  override def build(input: String): Either[ErrorMessage, CognitoUserId] =
-    if input.nonEmpty then Right(input)
-    else Left(ErrorMessage(s"Invalid user: '$input'."))
-
-  override def write(t: CognitoUserId): String = t
-
-case class CognitoUserRef(sub: CognitoUserId, username: Username)
 
 case class ProfileInfo(user: PicUsername, readOnly: Boolean)
 

@@ -1,6 +1,7 @@
 package com.malliina.pics.auth
 
-import com.malliina.web.{Issuer, LiberalValidator}
+import com.malliina.web.LiberalValidator
+import com.malliina.web.WebLiterals.issuer
 
 object LiberalValidators:
-  val auth0 = LiberalValidator(KeyConfs.auth0, Issuer("https://malliina.eu.auth0.com/"))
+  val auth0 = LiberalValidator(KeyConfs.auth0, issuer"https://malliina.eu.auth0.com/")

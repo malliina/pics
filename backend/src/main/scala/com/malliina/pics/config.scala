@@ -126,5 +126,5 @@ object PicsConf:
     privateKey,
     "KYBY5Q5QD3",
     "D2T2QC36Z9",
-    ClientId("com.malliina.pics.client")
+    ClientId.unsafe("com.malliina.pics.client")
   )

@@ -39,5 +39,5 @@ class Socials[F[_]: Sync](conf: SocialConf, http: HttpClient[F]):
       AuthConf(appleConf.clientId, token)
     .getOrElse:
       log.info("Sign in with Apple is disabled.")
-      AuthConf(ClientId("unused"), ClientSecret("disabled"))
+      AuthConf(ClientId.unsafe("unused"), ClientSecret.unsafe("disabled"))
   val apple = AppleAuthFlow(appleConf, AppleTokenValidator(Seq(appleConf.clientId)), http)

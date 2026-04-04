@@ -22,32 +22,32 @@ object Social:
   )
 
   def google(secret: ClientSecret) = AuthConf(
-    ClientId("122390040180-78dau8o0fd6eelgfdhed6g2pj4hlh701.apps.googleusercontent.com"),
+    ClientId.unsafe("122390040180-78dau8o0fd6eelgfdhed6g2pj4hlh701.apps.googleusercontent.com"),
     secret
   )
 
   def github(secret: ClientSecret) = AuthConf(
-    ClientId("9f6720de7a1c2b04a9b2"),
+    ClientId.unsafe("9f6720de7a1c2b04a9b2"),
     secret
   )
 
   def microsoft(secret: ClientSecret) = AuthConf(
-    ClientId("cafee8ae-14be-49e1-9ef4-3152e1412799"),
+    ClientId.unsafe("cafee8ae-14be-49e1-9ef4-3152e1412799"),
     secret
   )
 
   def facebook(secret: ClientSecret) = AuthConf(
-    ClientId("2044590915867453"),
+    ClientId.unsafe("2044590915867453"),
     secret
   )
 
   def twitter(secret: ClientSecret) = AuthConf(
-    ClientId("nFdM58PDsZoCrVmyEsPmwmqqB"),
+    ClientId.unsafe("nFdM58PDsZoCrVmyEsPmwmqqB"),
     secret
   )
 
   def amazon(secret: ClientSecret) = AuthConf(
-    ClientId("2rnqepv44epargdosba6nlg2t9"),
+    ClientId.unsafe("2rnqepv44epargdosba6nlg2t9"),
     secret
   )
 

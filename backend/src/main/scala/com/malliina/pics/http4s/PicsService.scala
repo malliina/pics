@@ -502,7 +502,7 @@ class PicsService[F[_]: Async](
     val cb = Callback(
       params.get(OAuthKeys.State),
       session.get(State),
-      params.get(OAuthKeys.CodeKey),
+      params.get(OAuthKeys.CodeKey).flatMap(s => Code.build(s).toOption),
       session.get(Nonce),
       Urls.hostOnly(req) / reverse.callback.renderString
     )
@@ -514,35 +514,31 @@ class PicsService[F[_]: Async](
 
   private def handleAppleCallback(
     req: Request[F]
-  )(using decoder: EntityDecoder[F, UrlForm]): F[Response[F]] =
+  )(using decoder: EntityDecoder[F, AppleResponse]): F[Response[F]] =
     decoder
       .decode(req, strict = false)
       .foldF(
         failure => unauthorized(Errors(failure.message), req),
-        urlForm =>
-          AppleResponse(urlForm)
-            .map: form =>
-              val session =
-                auth.session[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
-              val actualState = form.state
-              val sessionState = session.get(State)
-              if sessionState.contains(actualState) then
-                val redirectUrl = Urls.hostOnly(req) / reverseSocial.apple.callback.renderString
-                socials.apple
-                  .validate(form.code, redirectUrl, session.get(Nonce))
-                  .flatMap: e =>
-                    e.fold(
-                      err => unauthorized(Errors(err.message), req),
-                      email => userResult(email, Apple, req)
-                    )
-              else
-                val detailed =
-                  sessionState.fold(s"Got '$actualState' but found nothing to compare to."):
-                    expected => s"Got '$actualState' but expected '$expected'."
-                log.error(s"Authentication failed, state mismatch. $detailed $req")
-                unauthorized(Errors("State mismatch."), req)
-            .recover: err =>
-              unauthorized(Errors(err), req)
+        form =>
+          val session =
+            auth.session[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
+          val actualState = form.state
+          val sessionState = session.get(State)
+          if sessionState.contains(actualState) then
+            val redirectUrl = Urls.hostOnly(req) / reverseSocial.apple.callback.renderString
+            socials.apple
+              .validate(form.code, redirectUrl, session.get(Nonce))
+              .flatMap: e =>
+                e.fold(
+                  err => unauthorized(Errors(err.message), req),
+                  email => userResult(email, Apple, req)
+                )
+          else
+            val detailed =
+              sessionState.fold(s"Got '$actualState' but found nothing to compare to."): expected =>
+                s"Got '$actualState' but expected '$expected'."
+            log.error(s"Authentication failed, state mismatch. $detailed $req")
+            unauthorized(Errors("State mismatch."), req)
       )
 
   private def userResult(

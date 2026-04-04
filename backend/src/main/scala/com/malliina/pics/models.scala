@@ -4,6 +4,7 @@ import com.malliina.http.{FullUrl, SingleError}
 import com.malliina.pics.auth.{PicUser, UserPayload}
 import com.malliina.pics.http4s.{Reverse, Urls}
 import com.malliina.values.{Email, NonNeg}
+import com.malliina.web.CognitoUserId
 import fs2.io.file.Path
 import io.circe.Codec
 import org.apache.commons.io.FilenameUtils

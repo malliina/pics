@@ -12,7 +12,7 @@ val versions = new {
   val s3 = "2.42.23"
   val scala = "3.8.2"
   val scrimage = "4.3.10"
-  val util = "6.13.0"
+  val util = "6.14.0"
 }
 
 inThisBuild(

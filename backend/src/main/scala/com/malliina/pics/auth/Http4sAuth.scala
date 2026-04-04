@@ -9,10 +9,10 @@ import com.malliina.pics.auth.Http4sAuth.log
 import com.malliina.pics.db.{PicsDatabase, UserRow}
 import com.malliina.pics.http4s.PicsService.version10
 import com.malliina.pics.http4s.{PicsBasicService, PicsService, Reverse, Urls}
-import com.malliina.pics.{AppConf, CognitoUserId, CognitoUserRef, Language, PicRequest, Role}
+import com.malliina.pics.{AppConf, Language, PicRequest, Role}
 import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, ErrorMessage, IdToken}
-import com.malliina.web.{AuthError, CognitoAccessValidator, CognitoIdValidator, OAuthError}
+import com.malliina.web.{AuthError, CognitoAccessValidator, CognitoIdValidator, CognitoUser, OAuthError}
 import io.circe.*
 import io.circe.syntax.EncoderOps
 import org.http4s.*
@@ -137,18 +137,13 @@ class Http4sAuth[F[_]: Sync](
   private def cognitoUser(token: IdToken): Either[AuthError, UserPayload] =
     cognitoAuth(token).map(u => UserPayload.cognito(u))
 
-  private def cognitoAuth(token: IdToken): Either[AuthError, CognitoUserRef] =
+  private def cognitoAuth(token: IdToken): Either[AuthError, CognitoUser] =
     AccessToken
       .build(token.value)
       .left
       .map(err => OAuthError(err))
       .flatMap(at => ios.validate(at))
       .orElse(android.validate(token))
-      .flatMap: cu =>
-        cu.verified
-          .read[CognitoUserId]("sub")
-          .map: cognitoId =>
-            CognitoUserRef(cognitoId, cu.username)
 
   private def googleUser(token: IdToken): F[Either[AuthError, UserPayload]] =
     google
