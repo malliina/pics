@@ -1,0 +1,11 @@
+object versions:
+  val ci = "1.4.2"
+  val circe = "0.14.10"
+  val commonsText = "1.15.0"
+  val mariadb = "3.5.7"
+  val munit = "1.3.6"
+  val munitCats = "2.2.0"
+  val s3 = "2.42.23"
+  val scala = "3.9.0"
+  val scrimage = "4.3.10"
+  val util = "6.15.4"

@@ -2,19 +2,6 @@ import com.malliina.rollup.CommonKeys.isProd
 import org.scalajs.sbtplugin.Stage
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 
-val versions = new {
-  val ci = "1.4.2"
-  val circe = "0.14.10"
-  val commonsText = "1.15.0"
-  val mariadb = "3.5.7"
-  val munit = "1.2.4"
-  val munitCats = "2.2.0"
-  val s3 = "2.42.23"
-  val scala = "3.8.2"
-  val scrimage = "4.3.10"
-  val util = "6.14.0"
-}
-
 inThisBuild(
   Seq(
     organization := "com.malliina",
@@ -47,11 +34,11 @@ val cross = crossProject(JSPlatform, JVMPlatform)
   .settings(
     libraryDependencies ++=
       Seq("generic", "parser").map { m =>
-        "io.circe" %%% s"circe-$m" % versions.circe
+        "io.circe" %% s"circe-$m" % versions.circe
       } ++ Seq(
-        "org.typelevel" %%% "case-insensitive" % versions.ci,
-        "com.malliina" %%% "primitives" % versions.util,
-        "com.malliina" %%% "util-html" % versions.util
+        "org.typelevel" %% "case-insensitive" % versions.ci,
+        "com.malliina" %% "primitives" % versions.util,
+        "com.malliina" %% "util-html" % versions.util
       )
   )
 
