@@ -8,6 +8,8 @@ import com.malliina.http.HttpClient
 import com.malliina.logstreams.client.LogstreamsUtils
 import com.malliina.pics.BuildInfo
 
+import scala.concurrent.duration.DurationInt
+
 object AppLogging:
   val userAgent = s"Pics/${BuildInfo.version} (${BuildInfo.gitHash.take(7)})"
 
@@ -19,6 +21,6 @@ object AppLogging:
     )
 
   def resource[F[_]: Async](d: Dispatcher[F], http: HttpClient[F]): Resource[F, Boolean] =
-    Resource.make(LogstreamsUtils.installIfEnabled("pics", userAgent, d, http))(_ =>
+    Resource.make(LogstreamsUtils.installIfEnabled("pics", userAgent, 1.seconds, d, http))(_ =>
       Sync[F].delay(LogbackUtils.loggerContext.stop())
     )

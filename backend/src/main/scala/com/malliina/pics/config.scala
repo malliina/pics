@@ -104,22 +104,22 @@ object PicsConf:
         siwaPrivateKey.map(key => siwaConf(key))
       )
 
-  private def prodDatabaseConf(password: Password, maxPoolSize: Int) = Conf(
+  private def prodDatabaseConf(password: Password, maxPoolSize: Int) =
+    databaseConf(password, maxPoolSize, true)
+
+  private def devDatabaseConf(password: Password) =
+    databaseConf(password, 2, true)
+
+  private def databaseConf(password: Password, maxPoolSize: Int, autoMigrate: Boolean) = Conf(
     url"jdbc:mariadb://localhost:3306/pics",
     "pics",
     password,
     mariaDbDriver,
     maxPoolSize,
-    autoMigrate = true
-  )
-
-  private def devDatabaseConf(password: Password) = Conf(
-    url"jdbc:mariadb://localhost:3306/pics",
-    "pics",
-    password,
-    mariaDbDriver,
-    2,
-    autoMigrate = true
+    Conf.DefaultMaxLifetime,
+    Conf.DefaultKeepaliveTime,
+    Conf.DefaultIdleTimeout,
+    autoMigrate = autoMigrate
   )
 
   private def siwaConf(privateKey: Path) = SignInWithApple.Conf(

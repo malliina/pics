@@ -3,6 +3,7 @@ package com.malliina.pics.db
 import com.malliina.pics.{Language, PicUsername, Role}
 import com.malliina.values.Email
 import com.malliina.web.CognitoUserId
+import doobie.Read
 
 import java.time.Instant
 
@@ -14,4 +15,4 @@ case class UserRow(
   role: Role,
   language: Language,
   added: Instant
-)
+) derives Read

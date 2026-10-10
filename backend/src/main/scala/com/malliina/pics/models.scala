@@ -2,9 +2,11 @@ package com.malliina.pics
 
 import com.malliina.http.{FullUrl, SingleError}
 import com.malliina.pics.auth.{PicUser, UserPayload}
+import com.malliina.pics.db.given
 import com.malliina.pics.http4s.{Reverse, Urls}
 import com.malliina.values.{Email, NonNeg}
 import com.malliina.web.CognitoUserId
+import doobie.Read
 import fs2.io.file.Path
 import io.circe.Codec
 import org.apache.commons.io.FilenameUtils
@@ -89,7 +91,7 @@ case class KeyMeta(
   cognito: Option[CognitoUserId],
   access: Access,
   added: Instant
-)
+) derives Read
 
 object PicMetas:
   def from[F[_]](meta: KeyMeta, rh: Request[F]): PicMeta = fromHost(meta, Urls.hostOnly(rh))

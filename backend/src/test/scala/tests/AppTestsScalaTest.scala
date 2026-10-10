@@ -40,7 +40,10 @@ trait MUnitDatabaseSuite:
       "testpics",
       password,
       PicsConf.mariaDbDriver,
-      maxPoolSize = 2,
+      2,
+      Conf.DefaultMaxLifetime,
+      Conf.DefaultKeepaliveTime,
+      Conf.DefaultIdleTimeout,
       autoMigrate = true
     )
 

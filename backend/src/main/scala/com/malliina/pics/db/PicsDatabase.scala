@@ -1,6 +1,6 @@
 package com.malliina.pics.db
 
-import cats.implicits.*
+import cats.syntax.all.{catsSyntaxApplicativeId, catsSyntaxApplicativeErrorId}
 import com.malliina.database.DoobieDatabase
 import com.malliina.pics.auth.{Cognito, SocialEmail, SpecialUser, UserPayload, UserSubject}
 import com.malliina.pics.db.PicsDatabase.log
@@ -8,8 +8,8 @@ import com.malliina.pics.{Access, AlreadyExists, FlatMeta, Key, KeyMeta, KeyNotF
 import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, NonNeg, UserId}
 import doobie.ConnectionIO
-import doobie.implicits.*
 import doobie.util.fragment.Fragment
+import doobie.syntax.all.toSqlInterpolator
 
 object PicsDatabase:
   private val log = AppLogger(getClass)

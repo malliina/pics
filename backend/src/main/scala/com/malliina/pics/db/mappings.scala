@@ -2,7 +2,7 @@ package com.malliina.pics.db
 
 import cats.Show
 import com.malliina.pics.{Access, Key, Language, PicUsername, Role}
-import com.malliina.values.{Email, ErrorMessage, NonNeg, Username, ValidatingCompanion}
+import com.malliina.values.{AccessToken, Email, ErrorMessage, NonNeg, UserId, Username, ValidatingCompanion}
 import com.malliina.web.CognitoUserId
 import doobie.Meta
 
@@ -18,6 +18,8 @@ given Meta[NonNeg] = validated(NonNeg)
 given Meta[Role] = validated(Role)
 given Meta[Language] = validated(Language)
 given Meta[CognitoUserId] = validated(CognitoUserId)
+given Meta[AccessToken] = validated(AccessToken)
+given Meta[UserId] = validated(UserId)
 
 private def validated[T, R: {Meta, Show}, C <: ValidatingCompanion[R, T]](c: C): Meta[T] =
   Meta[R].tiemap(r => c.build(r).left.map(err => err.message))(c.write)
